@@ -157,7 +157,7 @@ const MAX_REVIEWERS_TO_REWARD: u64 = 10;
 /// Represents a service
 public struct Service has key, store {
     id: UID,
-    reward_pool: Balance<SUI>,
+    reward_pool: Balance<HC>,
     reward: u64,
     top_reviews: vector<ID>,
     reviews: ObjectTable<ID, Review>,

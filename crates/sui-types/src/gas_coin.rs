@@ -8,8 +8,10 @@ use move_core_types::{
     language_storage::{StructTag, TypeTag},
 };
 use serde::{Deserialize, Serialize};
-use std::convert::{TryFrom, TryInto};
-use std::fmt::{Display, Formatter};
+use std::{
+    convert::{TryFrom, TryInto},
+    fmt::{Display, Formatter},
+};
 
 use crate::{
     balance::Balance,
@@ -22,17 +24,17 @@ use crate::{
 };
 
 /// The number of Mist per Sui token
-pub const MIST_PER_SUI: u64 = 1_000_000_000;
+pub const MIST_PER_HC: u64 = 1_000_000_000;
 
 /// Total supply denominated in Sui
-pub const TOTAL_SUPPLY_SUI: u64 = 10_000_000_000;
+pub const TOTAL_SUPPLY_HC: u64 = 10_000_000_000;
 
 // Note: cannot use checked arithmetic here since `const unwrap` is still unstable.
 /// Total supply denominated in Mist
-pub const TOTAL_SUPPLY_MIST: u64 = TOTAL_SUPPLY_SUI * MIST_PER_SUI;
+pub const TOTAL_SUPPLY_MIST: u64 = TOTAL_SUPPLY_HC * MIST_PER_HC;
 
-pub const GAS_MODULE_NAME: &IdentStr = ident_str!("sui");
-pub const GAS_STRUCT_NAME: &IdentStr = ident_str!("SUI");
+pub const GAS_MODULE_NAME: &IdentStr = ident_str!("hc");
+pub const GAS_STRUCT_NAME: &IdentStr = ident_str!("HC");
 
 pub use checked::*;
 
@@ -67,7 +69,7 @@ mod checked {
         }
     }
 
-    /// Rust version of the Move sui::coin::Coin<Sui::sui::SUI> type
+    /// Rust version of the Move sui::coin::Coin<Sui::hc::HC> type
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct GasCoin(pub Coin);
 
@@ -84,16 +86,14 @@ mod checked {
             Coin::type_(TypeTag::Struct(Box::new(GAS::type_())))
         }
 
-        /// Return `true` if `s` is the type of a gas coin (i.e., 0x2::coin::Coin<0x2::sui::SUI>)
+        /// Return `true` if `s` is the type of a gas coin (i.e., 0x2::coin::Coin<0x2::hc::HC>)
         pub fn is_gas_coin(s: &StructTag) -> bool {
             Coin::is_coin(s) && s.type_params.len() == 1 && GAS::is_gas_type(&s.type_params[0])
         }
 
-        /// Return `true` if `s` is the type of a gas balance (i.e., 0x2::balance::Balance<0x2::sui::SUI>)
+        /// Return `true` if `s` is the type of a gas balance (i.e., 0x2::balance::Balance<0x2::hc::HC>)
         pub fn is_gas_balance(s: &StructTag) -> bool {
-            Balance::is_balance(s)
-                && s.type_params.len() == 1
-                && GAS::is_gas_type(&s.type_params[0])
+            Balance::is_balance(s) && s.type_params.len() == 1 && GAS::is_gas_type(&s.type_params[0])
         }
 
         pub fn id(&self) -> &ObjectID {

@@ -44,18 +44,14 @@ impl RetryConfig {
 
     /// Default for [`RetryConfig::max_retry_interval`] (500 ms).
     pub const DEFAULT_INITIAL_RETRY_INTERVAL: Duration = Duration::from_millis(500);
-
     /// Default for [`RetryConfig::max_retry_interval`] (15 s).
     pub const DEFAULT_MAX_RETRY_INTERVAL: Duration = Duration::from_secs(15);
-
-    /// Default for [`RetryConfig::retry_delay_multiplier`] (x1.5).
-    pub const DEFAULT_RETRY_INTERVAL_MULTIPLIER: f64 = 1.5;
-
-    /// Default for [`RetryConfig::retry_delay_rand_factor`] (0.3).
-    pub const DEFAULT_RETRY_DELAY_RAND_FACTOR: f64 = 0.3;
-
     /// Default for [`RetryConfig::retrying_max_elapsed_time`] (30 s).
     pub const DEFAULT_RETRYING_MAX_ELAPSED_TIME: Duration = Duration::from_secs(30);
+    /// Default for [`RetryConfig::retry_delay_rand_factor`] (0.3).
+    pub const DEFAULT_RETRY_DELAY_RAND_FACTOR: f64 = 0.3;
+    /// Default for [`RetryConfig::retry_delay_multiplier`] (x1.5).
+    pub const DEFAULT_RETRY_INTERVAL_MULTIPLIER: f64 = 1.5;
 
     // Perform `op` and retry on errors as specified by this configuration.
     //

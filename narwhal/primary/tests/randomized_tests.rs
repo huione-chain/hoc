@@ -1,36 +1,36 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 use config::{Authority, AuthorityIdentifier, Committee, Stake};
-use fastcrypto::hash::Hash;
-use fastcrypto::hash::HashFunction;
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
+use fastcrypto::hash::{Hash, HashFunction};
+use futures::{stream::FuturesUnordered, StreamExt};
 use narwhal_primary::consensus::{
-    make_consensus_store, Bullshark, ConsensusMetrics, ConsensusState, LeaderSchedule,
+    make_consensus_store,
+    Bullshark,
+    ConsensusMetrics,
+    ConsensusState,
+    LeaderSchedule,
     LeaderSwapTable,
 };
 use prometheus::Registry;
-use rand::distributions::Bernoulli;
-use rand::distributions::Distribution;
-use rand::prelude::SliceRandom;
-use rand::rngs::StdRng;
-use rand::Rng;
-use rand::SeedableRng;
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::num::NonZeroUsize;
-use std::ops::RangeInclusive;
-use std::sync::Arc;
+use rand::{
+    distributions::{Bernoulli, Distribution},
+    prelude::SliceRandom,
+    rngs::StdRng,
+    Rng,
+    SeedableRng,
+};
+use std::{
+    collections::{BTreeSet, HashMap, HashSet, VecDeque},
+    num::NonZeroUsize,
+    ops::RangeInclusive,
+    sync::Arc,
+};
 use storage::ConsensusStore;
 use sui_protocol_config::ProtocolConfig;
-use test_utils::latest_protocol_version;
-use test_utils::mock_certificate_with_rand;
-use test_utils::CommitteeFixture;
+use test_utils::{latest_protocol_version, mock_certificate_with_rand, CommitteeFixture};
 #[allow(unused_imports)]
 use tokio::sync::mpsc::channel;
-use types::CertificateAPI;
-use types::HeaderAPI;
-use types::Round;
-use types::{Certificate, CertificateDigest};
+use types::{Certificate, CertificateAPI, CertificateDigest, HeaderAPI, Round};
 
 #[derive(Copy, Clone, Debug)]
 pub struct FailureModes {
@@ -142,15 +142,9 @@ async fn bullshark_randomised_tests() {
 
                             run_id += 1;
 
-                            tx.send(TestData {
-                                dag_rounds,
-                                gc_depth,
-                                run_id,
-                                committee_size,
-                                mode: *mode,
-                            })
-                            .await
-                            .unwrap();
+                            tx.send(TestData { dag_rounds, gc_depth, run_id, committee_size, mode: *mode })
+                                .await
+                                .unwrap();
                         }
                     }
                 }
@@ -230,20 +224,10 @@ fn test_determinism() {
 
     for seed in 0..=10 {
         // Compare the creation of DAG & committee
-        let (dag_1, committee_1) = generate_randomised_dag(
-            committee_size,
-            number_of_rounds,
-            seed,
-            failure_modes,
-            &protocol_config,
-        );
-        let (dag_2, committee_2) = generate_randomised_dag(
-            committee_size,
-            number_of_rounds,
-            seed,
-            failure_modes,
-            &protocol_config,
-        );
+        let (dag_1, committee_1) =
+            generate_randomised_dag(committee_size, number_of_rounds, seed, failure_modes, &protocol_config);
+        let (dag_2, committee_2) =
+            generate_randomised_dag(committee_size, number_of_rounds, seed, failure_modes, &protocol_config);
 
         assert_eq!(committee_1, committee_2);
         assert_eq!(dag_1, dag_2);
@@ -275,22 +259,14 @@ fn generate_randomised_dag(
     // Create an RNG to share for the committee creation
     let rand = StdRng::seed_from_u64(seed);
 
-    let fixture = CommitteeFixture::builder()
-        .committee_size(NonZeroUsize::new(committee_size).unwrap())
-        .rng(rand)
-        .build();
+    let fixture =
+        CommitteeFixture::builder().committee_size(NonZeroUsize::new(committee_size).unwrap()).rng(rand).build();
     let committee: Committee = fixture.committee();
     let genesis = Certificate::genesis(&latest_protocol_version(), &committee);
 
     // Create a known DAG
-    let (original_certificates, _last_round) = make_certificates_with_parameters(
-        seed,
-        &committee,
-        1..=number_of_rounds,
-        genesis,
-        modes,
-        protocol_config,
-    );
+    let (original_certificates, _last_round) =
+        make_certificates_with_parameters(seed, &committee, 1..=number_of_rounds, genesis, modes, protocol_config);
 
     (original_certificates, committee)
 }
@@ -311,7 +287,10 @@ pub fn make_certificates_with_parameters(
     let mut rand = StdRng::seed_from_u64(seed);
 
     // Pick the slow nodes - ensure we don't have more than 33% of slow nodes
-    assert!(modes.slow_nodes_percentage <= 0.33, "Slow nodes can't be more than 33% of total nodes - otherwise we'll basically simulate a consensus stall");
+    assert!(
+        modes.slow_nodes_percentage <= 0.33,
+        "Slow nodes can't be more than 33% of total nodes - otherwise we'll basically simulate a consensus stall"
+    );
 
     let mut authorities: Vec<Authority> = committee.authorities().cloned().collect();
 
@@ -320,8 +299,7 @@ pub fn make_certificates_with_parameters(
 
     // Step 1 - determine the slow nodes , assuming those should exist
     let slow_nodes: Vec<(Authority, f64)> = {
-        let stake_of_slow_nodes =
-            (committee.total_stake() as f64 * modes.slow_nodes_percentage) as Stake;
+        let stake_of_slow_nodes = (committee.total_stake() as f64 * modes.slow_nodes_percentage) as Stake;
         let stake_of_slow_nodes = stake_of_slow_nodes.min(committee.validity_threshold() - 1);
         let mut total_stake = 0;
 
@@ -335,19 +313,12 @@ pub fn make_certificates_with_parameters(
             .collect()
     };
 
-    println!(
-        "Slow nodes: {:?}",
-        slow_nodes
-            .iter()
-            .map(|(a, _)| a.id())
-            .collect::<Vec<AuthorityIdentifier>>()
-    );
+    println!("Slow nodes: {:?}", slow_nodes.iter().map(|(a, _)| a.id()).collect::<Vec<AuthorityIdentifier>>());
 
     let mut certificates = VecDeque::new();
     let mut parents = initial_parents;
     let mut next_parents = Vec::new();
-    let mut certificate_digests: HashSet<CertificateDigest> =
-        parents.iter().map(|c| c.digest()).collect();
+    let mut certificate_digests: HashSet<CertificateDigest> = parents.iter().map(|c| c.digest()).collect();
 
     for round in range {
         next_parents.clear();
@@ -378,48 +349,40 @@ pub fn make_certificates_with_parameters(
 
             // Step 3 -- to form the certificate we need to figure out the certificate's parents
             // we are going to pick taking into account the slow nodes.
-            let ids: Vec<(AuthorityIdentifier, f64)> = slow_nodes
-                .iter()
-                .map(|(a, inclusion_probability)| (a.id(), *inclusion_probability))
-                .collect();
+            let ids: Vec<(AuthorityIdentifier, f64)> =
+                slow_nodes.iter().map(|(a, inclusion_probability)| (a.id(), *inclusion_probability)).collect();
 
-            let mut parent_digests: BTreeSet<CertificateDigest> =
-                test_utils::this_cert_parents_with_slow_nodes(
-                    &authority.id(),
-                    current_parents.clone(),
-                    ids.as_slice(),
-                    &mut rand,
-                    committee,
-                );
+            let mut parent_digests: BTreeSet<CertificateDigest> = test_utils::this_cert_parents_with_slow_nodes(
+                &authority.id(),
+                current_parents.clone(),
+                ids.as_slice(),
+                &mut rand,
+                committee,
+            );
 
             // We want to ensure that we always refer to "our" certificate of the previous round -
             // assuming that exist, so we can re-add it later.
-            let my_parent_digest = if let Some(my_previous_round) = current_parents
-                .iter()
-                .find(|c| c.origin() == authority.id())
-            {
-                parent_digests.remove(&my_previous_round.digest());
-                Some(my_previous_round.digest())
-            } else {
-                None
-            };
+            let my_parent_digest =
+                if let Some(my_previous_round) = current_parents.iter().find(|c| c.origin() == authority.id()) {
+                    parent_digests.remove(&my_previous_round.digest());
+                    Some(my_previous_round.digest())
+                } else {
+                    None
+                };
 
             let mut parent_digests: Vec<CertificateDigest> = parent_digests.into_iter().collect();
 
             // Step 4 -- references to previous round
             // Now from the rest of current_parents, pick a random number - uniform - to how many
             // should create references to. It should strictly be between [2f+1..3f+1].
-            let num_of_parents_to_pick =
-                rand.gen_range(committee.quorum_threshold()..=committee.total_stake());
+            let num_of_parents_to_pick = rand.gen_range(committee.quorum_threshold()..=committee.total_stake());
 
             // shuffle the parents
             parent_digests.shuffle(&mut rand);
 
             // now keep only the num_of_parents_to_pick
-            let mut parents_digests: Vec<CertificateDigest> = parent_digests
-                .into_iter()
-                .take(num_of_parents_to_pick as usize)
-                .collect();
+            let mut parents_digests: Vec<CertificateDigest> =
+                parent_digests.into_iter().take(num_of_parents_to_pick as usize).collect();
 
             // Now swap one if necessary with our own
             if let Some(my_parent_digest) = my_parent_digest {
@@ -436,8 +399,7 @@ pub fn make_certificates_with_parameters(
                 seed
             );
 
-            let parents_digests: BTreeSet<CertificateDigest> =
-                parents_digests.into_iter().collect();
+            let parents_digests: BTreeSet<CertificateDigest> = parents_digests.into_iter().collect();
 
             // Now create the certificate with the provided parents
             let (_, certificate) = mock_certificate_with_rand(
@@ -469,17 +431,14 @@ pub fn make_certificates_with_parameters(
         );
 
         // Ensure each certificate's parents exist from previous processing
-        parents
-                .iter()
-                .flat_map(|c| c.header().parents())
-                .for_each(|digest| {
-                    assert!(
-                        certificate_digests.contains(digest),
-                        "Failed on seed {}. Certificate with digest {} should be found in processed certificates.",
-                        seed,
-                        digest
-                    );
-                });
+        parents.iter().flat_map(|c| c.header().parents()).for_each(|digest| {
+            assert!(
+                certificate_digests.contains(digest),
+                "Failed on seed {}. Certificate with digest {} should be found in processed certificates.",
+                seed,
+                digest
+            );
+        });
     }
 
     (certificates, next_parents)
@@ -499,13 +458,13 @@ fn generate_and_run_execution_plans(
     protocol_config: &ProtocolConfig,
 ) {
     println!(
-            "Running execution plans for run_id {} for rounds={}, committee={}, gc_depth={}, modes={:?}",
-            run_id,
-            dag_rounds,
-            committee.size(),
-            gc_depth,
-            modes
-        );
+        "Running execution plans for run_id {} for rounds={}, committee={}, gc_depth={}, modes={:?}",
+        run_id,
+        dag_rounds,
+        committee.size(),
+        gc_depth,
+        modes
+    );
 
     let mut executed_plans = HashSet::new();
     let mut committed_certificates = Vec::new();
@@ -548,8 +507,7 @@ fn generate_and_run_execution_plans(
             inserted_certificates.insert(c.digest());
 
             // Now commit one by one the certificates and gather the results
-            let (_outcome, committed_sub_dags) =
-                bullshark.process_certificate(&mut state, c).unwrap();
+            let (_outcome, committed_sub_dags) = bullshark.process_certificate(&mut state, c).unwrap();
             for sub_dag in committed_sub_dags {
                 plan_committed_certificates.extend(sub_dag.certificates);
             }
@@ -560,16 +518,16 @@ fn generate_and_run_execution_plans(
             committed_certificates = plan_committed_certificates.clone();
         } else {
             assert_eq!(
-                    committed_certificates,
-                    plan_committed_certificates,
-                    "Fork detected in plans for run_id={}, seed={}, rounds={}, committee={}, gc_depth={}, modes={:?}",
-                    run_id,
-                    seed,
-                    dag_rounds,
-                    committee.size(),
-                    gc_depth,
-                    modes
-                );
+                committed_certificates,
+                plan_committed_certificates,
+                "Fork detected in plans for run_id={}, seed={}, rounds={}, committee={}, gc_depth={}, modes={:?}",
+                run_id,
+                seed,
+                dag_rounds,
+                committee.size(),
+                gc_depth,
+                modes
+            );
         }
     }
 
@@ -586,27 +544,20 @@ fn generate_and_run_execution_plans(
 /// <https://en.wikipedia.org/wiki/Topological_sorting> always respecting the causal order of
 /// certificates - meaning for every certificate on round R, we must first have  submitted all
 /// parent certificates of round R-1.
-fn create_execution_plan(
-    certificates: impl IntoIterator<Item = Certificate> + Clone,
-    seed: u64,
-) -> ExecutionPlan {
+fn create_execution_plan(certificates: impl IntoIterator<Item = Certificate> + Clone, seed: u64) -> ExecutionPlan {
     // Initialise the source of randomness
     let mut rand = StdRng::seed_from_u64(seed);
 
     // Create a map of digest -> certificate
-    let digest_to_certificate: HashMap<CertificateDigest, Certificate> = certificates
-        .clone()
-        .into_iter()
-        .map(|c| (c.digest(), c))
-        .collect();
+    let digest_to_certificate: HashMap<CertificateDigest, Certificate> =
+        certificates.clone().into_iter().map(|c| (c.digest(), c)).collect();
 
     // To model the DAG in form of edges and vertexes build an adjacency matrix.
     // The matrix will capture the dependencies between the parent certificates --> children certificates.
     // This is important because the algorithm ensures that no children will be added to the final list
     // unless all their dependencies (parent certificates) have first been added earlier - so we
     // respect the causal order.
-    let mut adjacency_parent_to_children: HashMap<CertificateDigest, Vec<CertificateDigest>> =
-        HashMap::new();
+    let mut adjacency_parent_to_children: HashMap<CertificateDigest, Vec<CertificateDigest>> = HashMap::new();
 
     // The nodes that have no incoming edges/dependencies (parent certificates) - initially are the certificates of
     // round 1 (we have no parents)
@@ -617,10 +568,7 @@ fn create_execution_plan(
         // have them available anyways - so we want those to be our roots.
         if certificate.round() > 1 {
             for parent in certificate.header().parents() {
-                adjacency_parent_to_children
-                    .entry(*parent)
-                    .or_default()
-                    .push(certificate.digest());
+                adjacency_parent_to_children.entry(*parent).or_default().push(certificate.digest());
             }
         } else {
             nodes_without_dependencies.push(certificate.digest());
@@ -645,9 +593,7 @@ fn create_execution_plan(
             while let Some(c) = children.pop() {
                 // has this children any other dependencies (certificate parents that have not been
                 // already sorted)? If not, then add it to the candidate of nodes without incoming edges.
-                let has_more_dependencies = adjacency_parent_to_children
-                    .iter()
-                    .any(|(_, entries)| entries.contains(&c));
+                let has_more_dependencies = adjacency_parent_to_children.iter().any(|(_, entries)| entries.contains(&c));
 
                 if !has_more_dependencies {
                     nodes_without_dependencies.push(c);
@@ -656,17 +602,9 @@ fn create_execution_plan(
         }
     }
 
-    assert!(
-        adjacency_parent_to_children.is_empty(),
-        "By now no edge should be left!"
-    );
+    assert!(adjacency_parent_to_children.is_empty(), "By now no edge should be left!");
 
-    let sorted = sorted
-        .into_iter()
-        .map(|c| digest_to_certificate.get(&c).unwrap().clone())
-        .collect();
+    let sorted = sorted.into_iter().map(|c| digest_to_certificate.get(&c).unwrap().clone()).collect();
 
-    ExecutionPlan {
-        certificates: sorted,
-    }
+    ExecutionPlan { certificates: sorted }
 }

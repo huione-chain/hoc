@@ -1,24 +1,38 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::drivers::Interval;
-use crate::system_state_observer::SystemStateObserver;
-use crate::workloads::payload::Payload;
-use crate::workloads::workload::{ExpectedFailureType, Workload, WorkloadBuilder};
-use crate::workloads::workload::{
-    ESTIMATED_COMPUTATION_COST, MAX_GAS_FOR_TESTING, STORAGE_COST_PER_COIN,
+use crate::{
+    drivers::Interval,
+    system_state_observer::SystemStateObserver,
+    workloads::{
+        payload::Payload,
+        workload::{
+            ExpectedFailureType,
+            Workload,
+            WorkloadBuilder,
+            ESTIMATED_COMPUTATION_COST,
+            MAX_GAS_FOR_TESTING,
+            STORAGE_COST_PER_COIN,
+        },
+        Gas,
+        GasCoinConfig,
+        WorkloadBuilderInfo,
+        WorkloadParams,
+    },
+    ExecutionEffects,
+    ValidatorProxy,
 };
-use crate::workloads::{Gas, GasCoinConfig, WorkloadBuilderInfo, WorkloadParams};
-use crate::{ExecutionEffects, ValidatorProxy};
 use async_trait::async_trait;
 use rand::seq::IteratorRandom;
 use std::sync::Arc;
 use sui_core::test_utils::make_transfer_sui_transaction;
 use sui_test_transaction_builder::TestTransactionBuilder;
-use sui_types::base_types::{ObjectRef, SuiAddress};
-use sui_types::crypto::{get_key_pair, AccountKeyPair};
-use sui_types::gas_coin::MIST_PER_SUI;
-use sui_types::transaction::Transaction;
+use sui_types::{
+    base_types::{ObjectRef, SuiAddress},
+    crypto::{get_key_pair, AccountKeyPair},
+    gas_coin::MIST_PER_HC,
+    transaction::Transaction,
+};
 use tracing::error;
 
 #[derive(Debug)]
@@ -60,23 +74,17 @@ impl Payload for DelegationTestPayload {
             Some(coin) => TestTransactionBuilder::new(
                 self.sender,
                 self.gas,
-                self.system_state_observer
-                    .state
-                    .borrow()
-                    .reference_gas_price,
+                self.system_state_observer.state.borrow().reference_gas_price,
             )
             .call_staking(coin, self.validator)
             .build_and_sign(self.keypair.as_ref()),
             None => make_transfer_sui_transaction(
                 self.gas,
                 self.sender,
-                Some(MIST_PER_SUI),
+                Some(MIST_PER_HC),
                 self.sender,
                 &self.keypair,
-                self.system_state_observer
-                    .state
-                    .borrow()
-                    .reference_gas_price,
+                self.system_state_observer.state.borrow().reference_gas_price,
             ),
         }
     }
@@ -106,20 +114,10 @@ impl DelegationWorkloadBuilder {
         if max_ops == 0 || num_workers == 0 {
             None
         } else {
-            let workload_params = WorkloadParams {
-                target_qps,
-                num_workers,
-                max_ops,
-                duration,
-                group,
-            };
-            let workload_builder = Box::<dyn WorkloadBuilder<dyn Payload>>::from(Box::new(
-                DelegationWorkloadBuilder { count: max_ops },
-            ));
-            let builder_info = WorkloadBuilderInfo {
-                workload_params,
-                workload_builder,
-            };
+            let workload_params = WorkloadParams { target_qps, num_workers, max_ops, duration, group };
+            let workload_builder =
+                Box::<dyn WorkloadBuilder<dyn Payload>>::from(Box::new(DelegationWorkloadBuilder { count: max_ops }));
+            let builder_info = WorkloadBuilderInfo { workload_params, workload_builder };
             Some(builder_info)
         }
     }
@@ -130,24 +128,18 @@ impl WorkloadBuilder<dyn Payload> for DelegationWorkloadBuilder {
     async fn generate_coin_config_for_init(&self) -> Vec<GasCoinConfig> {
         vec![]
     }
+
     async fn generate_coin_config_for_payloads(&self) -> Vec<GasCoinConfig> {
         let amount = MAX_GAS_FOR_TESTING + ESTIMATED_COMPUTATION_COST + STORAGE_COST_PER_COIN;
         (0..self.count)
             .map(|_| {
                 let (address, keypair) = get_key_pair();
-                GasCoinConfig {
-                    amount,
-                    address,
-                    keypair: Arc::new(keypair),
-                }
+                GasCoinConfig { amount, address, keypair: Arc::new(keypair) }
             })
             .collect()
     }
-    async fn build(
-        &self,
-        _init_gas: Vec<Gas>,
-        payload_gas: Vec<Gas>,
-    ) -> Box<dyn Workload<dyn Payload>> {
+
+    async fn build(&self, _init_gas: Vec<Gas>, payload_gas: Vec<Gas>) -> Box<dyn Workload<dyn Payload>> {
         Box::<dyn Workload<dyn Payload>>::from(Box::new(DelegationWorkload { payload_gas }))
     }
 }
@@ -171,10 +163,7 @@ impl Workload<dyn Payload> for DelegationWorkload {
         proxy: Arc<dyn ValidatorProxy + Sync + Send>,
         system_state_observer: Arc<SystemStateObserver>,
     ) -> Vec<Box<dyn Payload>> {
-        let validators = proxy
-            .get_validators()
-            .await
-            .expect("failed to fetch validators");
+        let validators = proxy.get_validators().await.expect("failed to fetch validators");
 
         self.payload_gas
             .iter()

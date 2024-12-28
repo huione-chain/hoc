@@ -9,15 +9,7 @@ use sui_transactional_test_runner::{
     test_adapter::{SuiTestAdapter, PRE_COMPILED},
 };
 
-datatest_stable::harness!(
-    run_test,
-    "tests",
-    if cfg!(feature = "staging") {
-        r"\.move$"
-    } else {
-        r"stable/.*\.move$"
-    }
-);
+datatest_stable::harness!(run_test, "tests", if cfg!(feature = "staging") { r"\.move$" } else { r"stable/.*\.move$" });
 
 #[cfg_attr(not(msim), tokio::main)]
 #[cfg_attr(msim, msim::main)]

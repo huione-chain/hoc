@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::metrics::new_registry;
-use crate::{try_join_all, FuturesUnordered, NodeError};
+use crate::{metrics::new_registry, try_join_all, FuturesUnordered, NodeError};
 use anemo::PeerId;
 use arc_swap::{ArcSwap, ArcSwapOption};
 use config::{Committee, Parameters, WorkerCache, WorkerId};
@@ -11,17 +10,18 @@ use fastcrypto::traits::KeyPair;
 use mysten_metrics::{RegistryID, RegistryService};
 use network::client::NetworkClient;
 use prometheus::Registry;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
+use std::{collections::HashMap, sync::Arc, time::Instant};
 use storage::NodeStorage;
 use sui_protocol_config::ProtocolConfig;
-use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
+use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, instrument};
 use types::PreSubscribedBroadcastSender;
-use worker::metrics::{initialise_metrics, Metrics};
-use worker::{TransactionValidator, Worker, NUM_SHUTDOWN_RECEIVERS};
+use worker::{
+    metrics::{initialise_metrics, Metrics},
+    TransactionValidator,
+    Worker,
+    NUM_SHUTDOWN_RECEIVERS,
+};
 
 pub struct WorkerNodeInner {
     // The worker's id
@@ -85,12 +85,7 @@ impl WorkerNodeInner {
 
         let authority = committee
             .authority_by_key(&primary_name)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Our node with key {:?} should be in committee",
-                    primary_name
-                )
-            });
+            .unwrap_or_else(|| panic!("Our node with key {:?} should be in committee", primary_name));
 
         let handles = Worker::spawn(
             authority.clone(),
@@ -131,9 +126,7 @@ impl WorkerNodeInner {
 
         let now = Instant::now();
         if let Some(tx_shutdown) = self.tx_shutdown.as_ref() {
-            tx_shutdown
-                .send()
-                .expect("Couldn't send the shutdown signal to downstream components");
+            tx_shutdown.send().expect("Couldn't send the shutdown signal to downstream components");
             self.tx_shutdown = None;
         }
 
@@ -142,11 +135,7 @@ impl WorkerNodeInner {
 
         self.swap_registry(None);
 
-        info!(
-            "Narwhal worker {} shutdown is complete - took {} seconds",
-            self.id,
-            now.elapsed().as_secs_f64()
-        );
+        info!("Narwhal worker {} shutdown is complete - took {} seconds", self.id, now.elapsed().as_secs_f64());
     }
 
     // If any of the underlying handles haven't still finished, then this method will return
@@ -200,9 +189,7 @@ impl WorkerNode {
             own_peer_id: None,
         };
 
-        Self {
-            internal: Arc::new(RwLock::new(inner)),
-        }
+        Self { internal: Arc::new(RwLock::new(inner)) }
     }
 
     pub async fn start(
@@ -226,18 +213,7 @@ impl WorkerNode {
         metrics: Option<Metrics>,
     ) -> Result<(), NodeError> {
         let mut guard = self.internal.write().await;
-        guard
-            .start(
-                primary_key,
-                network_keypair,
-                committee,
-                worker_cache,
-                client,
-                store,
-                tx_validator,
-                metrics,
-            )
-            .await
+        guard.start(primary_key, network_keypair, committee, worker_cache, client, store, tx_validator, metrics).await
     }
 
     pub async fn shutdown(&self) {

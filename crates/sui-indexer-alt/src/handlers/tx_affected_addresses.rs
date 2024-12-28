@@ -17,16 +17,12 @@ use crate::{models::transactions::StoredTxAffectedAddress, schema::tx_affected_a
 pub(crate) struct TxAffectedAddresses;
 
 impl Processor for TxAffectedAddresses {
-    const NAME: &'static str = "tx_affected_addresses";
-
     type Value = StoredTxAffectedAddress;
 
+    const NAME: &'static str = "tx_affected_addresses";
+
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
-        let CheckpointData {
-            transactions,
-            checkpoint_summary,
-            ..
-        } = checkpoint.as_ref();
+        let CheckpointData { transactions, checkpoint_summary, .. } = checkpoint.as_ref();
 
         let mut values = Vec::new();
         let first_tx = checkpoint_summary.network_total_transactions as usize - transactions.len();
@@ -45,11 +41,7 @@ impl Processor for TxAffectedAddresses {
             let affected_addresses: Vec<StoredTxAffectedAddress> = recipients
                 .chain(vec![sender, payer])
                 .unique()
-                .map(|a| StoredTxAffectedAddress {
-                    tx_sequence_number,
-                    affected: a.to_vec(),
-                    sender: sender.to_vec(),
-                })
+                .map(|a| StoredTxAffectedAddress { tx_sequence_number, affected: a.to_vec(), sender: sender.to_vec() })
                 .collect();
             values.extend(affected_addresses);
         }
@@ -60,8 +52,8 @@ impl Processor for TxAffectedAddresses {
 
 #[async_trait::async_trait]
 impl Handler for TxAffectedAddresses {
-    const MIN_EAGER_ROWS: usize = 100;
     const MAX_PENDING_ROWS: usize = 10000;
+    const MIN_EAGER_ROWS: usize = 100;
 
     async fn commit(values: &[Self::Value], conn: &mut db::Connection<'_>) -> Result<usize> {
         Ok(diesel::insert_into(tx_affected_addresses::table)

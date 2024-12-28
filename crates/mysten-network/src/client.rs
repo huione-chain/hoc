@@ -27,9 +27,7 @@ use tower::Service;
 use tracing::{info, trace};
 
 pub async fn connect(address: &Multiaddr, tls_config: Option<ClientConfig>) -> Result<Channel> {
-    let channel = endpoint_from_multiaddr(address, tls_config)?
-        .connect()
-        .await?;
+    let channel = endpoint_from_multiaddr(address, tls_config)?.connect().await?;
     Ok(channel)
 }
 
@@ -43,10 +41,7 @@ pub(crate) async fn connect_with_config(
     tls_config: Option<ClientConfig>,
     config: &Config,
 ) -> Result<Channel> {
-    let channel = endpoint_from_multiaddr(address, tls_config)?
-        .apply_config(config)
-        .connect()
-        .await?;
+    let channel = endpoint_from_multiaddr(address, tls_config)?.apply_config(config).connect().await?;
     Ok(channel)
 }
 
@@ -55,16 +50,11 @@ pub(crate) fn connect_lazy_with_config(
     tls_config: Option<ClientConfig>,
     config: &Config,
 ) -> Result<Channel> {
-    let channel = endpoint_from_multiaddr(address, tls_config)?
-        .apply_config(config)
-        .connect_lazy();
+    let channel = endpoint_from_multiaddr(address, tls_config)?.apply_config(config).connect_lazy();
     Ok(channel)
 }
 
-fn endpoint_from_multiaddr(
-    addr: &Multiaddr,
-    tls_config: Option<ClientConfig>,
-) -> Result<MyEndpoint> {
+fn endpoint_from_multiaddr(addr: &Multiaddr, tls_config: Option<ClientConfig>) -> Result<MyEndpoint> {
     let mut iter = addr.iter();
 
     let channel = match iter.next().ok_or_else(|| eyre!("address is empty"))? {
@@ -98,16 +88,11 @@ static DISABLE_CACHING_RESOLVER: OnceCell<bool> = OnceCell::new();
 
 impl MyEndpoint {
     fn new(endpoint: Endpoint, tls_config: Option<ClientConfig>) -> Self {
-        Self {
-            endpoint,
-            tls_config,
-        }
+        Self { endpoint, tls_config }
     }
 
     fn try_from_uri(uri: String, tls_config: Option<ClientConfig>) -> Result<Self> {
-        let uri: Uri = uri
-            .parse()
-            .with_context(|| format!("unable to create Uri from '{uri}'"))?;
+        let uri: Uri = uri.parse().with_context(|| format!("unable to create Uri from '{uri}'"))?;
         let endpoint = Endpoint::from(uri);
         Ok(Self::new(endpoint, tls_config))
     }
@@ -163,10 +148,7 @@ impl MyEndpoint {
                 .https_only()
                 .enable_http2()
                 .build();
-            self.endpoint
-                .connect_with_connector(https_connector)
-                .await
-                .map_err(Into::into)
+            self.endpoint.connect_with_connector(https_connector).await.map_err(Into::into)
         } else {
             self.endpoint.connect().await.map_err(Into::into)
         }
@@ -224,9 +206,7 @@ pub struct CachingFuture {
 
 impl CachingResolver {
     pub fn new() -> Self {
-        CachingResolver {
-            cache: Arc::new(Mutex::new(HashMap::new())),
-        }
+        CachingResolver { cache: Arc::new(Mutex::new(HashMap::new())) }
     }
 }
 
@@ -237,9 +217,9 @@ impl Default for CachingResolver {
 }
 
 impl Service<Name> for CachingResolver {
-    type Response = SocketAddrs;
     type Error = io::Error;
     type Future = CachingFuture;
+    type Response = SocketAddrs;
 
     fn poll_ready(&mut self, _cx: &mut task::Context<'_>) -> Poll<Result<(), io::Error>> {
         Poll::Ready(Ok(()))
@@ -261,10 +241,7 @@ impl Service<Name> for CachingResolver {
                             if let Ok(addrs) = (name.as_str(), 0).to_socket_addrs() {
                                 let addrs: Vec<_> = addrs.collect();
                                 trace!("updating cached host={:?}", name.as_str());
-                                cache
-                                    .lock()
-                                    .unwrap()
-                                    .insert(name, (Instant::now(), addrs.clone()));
+                                cache.lock().unwrap().insert(name, (Instant::now(), addrs.clone()));
                             }
                         });
                     }
@@ -275,10 +252,7 @@ impl Service<Name> for CachingResolver {
                     match (name.as_str(), 0).to_socket_addrs() {
                         Ok(addrs) => {
                             let addrs: Vec<_> = addrs.collect();
-                            cache
-                                .lock()
-                                .unwrap()
-                                .insert(name, (Instant::now(), addrs.clone()));
+                            cache.lock().unwrap().insert(name, (Instant::now(), addrs.clone()));
                             Ok(addrs.into_iter())
                         }
                         res => res,

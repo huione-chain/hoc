@@ -4,8 +4,7 @@
 use std::str::FromStr;
 
 use async_graphql::*;
-use fastcrypto::encoding::Base64 as FastCryptoBase64;
-use fastcrypto::encoding::Encoding as FastCryptoEncoding;
+use fastcrypto::encoding::{Base64 as FastCryptoBase64, Encoding as FastCryptoEncoding};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Base64(pub(crate) Vec<u8>);
@@ -15,10 +14,9 @@ pub(crate) struct Base64(pub(crate) Vec<u8>);
 impl ScalarType for Base64 {
     fn parse(value: Value) -> InputValueResult<Self> {
         match value {
-            Value::String(s) => Ok(Base64(
-                FastCryptoBase64::decode(&s)
-                    .map_err(|r| InputValueError::custom(format!("{r}")))?,
-            )),
+            Value::String(s) => {
+                Ok(Base64(FastCryptoBase64::decode(&s).map_err(|r| InputValueError::custom(format!("{r}")))?))
+            }
             _ => Err(InputValueError::expected_type(value)),
         }
     }
@@ -32,9 +30,7 @@ impl FromStr for Base64 {
     type Err = InputValueError<String>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Base64(
-            FastCryptoBase64::decode(s).map_err(|_| InputValueError::custom("Invalid Base64"))?,
-        ))
+        Ok(Base64(FastCryptoBase64::decode(s).map_err(|_| InputValueError::custom("Invalid Base64"))?))
     }
 }
 

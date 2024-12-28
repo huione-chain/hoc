@@ -7,10 +7,7 @@ use std::{
 };
 
 use lru::LruCache;
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::future::Future;
-use std::num::NonZeroUsize;
+use std::{collections::HashMap, fmt::Debug, future::Future, num::NonZeroUsize};
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct ShardedLruCache<K, V, S = RandomState> {
@@ -32,11 +29,7 @@ where
         Self {
             hasher,
             shards: (0..num_shards)
-                .map(|_| {
-                    RwLock::new(LruCache::new(
-                        NonZeroUsize::new(cap_per_shard as usize).unwrap(),
-                    ))
-                })
+                .map(|_| RwLock::new(LruCache::new(NonZeroUsize::new(cap_per_shard as usize).unwrap())))
                 .collect(),
         }
     }
@@ -90,18 +83,11 @@ where
         }
     }
 
-    pub async fn batch_merge(
-        &self,
-        key_values: impl IntoIterator<Item = (K, V)>,
-        f: fn(&V, &V) -> V,
-    ) {
+    pub async fn batch_merge(&self, key_values: impl IntoIterator<Item = (K, V)>, f: fn(&V, &V) -> V) {
         let mut grouped = HashMap::new();
         for (key, value) in key_values.into_iter() {
             let shard_idx = self.shard_id(&key);
-            grouped
-                .entry(shard_idx)
-                .or_insert(vec![])
-                .push((key, value));
+            grouped.entry(shard_idx).or_insert(vec![]).push((key, value));
         }
         for (shard_idx, keys) in grouped.into_iter() {
             let mut shard = self.shards[shard_idx].write().await;

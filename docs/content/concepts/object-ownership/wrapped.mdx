@@ -74,7 +74,7 @@ struct SwapRequest has key {
     id: UID,
     owner: address,
     object: Object,
-    fee: Balance<SUI>,
+    fee: Balance<HC>,
 }
 ```
 
@@ -83,7 +83,7 @@ struct SwapRequest has key {
 ```move
 public fun request_swap(
     object: Object,
-    fee: Coin<SUI>,
+    fee: Coin<HC>,
     service: address,
     ctx: &mut TxContext,
 ) {
@@ -101,14 +101,14 @@ public fun request_swap(
 
 ```
 
-In the preceding function, you must pass the object by value so that it's fully consumed and wrapped into `SwapRequest` to request swapping an `object`. The example also provides a fee (in the type of `Coin<SUI>`) and checks that the fee is sufficient. The example turns `Coin` into `Balance` when it's put into the `wrapper` object. This is because `Coin` is a Sui object type and used only to pass around as Sui objects (such as transaction inputs or objects sent to addresses). For coin balances that need to be embedded in other structs, use `Balance` instead because to avoid the overhead of carrying around an unnecessary `UID` field.
+In the preceding function, you must pass the object by value so that it's fully consumed and wrapped into `SwapRequest` to request swapping an `object`. The example also provides a fee (in the type of `Coin<HC>`) and checks that the fee is sufficient. The example turns `Coin` into `Balance` when it's put into the `wrapper` object. This is because `Coin` is a Sui object type and used only to pass around as Sui objects (such as transaction inputs or objects sent to addresses). For coin balances that need to be embedded in other structs, use `Balance` instead because to avoid the overhead of carrying around an unnecessary `UID` field.
 
 The wrapper object is then sent to the service operator, with the address specified in the call as `service`.
 
 The function interface for the function that the service operator can call to perform a swap between two objects sent from two addresses resembles:
 
 ```move
-public fun execute_swap(s1: SwapRequest, s2: SwapRequest): Balance<SUI>;
+public fun execute_swap(s1: SwapRequest, s2: SwapRequest): Balance<HC>;
 ```
 
 Where `s1` and `s2` are two wrapped objects that were sent from different object owners to the service operator. Both wrapped objects are passed by value because they eventually need to be [unpacked](https://move-book.com/advanced-topics/struct.html#destructing-structures).

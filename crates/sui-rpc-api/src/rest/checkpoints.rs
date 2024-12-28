@@ -1,21 +1,28 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use axum::extract::Query;
-use axum::extract::{Path, State};
-use axum::Json;
+use axum::{
+    extract::{Path, Query, State},
+    Json,
+};
 use sui_sdk_types::types::{CheckpointSequenceNumber, SignedCheckpointSummary};
 use sui_types::storage::ReadStore;
 use tap::Pipe;
 
-use crate::reader::StateReader;
-use crate::response::{Bcs, ResponseContent};
-use crate::rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler};
-use crate::rest::PageCursor;
-use crate::service::checkpoints::{CheckpointId, CheckpointNotFoundError};
-use crate::types::{CheckpointResponse, GetCheckpointOptions};
-use crate::{Direction, RpcService};
-use crate::{Result, RpcServiceError};
+use crate::{
+    reader::StateReader,
+    response::{Bcs, ResponseContent},
+    rest::{
+        openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
+        PageCursor,
+    },
+    service::checkpoints::{CheckpointId, CheckpointNotFoundError},
+    types::{CheckpointResponse, GetCheckpointOptions},
+    Direction,
+    Result,
+    RpcService,
+    RpcServiceError,
+};
 use documented::Documented;
 
 use super::accept::AcceptFormat;
@@ -42,22 +49,14 @@ impl ApiEndpoint<RpcService> for GetCheckpoint {
         true
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Checkpoint")
             .operation_id("Get Checkpoint")
             .description(Self::DOCS)
             .path_parameter::<CheckpointId>("checkpoint", generator)
             .query_parameters::<GetCheckpointOptions>(generator)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<CheckpointResponse>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<CheckpointResponse>(generator).build())
             .response(404, ResponseBuilder::new().build())
             .response(410, ResponseBuilder::new().build())
             .response(500, ResponseBuilder::new().build())
@@ -110,10 +109,7 @@ impl ApiEndpoint<RpcService> for ListCheckpoints {
         false
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Checkpoint")
             .operation_id("List Checkpoints")
@@ -143,10 +139,8 @@ async fn list_checkpoints(
     Query(options): Query<GetCheckpointOptions>,
     accept: AcceptFormat,
     State(state): State<StateReader>,
-) -> Result<(
-    PageCursor<CheckpointSequenceNumber>,
-    ResponseContent<Vec<SignedCheckpointSummary>, Vec<CheckpointResponse>>,
-)> {
+) -> Result<(PageCursor<CheckpointSequenceNumber>, ResponseContent<Vec<SignedCheckpointSummary>, Vec<CheckpointResponse>>)>
+{
     let latest_checkpoint = state.inner().get_latest_checkpoint()?.sequence_number;
     let oldest_checkpoint = state.inner().get_lowest_available_checkpoint()?;
     let limit = parameters.limit();
@@ -154,38 +148,26 @@ async fn list_checkpoints(
     let direction = parameters.direction();
 
     if start < oldest_checkpoint {
-        return Err(crate::RpcServiceError::new(
-            axum::http::StatusCode::GONE,
-            "Old checkpoints have been pruned",
-        ));
+        return Err(crate::RpcServiceError::new(axum::http::StatusCode::GONE, "Old checkpoints have been pruned"));
     }
 
     let checkpoints = state
         .checkpoint_iter(direction, start)
         .take(limit)
         .map(|result| {
-            result
-                .map_err(Into::into)
-                .and_then(|(checkpoint, contents)| {
-                    let SignedCheckpointSummary {
-                        checkpoint,
-                        signature,
-                    } = checkpoint.try_into()?;
-                    let contents = if options.include_contents() {
-                        Some(contents.try_into()?)
-                    } else {
-                        None
-                    };
-                    Ok(CheckpointResponse {
-                        sequence_number: checkpoint.sequence_number,
-                        digest: checkpoint.digest(),
-                        summary: Some(checkpoint),
-                        signature: Some(signature),
-                        contents,
-                        summary_bcs: None,
-                        contents_bcs: None,
-                    })
+            result.map_err(Into::into).and_then(|(checkpoint, contents)| {
+                let SignedCheckpointSummary { checkpoint, signature } = checkpoint.try_into()?;
+                let contents = if options.include_contents() { Some(contents.try_into()?) } else { None };
+                Ok(CheckpointResponse {
+                    sequence_number: checkpoint.sequence_number,
+                    digest: checkpoint.digest(),
+                    summary: Some(checkpoint),
+                    signature: Some(signature),
+                    contents,
+                    summary_bcs: None,
+                    contents_bcs: None,
                 })
+            })
         })
         .collect::<Result<Vec<_>>>()?;
 
@@ -209,10 +191,7 @@ async fn list_checkpoints(
         AcceptFormat::Bcs => {
             let checkpoints = checkpoints
                 .into_iter()
-                .map(|c| SignedCheckpointSummary {
-                    checkpoint: c.summary.unwrap(),
-                    signature: c.signature.unwrap(),
-                })
+                .map(|c| SignedCheckpointSummary { checkpoint: c.summary.unwrap(), signature: c.signature.unwrap() })
                 .collect();
             ResponseContent::Bcs(checkpoints)
         }
@@ -239,9 +218,7 @@ pub struct ListCheckpointsPaginationParameters {
 
 impl ListCheckpointsPaginationParameters {
     pub fn limit(&self) -> usize {
-        self.limit
-            .map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE))
-            .unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
+        self.limit.map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE)).unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
     }
 
     pub fn start(&self, default: CheckpointSequenceNumber) -> CheckpointSequenceNumber {
@@ -282,10 +259,7 @@ impl ApiEndpoint<RpcService> for GetFullCheckpoint {
         false
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Checkpoint")
             .operation_id("Get Full Checkpoint")
@@ -341,9 +315,7 @@ async fn get_full_checkpoint(
         .get_checkpoint_contents_by_digest(&verified_summary.content_digest)
         .ok_or(CheckpointNotFoundError(checkpoint_id))?;
 
-    let checkpoint_data = state
-        .inner()
-        .get_checkpoint_data(verified_summary, checkpoint_contents)?;
+    let checkpoint_data = state.inner().get_checkpoint_data(verified_summary, checkpoint_contents)?;
 
     Ok(Bcs(checkpoint_data))
 }

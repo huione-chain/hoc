@@ -6,8 +6,13 @@
 use super::*;
 
 use crate::consensus::{
-    make_certificate_store, make_consensus_store, Consensus, ConsensusMetrics, ConsensusRound,
-    NUM_SHUTDOWN_RECEIVERS, NUM_SUB_DAGS_PER_SCHEDULE,
+    make_certificate_store,
+    make_consensus_store,
+    Consensus,
+    ConsensusMetrics,
+    ConsensusRound,
+    NUM_SHUTDOWN_RECEIVERS,
+    NUM_SUB_DAGS_PER_SCHEDULE,
 };
 use config::AuthorityIdentifier;
 #[allow(unused_imports)]
@@ -30,17 +35,10 @@ async fn order_leaders() {
     let committee = fixture.committee();
     // Make certificates for rounds 1 to 7.
     let ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
-    let (certificates, _next_parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        1..=7,
-        &genesis,
-        &ids,
-    );
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
+    let (certificates, _next_parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 1..=7, &genesis, &ids);
 
     let metrics = Arc::new(ConsensusMetrics::new(&Registry::new()));
     let gc_depth = 50;
@@ -87,24 +85,23 @@ async fn commit_one_with_leader_schedule_change() {
         expected_leaders: VecDeque<AuthorityIdentifier>,
     }
 
-    let test_cases: Vec<TestCase> = vec![
-        TestCase {
-            description: "When schedule change is enabled, then authority 0 is bad node and swapped with authority 3".to_string(),
-            protocol_config: {
-                let mut config: ProtocolConfig = latest_protocol_version();
-                config.set_consensus_bad_nodes_stake_threshold_for_testing(33);
-                config
-            },
-            rounds: 11,
-            expected_leaders: VecDeque::from(vec![
-                AuthorityIdentifier(0),
-                AuthorityIdentifier(1),
-                AuthorityIdentifier(2),
-                AuthorityIdentifier(3),
-                AuthorityIdentifier(3),
-            ]),
+    let test_cases: Vec<TestCase> = vec![TestCase {
+        description: "When schedule change is enabled, then authority 0 is bad node and swapped with authority 3"
+            .to_string(),
+        protocol_config: {
+            let mut config: ProtocolConfig = latest_protocol_version();
+            config.set_consensus_bad_nodes_stake_threshold_for_testing(33);
+            config
         },
-    ];
+        rounds: 11,
+        expected_leaders: VecDeque::from(vec![
+            AuthorityIdentifier(0),
+            AuthorityIdentifier(1),
+            AuthorityIdentifier(2),
+            AuthorityIdentifier(3),
+            AuthorityIdentifier(3),
+        ]),
+    }];
 
     for mut test_case in test_cases {
         println!("Running test case \"{}\"", test_case.description);
@@ -143,16 +140,11 @@ async fn commit_one_with_leader_schedule_change() {
 
         let mut committed_sub_dags = Vec::new();
         for certificate in certificates {
-            let (outcome, committed) = bullshark
-                .process_certificate(&mut state, certificate)
-                .unwrap();
+            let (outcome, committed) = bullshark.process_certificate(&mut state, certificate).unwrap();
 
             if outcome == Outcome::Commit {
                 for sub_dag in &committed {
-                    assert_eq!(
-                        sub_dag.leader.origin(),
-                        test_case.expected_leaders.pop_front().unwrap()
-                    )
+                    assert_eq!(sub_dag.leader.origin(), test_case.expected_leaders.pop_front().unwrap())
                 }
             }
 
@@ -175,10 +167,8 @@ async fn not_enough_support_with_leader_schedule_change() {
     let committee = fixture.committee();
 
     let ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
 
     let mut certificates: VecDeque<Certificate> = VecDeque::new();
     let mut leader_configs = HashMap::new();
@@ -186,28 +176,22 @@ async fn not_enough_support_with_leader_schedule_change() {
     // The leader of round 6 should receive weak support from the certificates of round 7 so we don't commit
     // this leader immediately. That will basically postpone the update of the leader schedule. We expect
     // this leader to get committed through its connection with a later leader.
-    leader_configs.insert(
-        6,
-        test_utils::TestLeaderConfiguration {
-            round: 6,
-            authority: AuthorityIdentifier(2),
-            should_omit: false,
-            support: Some(test_utils::TestLeaderSupport::Weak),
-        },
-    );
+    leader_configs.insert(6, test_utils::TestLeaderConfiguration {
+        round: 6,
+        authority: AuthorityIdentifier(2),
+        should_omit: false,
+        support: Some(test_utils::TestLeaderSupport::Weak),
+    });
 
     // The leader of round 8 (with the old schedule) is receiving no support at all from any
     // of the children of round 9. So again, the leader schedule update will get postponed. As no certificate
     // of round 9 refers to this leader, we don't expect to get committed at all.
-    leader_configs.insert(
-        8,
-        test_utils::TestLeaderConfiguration {
-            round: 8,
-            authority: AuthorityIdentifier(3),
-            should_omit: false,
-            support: Some(test_utils::TestLeaderSupport::NoSupport),
-        },
-    );
+    leader_configs.insert(8, test_utils::TestLeaderConfiguration {
+        round: 8,
+        authority: AuthorityIdentifier(3),
+        should_omit: false,
+        support: Some(test_utils::TestLeaderSupport::NoSupport),
+    });
 
     // We expect the leader of round 10 to be the authority with id 0 (reminder: a round robin schedule
     // is used for testing) with the "old" schedule. We construct the DAG with weak support for this leader
@@ -216,15 +200,12 @@ async fn not_enough_support_with_leader_schedule_change() {
     // the authority with id 3. Now, since a recursive commit will take place the leader for round 10 will be
     // the authority with id 3, for which we will have a certificate present, thus we should observe the leader
     // get committed.
-    leader_configs.insert(
-        10,
-        test_utils::TestLeaderConfiguration {
-            round: 10,
-            authority: AuthorityIdentifier(0),
-            should_omit: false,
-            support: Some(test_utils::TestLeaderSupport::Weak),
-        },
-    );
+    leader_configs.insert(10, test_utils::TestLeaderConfiguration {
+        round: 10,
+        authority: AuthorityIdentifier(0),
+        should_omit: false,
+        support: Some(test_utils::TestLeaderSupport::Weak),
+    });
 
     let (out, _parents) = test_utils::make_certificates_with_leader_configuration(
         &committee,
@@ -245,21 +226,12 @@ async fn not_enough_support_with_leader_schedule_change() {
     let mut state = ConsensusState::new(metrics.clone(), gc_depth);
     let store = make_consensus_store(&test_utils::temp_dir());
     let schedule = LeaderSchedule::new(committee.clone(), LeaderSwapTable::default());
-    let mut bullshark = Bullshark::new(
-        committee,
-        store,
-        config,
-        metrics,
-        sub_dags_per_schedule,
-        schedule,
-    );
+    let mut bullshark = Bullshark::new(committee, store, config, metrics, sub_dags_per_schedule, schedule);
 
     let mut total_13_certs = 0;
     let mut total_15_certs = 0;
     for certificate in certificates {
-        let (outcome, committed) = bullshark
-            .process_certificate(&mut state, certificate.clone())
-            .unwrap();
+        let (outcome, committed) = bullshark.process_certificate(&mut state, certificate.clone()).unwrap();
 
         // on the round 7, 9 or 11 we should not commit the leader of previous round as there is not enough support
         if certificate.round() == 7 || certificate.round() == 9 || certificate.round() == 11 {
@@ -322,10 +294,8 @@ async fn test_long_period_of_asynchrony_for_leader_schedule_change() {
     let committee = fixture.committee();
 
     let ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
 
     let mut certificates: VecDeque<Certificate> = VecDeque::new();
     let mut leader_configs = HashMap::new();
@@ -335,15 +305,12 @@ async fn test_long_period_of_asynchrony_for_leader_schedule_change() {
 
     // We make the leaders for the corresponding rounds receive weak support, so we can't commit immediately
     for (round, authority_id) in leaders_with_weak_support {
-        leader_configs.insert(
+        leader_configs.insert(round, test_utils::TestLeaderConfiguration {
             round,
-            test_utils::TestLeaderConfiguration {
-                round,
-                authority: AuthorityIdentifier(authority_id),
-                should_omit: false,
-                support: Some(test_utils::TestLeaderSupport::Weak),
-            },
-        );
+            authority: AuthorityIdentifier(authority_id),
+            should_omit: false,
+            support: Some(test_utils::TestLeaderSupport::Weak),
+        });
     }
 
     let (out, _parents) = test_utils::make_certificates_with_leader_configuration(
@@ -365,25 +332,13 @@ async fn test_long_period_of_asynchrony_for_leader_schedule_change() {
     let mut state = ConsensusState::new(metrics.clone(), gc_depth);
     let store = make_consensus_store(&test_utils::temp_dir());
     let schedule = LeaderSchedule::new(committee.clone(), LeaderSwapTable::default());
-    let mut bullshark = Bullshark::new(
-        committee.clone(),
-        store,
-        config,
-        metrics,
-        sub_dags_per_schedule,
-        schedule,
-    );
+    let mut bullshark = Bullshark::new(committee.clone(), store, config, metrics, sub_dags_per_schedule, schedule);
 
     let mut total = 0;
     for certificate in certificates {
-        let (outcome, committed) = bullshark
-            .process_certificate(&mut state, certificate.clone())
-            .unwrap();
+        let (outcome, committed) = bullshark.process_certificate(&mut state, certificate.clone()).unwrap();
 
-        if certificate.round() == 7
-            || certificate.round() == 9
-            || certificate.round() == 11
-            || certificate.round() == 13
+        if certificate.round() == 7 || certificate.round() == 9 || certificate.round() == 11 || certificate.round() == 13
         {
             assert_eq!(outcome, Outcome::NotEnoughSupportForLeader);
         }
@@ -441,42 +396,23 @@ async fn commit_one() {
     let committee = fixture.committee();
     // Make certificates for rounds 1 and 2.
     let ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
-    let (mut certificates, next_parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        1..=2,
-        &genesis,
-        &ids,
-    );
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
+    let (mut certificates, next_parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 1..=2, &genesis, &ids);
 
     // Make two certificate (f+1) with round 3 to trigger the commits.
-    let (_, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        ids[0],
-        3,
-        next_parents.clone(),
-    );
+    let (_, certificate) =
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[0], 3, next_parents.clone());
     certificates.push_back(certificate);
-    let (_, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        ids[1],
-        3,
-        next_parents,
-    );
+    let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[1], 3, next_parents);
     certificates.push_back(certificate);
 
     // Spawn the consensus engine and sink the primary channel.
     let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(1);
     let (tx_primary, mut rx_primary) = test_utils::test_channel!(1);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
@@ -537,33 +473,22 @@ async fn dead_node() {
     // Make the certificates.
     let fixture = CommitteeFixture::builder().build();
     let committee: Committee = fixture.committee();
-    let mut ids: Vec<_> = committee
-        .authorities()
-        .map(|authority| authority.id())
-        .collect();
+    let mut ids: Vec<_> = committee.authorities().map(|authority| authority.id()).collect();
 
     // remove the last authority - 4
     let dead_node = ids.pop().unwrap();
 
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
 
-    let (mut certificates, _) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        1..=11,
-        &genesis,
-        &ids,
-    );
+    let (mut certificates, _) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 1..=11, &genesis, &ids);
 
     // Spawn the consensus engine and sink the primary channel.
     let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(1);
     let (tx_primary, mut rx_primary) = test_utils::test_channel!(1);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
@@ -626,13 +551,9 @@ async fn dead_node() {
 
         // For the first commit we expect to have any only zero scores
         if index == 0 {
-            sub_dag
-                .reputation_score
-                .scores_per_authority
-                .iter()
-                .for_each(|(_key, score)| {
-                    assert_eq!(*score, 0_u64);
-                });
+            sub_dag.reputation_score.scores_per_authority.iter().for_each(|(_key, score)| {
+                assert_eq!(*score, 0_u64);
+            });
         } else {
             // For any other commit we expect to always have a +1 score for each authority, as everyone
             // always votes for the leader
@@ -656,79 +577,47 @@ async fn not_enough_support() {
     let mut ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
     ids.sort();
 
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
 
     let mut certificates = VecDeque::new();
 
     // Round 1: Fully connected graph.
     let nodes: Vec<_> = ids.iter().take(3).cloned().collect();
-    let (out, parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        1..=1,
-        &genesis,
-        &nodes,
-    );
+    let (out, parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 1..=1, &genesis, &nodes);
     certificates.extend(out);
 
     // Round 2: Fully connect graph. But remember the digest of the leader. Note that this
     // round is the only one with 4 certificates.
-    let (leader_2_digest, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        ids[0],
-        2,
-        parents.clone(),
-    );
+    let (leader_2_digest, certificate) =
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[0], 2, parents.clone());
     certificates.push_back(certificate);
 
     let nodes: Vec<_> = ids.iter().skip(1).cloned().collect();
-    let (out, mut parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        2..=2,
-        &parents,
-        &nodes,
-    );
+    let (out, mut parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 2..=2, &parents, &nodes);
     certificates.extend(out);
 
     // Round 3: Only node 0 links to the leader of round 2.
     let mut next_parents = BTreeSet::new();
 
     let name = ids[1];
-    let (digest, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        name,
-        3,
-        parents.clone(),
-    );
+    let (digest, certificate) =
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), name, 3, parents.clone());
     certificates.push_back(certificate);
     next_parents.insert(digest);
 
     let name = ids[2];
-    let (digest, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        name,
-        3,
-        parents.clone(),
-    );
+    let (digest, certificate) =
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), name, 3, parents.clone());
     certificates.push_back(certificate);
     next_parents.insert(digest);
 
     let name = ids[0];
     parents.insert(leader_2_digest);
-    let (digest, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        name,
-        3,
-        parents.clone(),
-    );
+    let (digest, certificate) =
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), name, 3, parents.clone());
     certificates.push_back(certificate);
     next_parents.insert(digest);
 
@@ -736,34 +625,22 @@ async fn not_enough_support() {
 
     // Rounds 4: Fully connected graph. This is the where we "boost" the leader.
     let nodes: Vec<_> = ids.to_vec();
-    let (out, parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        4..=4,
-        &parents,
-        &nodes,
-    );
+    let (out, parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 4..=4, &parents, &nodes);
     certificates.extend(out);
 
     // Round 5: Send f+1 certificates to trigger the commit of leader 4.
-    let (_, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        ids[0],
-        5,
-        parents.clone(),
-    );
-    certificates.push_back(certificate);
     let (_, certificate) =
-        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[1], 5, parents);
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[0], 5, parents.clone());
+    certificates.push_back(certificate);
+    let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[1], 5, parents);
     certificates.push_back(certificate);
 
     // Spawn the consensus engine and sink the primary channel.
     let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(1);
     let (tx_primary, mut rx_primary) = test_utils::test_channel!(1);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
@@ -834,17 +711,13 @@ async fn not_enough_support() {
     assert_eq!(committed_sub_dag.reputation_score.total_authorities(), 4);
 
     let node_0_name: AuthorityIdentifier = ids[0];
-    committed_sub_dag
-        .reputation_score
-        .scores_per_authority
-        .iter()
-        .for_each(|(key, score)| {
-            if *key == node_0_name {
-                assert_eq!(*score, 1_u64);
-            } else {
-                assert_eq!(*score, 0_u64);
-            }
-        });
+    committed_sub_dag.reputation_score.scores_per_authority.iter().for_each(|(key, score)| {
+        if *key == node_0_name {
+            assert_eq!(*score, 1_u64);
+        } else {
+            assert_eq!(*score, 0_u64);
+        }
+    });
 }
 
 // Run for 7 dag rounds. Node 0 (the leader of round 2) is missing for rounds 1 and 2,
@@ -856,53 +729,34 @@ async fn missing_leader() {
     let mut ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
     ids.sort();
 
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
 
     let mut certificates = VecDeque::new();
 
     // Remove the leader for rounds 1 and 2.
     let nodes: Vec<_> = ids.iter().skip(1).cloned().collect();
-    let (out, parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        1..=2,
-        &genesis,
-        &nodes,
-    );
+    let (out, parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 1..=2, &genesis, &nodes);
     certificates.extend(out);
 
     // Add back the leader for rounds 3 and 4.
-    let (out, parents) = test_utils::make_optimal_certificates(
-        &committee,
-        &latest_protocol_version(),
-        3..=4,
-        &parents,
-        &ids,
-    );
+    let (out, parents) =
+        test_utils::make_optimal_certificates(&committee, &latest_protocol_version(), 3..=4, &parents, &ids);
     certificates.extend(out);
 
     // Add f+1 certificates of round 5 to commit the leader of round 4.
-    let (_, certificate) = test_utils::mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        ids[0],
-        5,
-        parents.clone(),
-    );
-    certificates.push_back(certificate);
     let (_, certificate) =
-        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[1], 5, parents);
+        test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[0], 5, parents.clone());
+    certificates.push_back(certificate);
+    let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), ids[1], 5, parents);
     certificates.push_back(certificate);
 
     // Spawn the consensus engine and sink the primary channel.
     let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(1);
     let (tx_primary, mut rx_primary) = test_utils::test_channel!(1);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
@@ -972,18 +826,10 @@ async fn committed_round_after_restart() {
     let epoch = committee.epoch();
 
     // Make certificates for rounds 1 to 11.
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
-    let (certificates, _) = test_utils::make_certificates_with_epoch(
-        &committee,
-        &latest_protocol_version(),
-        1..=11,
-        epoch,
-        &genesis,
-        &ids,
-    );
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
+    let (certificates, _) =
+        test_utils::make_certificates_with_epoch(&committee, &latest_protocol_version(), 1..=11, epoch, &genesis, &ids);
 
     let store = make_consensus_store(&test_utils::temp_dir());
     let cert_store = make_certificate_store(&test_utils::temp_dir());
@@ -993,8 +839,7 @@ async fn committed_round_after_restart() {
         let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(100);
         let (tx_primary, mut rx_primary) = test_utils::test_channel!(100);
         let (tx_output, mut rx_output) = test_utils::test_channel!(100);
-        let (tx_consensus_round_updates, rx_consensus_round_updates) =
-            watch::channel(ConsensusRound::new(0, 0));
+        let (tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
         let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
         let gc_depth = 50;
@@ -1042,24 +887,15 @@ async fn committed_round_after_restart() {
         // There should only be one new item in the output streams.
         if input_round > 1 {
             let committed = rx_output.recv().await.unwrap();
-            info!(
-                "Received output from consensus, committed_round={}",
-                committed.leader.round()
-            );
+            info!("Received output from consensus, committed_round={}", committed.leader.round());
             let (round, _certs) = rx_primary.recv().await.unwrap();
             info!("Received committed certificates from consensus, committed_round={round}",);
         }
 
         // After sending inputs up to round 2 * r + 1 to consensus, round 2 * r should have been
         // committed.
-        assert_eq!(
-            rx_consensus_round_updates.borrow().committed_round as usize,
-            input_round.saturating_sub(1),
-        );
-        info!(
-            "Committed round adanced to {}",
-            input_round.saturating_sub(1)
-        );
+        assert_eq!(rx_consensus_round_updates.borrow().committed_round as usize, input_round.saturating_sub(1),);
+        info!("Committed round adanced to {}", input_round.saturating_sub(1));
 
         // Shutdown consensus and wait for it to stop.
         tx_shutdown.send().unwrap();
@@ -1078,19 +914,11 @@ async fn delayed_certificates_are_rejected() {
     let gc_depth = 10;
 
     // Make certificates for rounds 1 to 11.
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
     let metrics = Arc::new(ConsensusMetrics::new(&Registry::new()));
-    let (certificates, _) = test_utils::make_certificates_with_epoch(
-        &committee,
-        &latest_protocol_version(),
-        1..=5,
-        epoch,
-        &genesis,
-        &ids,
-    );
+    let (certificates, _) =
+        test_utils::make_certificates_with_epoch(&committee, &latest_protocol_version(), 1..=5, epoch, &genesis, &ids);
 
     let store = make_consensus_store(&test_utils::temp_dir());
     let mut state = ConsensusState::new(metrics.clone(), gc_depth);
@@ -1106,9 +934,7 @@ async fn delayed_certificates_are_rejected() {
     // Populate DAG with the rounds up to round 5 so we trigger commits
     let mut all_subdags = Vec::new();
     for certificate in certificates.clone() {
-        let (_, committed_subdags) = bullshark
-            .process_certificate(&mut state, certificate)
-            .unwrap();
+        let (_, committed_subdags) = bullshark.process_certificate(&mut state, certificate).unwrap();
         all_subdags.extend(committed_subdags);
     }
 
@@ -1118,9 +944,7 @@ async fn delayed_certificates_are_rejected() {
     // now populate again the certificates of round 2 and 3
     // Since we committed everything of rounds <= 4, then those certificates should get rejected.
     for certificate in certificates.iter().filter(|c| c.round() <= 3) {
-        let (outcome, _) = bullshark
-            .process_certificate(&mut state, certificate.clone())
-            .unwrap();
+        let (outcome, _) = bullshark.process_certificate(&mut state, certificate.clone()).unwrap();
 
         assert_eq!(outcome, Outcome::CertificateBelowCommitRound);
     }
@@ -1137,19 +961,11 @@ async fn submitting_equivocating_certificate_should_error() {
     let gc_depth = 10;
 
     // Make certificates for rounds 1 to 11.
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
     let metrics = Arc::new(ConsensusMetrics::new(&Registry::new()));
-    let (certificates, _) = test_utils::make_certificates_with_epoch(
-        &committee,
-        &latest_protocol_version(),
-        1..=1,
-        epoch,
-        &genesis,
-        &ids,
-    );
+    let (certificates, _) =
+        test_utils::make_certificates_with_epoch(&committee, &latest_protocol_version(), 1..=1, epoch, &genesis, &ids);
 
     let store = make_consensus_store(&test_utils::temp_dir());
     let mut state = ConsensusState::new(metrics.clone(), gc_depth);
@@ -1164,34 +980,22 @@ async fn submitting_equivocating_certificate_should_error() {
 
     // Populate DAG with all the certificates
     for certificate in certificates.clone() {
-        let _ = bullshark
-            .process_certificate(&mut state, certificate)
-            .unwrap();
+        let _ = bullshark.process_certificate(&mut state, certificate).unwrap();
     }
 
     // Try to re-submit the exact same certificates - no error should be produced.
     for certificate in certificates {
-        let _ = bullshark
-            .process_certificate(&mut state, certificate)
-            .unwrap();
+        let _ = bullshark.process_certificate(&mut state, certificate).unwrap();
     }
 
     // Try to submit certificates for same rounds but equivocating certificates (we just create
     // them with different epoch as a way to trigger the difference)
-    let (certificates, _) = test_utils::make_certificates_with_epoch(
-        &committee,
-        &latest_protocol_version(),
-        1..=1,
-        100,
-        &genesis,
-        &ids,
-    );
+    let (certificates, _) =
+        test_utils::make_certificates_with_epoch(&committee, &latest_protocol_version(), 1..=1, 100, &genesis, &ids);
     assert_eq!(certificates.len(), 4);
 
     for certificate in certificates {
-        let err = bullshark
-            .process_certificate(&mut state, certificate.clone())
-            .unwrap_err();
+        let err = bullshark.process_certificate(&mut state, certificate.clone()).unwrap_err();
         match err {
             ConsensusError::CertificateEquivocation(this_cert, _) => {
                 assert_eq!(this_cert, certificate);
@@ -1213,19 +1017,11 @@ async fn reset_consensus_scores_on_every_schedule_change() {
     let gc_depth = 10;
 
     // Make certificates for rounds 1 to 50.
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
     let metrics = Arc::new(ConsensusMetrics::new(&Registry::new()));
-    let (certificates, _) = test_utils::make_certificates_with_epoch(
-        &committee,
-        &latest_protocol_version(),
-        1..=50,
-        epoch,
-        &genesis,
-        &ids,
-    );
+    let (certificates, _) =
+        test_utils::make_certificates_with_epoch(&committee, &latest_protocol_version(), 1..=50, epoch, &genesis, &ids);
 
     let store = make_consensus_store(&test_utils::temp_dir());
     let mut state = ConsensusState::new(metrics.clone(), gc_depth);
@@ -1241,9 +1037,7 @@ async fn reset_consensus_scores_on_every_schedule_change() {
     // Populate DAG with the rounds up to round 50 so we trigger commits
     let mut all_subdags = Vec::new();
     for certificate in certificates {
-        let (_, committed_subdags) = bullshark
-            .process_certificate(&mut state, certificate)
-            .unwrap();
+        let (_, committed_subdags) = bullshark.process_certificate(&mut state, certificate).unwrap();
         all_subdags.extend(committed_subdags);
     }
 
@@ -1294,8 +1088,7 @@ async fn restart_with_new_committee() {
         let (tx_new_certificates, rx_new_certificates) = test_utils::test_channel!(1);
         let (tx_primary, mut rx_primary) = test_utils::test_channel!(1);
         let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-        let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-            watch::channel(ConsensusRound::new(0, 0));
+        let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
         let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
         let store = make_consensus_store(&test_utils::temp_dir());
@@ -1407,10 +1200,7 @@ async fn garbage_collection_basic() {
     // all the certificates of the other authorities but never anyone else is referring to its
     // certificates. That will create a lone chain for authority 4. We should not see any certificate
     // committed for authority 4.
-    let ids: Vec<AuthorityIdentifier> = committee
-        .authorities()
-        .map(|authority| authority.id())
-        .collect();
+    let ids: Vec<AuthorityIdentifier> = committee.authorities().map(|authority| authority.id()).collect();
     let slow_node = ids[3];
     let genesis = Certificate::genesis(&latest_protocol_version(), &committee);
 
@@ -1445,10 +1235,7 @@ async fn garbage_collection_basic() {
         sub_dags.iter().for_each(|sub_dag| {
             // ensure nothing has been committed for authority 4
             assert!(
-                !sub_dag
-                    .certificates
-                    .iter()
-                    .any(|c| c.header().author() == slow_node),
+                !sub_dag.certificates.iter().any(|c| c.header().author() == slow_node),
                 "Slow authority shouldn't be amongst the committed ones"
             );
 
@@ -1456,11 +1243,7 @@ async fn garbage_collection_basic() {
             // collection has run. In this case no certificate of round 1 should exist.
             if sub_dag.leader.round() == 6 {
                 assert_eq!(
-                    state
-                        .dag
-                        .iter()
-                        .filter(|(round, _)| **round <= 2_u64)
-                        .count(),
+                    state.dag.iter().filter(|(round, _)| **round <= 2_u64).count(),
                     0,
                     "Didn't expect to still have certificates from round 1 and 2"
                 );
@@ -1471,16 +1254,8 @@ async fn garbage_collection_basic() {
             // certificates for them, but only for the slow authority 4 for which we never commit.
             // In this case the highest commit round for the authorities should be the leader.round() - 1,
             // except for the latest leader which should be leader.round().
-            for (_round, certificates) in state
-                .dag
-                .iter()
-                .filter(|(round, _)| **round <= sub_dag.leader.round())
-            {
-                assert_eq!(
-                    certificates.len(),
-                    4,
-                    "We expect to have all the certificates"
-                );
+            for (_round, certificates) in state.dag.iter().filter(|(round, _)| **round <= sub_dag.leader.round()) {
+                assert_eq!(certificates.len(), 4, "We expect to have all the certificates");
             }
         })
     }
@@ -1503,10 +1278,7 @@ async fn slow_node() {
     // all the certificates of the other authorities but never anyone else is referring to its
     // certificates. That will create a lone chain for authority 4. We should not see any certificate
     // committed for authority 4.
-    let ids: Vec<AuthorityIdentifier> = committee
-        .authorities()
-        .map(|authority| authority.id())
-        .collect();
+    let ids: Vec<AuthorityIdentifier> = committee.authorities().map(|authority| authority.id()).collect();
     let slow_node = ids[3];
     let genesis = Certificate::genesis(&latest_protocol_version(), &committee);
 
@@ -1549,18 +1321,12 @@ async fn slow_node() {
     // Now start feeding the certificates per round up to 8. We expect to have
     // triggered a commit up to round 6 and gc round 1 & 2.
     for c in certificates {
-        let _ = bullshark
-            .process_certificate(&mut state, c.clone())
-            .unwrap();
+        let _ = bullshark.process_certificate(&mut state, c.clone()).unwrap();
     }
 
     // We expect everything to have been cleaned up by standard gc until round 2 (included)
     assert_eq!(
-        state
-            .dag
-            .iter()
-            .filter(|(round, _)| **round <= 2_u64)
-            .count(),
+        state.dag.iter().filter(|(round, _)| **round <= 2_u64).count(),
         0,
         "Didn't expect to still have certificates from round 1 and 2"
     );
@@ -1609,11 +1375,7 @@ async fn slow_node() {
                     );
                 }
 
-                let slow_node_total = sub_dag
-                    .certificates
-                    .iter()
-                    .filter(|c| c.origin() == slow_node)
-                    .count();
+                let slow_node_total = sub_dag.certificates.iter().filter(|c| c.origin() == slow_node).count();
 
                 assert_eq!(slow_node_total, 4);
 
@@ -1639,10 +1401,7 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
     let fixture = CommitteeFixture::builder().build();
     let committee: Committee = fixture.committee();
 
-    let ids: Vec<AuthorityIdentifier> = committee
-        .authorities()
-        .map(|authority| authority.id())
-        .collect();
+    let ids: Vec<AuthorityIdentifier> = committee.authorities().map(|authority| authority.id()).collect();
 
     // take the first 3 nodes only - 4th one won't propose anything
     let keys_with_dead_node = ids[0..=2].to_vec();
@@ -1665,17 +1424,8 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
     for id in &keys_with_dead_node {
         // Only the first one will provide support to it's own certificate apart from the others
         if id == first_node {
-            let parents = round_2_certificates
-                .iter()
-                .map(|cert| cert.digest())
-                .collect::<BTreeSet<_>>();
-            let (_, certificate) = test_utils::mock_certificate(
-                &committee,
-                &latest_protocol_version(),
-                *id,
-                3,
-                parents,
-            );
+            let parents = round_2_certificates.iter().map(|cert| cert.digest()).collect::<BTreeSet<_>>();
+            let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), *id, 3, parents);
             round_3_certificates.push(certificate);
         } else {
             // we filter out the round 2 leader
@@ -1684,13 +1434,7 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
                 .filter(|cert| cert.origin() != *first_node)
                 .map(|cert| cert.digest())
                 .collect::<BTreeSet<_>>();
-            let (_, certificate) = test_utils::mock_certificate(
-                &committee,
-                &latest_protocol_version(),
-                *id,
-                3,
-                parents,
-            );
+            let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), *id, 3, parents);
             round_3_certificates.push(certificate);
         }
     }
@@ -1699,12 +1443,8 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
     let mut round_4_certificates = Vec::new();
     let missing_leader = &ids[1];
     for id in ids.iter().filter(|a| *a != missing_leader) {
-        let parents = round_3_certificates
-            .iter()
-            .map(|cert| cert.digest())
-            .collect::<BTreeSet<_>>();
-        let (_, certificate) =
-            test_utils::mock_certificate(&committee, &latest_protocol_version(), *id, 4, parents);
+        let parents = round_3_certificates.iter().map(|cert| cert.digest()).collect::<BTreeSet<_>>();
+        let (_, certificate) = test_utils::mock_certificate(&committee, &latest_protocol_version(), *id, 4, parents);
         round_4_certificates.push(certificate);
     }
 
@@ -1713,15 +1453,14 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
     let slow_node = ids[0];
     let slow_nodes = vec![(slow_node, 0.0_f64)];
 
-    let (certificates_5_to_7, _round_7_certificates) =
-        test_utils::make_certificates_with_slow_nodes(
-            &committee,
-            &latest_protocol_version(),
-            5..=7,
-            round_4_certificates.clone(),
-            &ids,
-            &slow_nodes,
-        );
+    let (certificates_5_to_7, _round_7_certificates) = test_utils::make_certificates_with_slow_nodes(
+        &committee,
+        &latest_protocol_version(),
+        5..=7,
+        round_4_certificates.clone(),
+        &ids,
+        &slow_nodes,
+    );
 
     // now send all certificates to Bullshark
     certificates.extend(round_3_certificates);
@@ -1743,9 +1482,7 @@ async fn not_enough_support_and_missing_leaders_and_gc() {
 
     let mut committed = false;
     for c in &certificates {
-        let (outcome, sub_dags) = bullshark
-            .process_certificate(&mut state, c.clone())
-            .unwrap();
+        let (outcome, sub_dags) = bullshark.process_certificate(&mut state, c.clone()).unwrap();
 
         // We expect leader of round 2 to not have enough support from certificates of round 3,
         // thus no commit should happen and every attempt should return a not enough support outcome

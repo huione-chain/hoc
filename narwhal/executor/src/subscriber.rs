@@ -5,28 +5,37 @@ use crate::{errors::SubscriberResult, metrics::ExecutorMetrics, ExecutionState};
 use config::{AuthorityIdentifier, Committee, WorkerCache, WorkerId};
 use crypto::NetworkPublicKey;
 
-use futures::stream::FuturesOrdered;
-use futures::StreamExt;
+use futures::{stream::FuturesOrdered, StreamExt};
 
 use network::PrimaryToWorkerClient;
 
 use network::client::NetworkClient;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::{sync::Arc, time::Duration, vec};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::Duration,
+    vec,
+};
 use tracing::warn;
-use types::error::LocalClientError;
-use types::FetchBatchesRequest;
+use types::{error::LocalClientError, FetchBatchesRequest};
 
 use fastcrypto::hash::Hash;
-use mysten_metrics::metered_channel;
-use mysten_metrics::spawn_logged_monitored_task;
+use mysten_metrics::{metered_channel, spawn_logged_monitored_task};
 use sui_protocol_config::ProtocolConfig;
 use tokio::task::JoinHandle;
 use tracing::{debug, error, info};
 use types::{
-    Batch, BatchAPI, BatchDigest, Certificate, CertificateAPI, CommittedSubDag,
-    ConditionalBroadcastReceiver, ConsensusOutput, HeaderAPI, MetadataAPI, Timestamp,
+    Batch,
+    BatchAPI,
+    BatchDigest,
+    Certificate,
+    CertificateAPI,
+    CommittedSubDag,
+    ConditionalBroadcastReceiver,
+    ConsensusOutput,
+    HeaderAPI,
+    MetadataAPI,
+    Timestamp,
 };
 
 /// The `Subscriber` receives certificates sequenced by the consensus and waits until the
@@ -67,21 +76,13 @@ pub fn spawn_subscriber<State: ExecutionState + Send + Sync + 'static>(
     // To construct server side we need to set up routes first, which requires starting Primary
     // Some cleanup is needed
 
-    let (tx_notifier, rx_notifier) =
-        metered_channel::channel(primary::CHANNEL_CAPACITY, &metrics.tx_notifier);
+    let (tx_notifier, rx_notifier) = metered_channel::channel(primary::CHANNEL_CAPACITY, &metrics.tx_notifier);
 
-    let rx_shutdown_notify = shutdown_receivers
-        .pop()
-        .unwrap_or_else(|| panic!("Not enough shutdown receivers"));
-    let rx_shutdown_subscriber = shutdown_receivers
-        .pop()
-        .unwrap_or_else(|| panic!("Not enough shutdown receivers"));
+    let rx_shutdown_notify = shutdown_receivers.pop().unwrap_or_else(|| panic!("Not enough shutdown receivers"));
+    let rx_shutdown_subscriber = shutdown_receivers.pop().unwrap_or_else(|| panic!("Not enough shutdown receivers"));
 
     vec![
-        spawn_logged_monitored_task!(
-            run_notify(state, rx_notifier, rx_shutdown_notify),
-            "SubscriberNotifyTask"
-        ),
+        spawn_logged_monitored_task!(run_notify(state, rx_notifier, rx_shutdown_notify), "SubscriberNotifyTask"),
         spawn_logged_monitored_task!(
             create_and_run_subscriber(
                 authority_id,
@@ -134,19 +135,9 @@ async fn create_and_run_subscriber(
     let subscriber = Subscriber {
         rx_shutdown,
         rx_sequence,
-        inner: Arc::new(Inner {
-            authority_id,
-            committee,
-            _protocol_config,
-            worker_cache,
-            client,
-            metrics,
-        }),
+        inner: Arc::new(Inner { authority_id, committee, _protocol_config, worker_cache, client, metrics }),
     };
-    subscriber
-        .run(restored_consensus_output, tx_notifier)
-        .await
-        .expect("Failed to run subscriber")
+    subscriber.run(restored_consensus_output, tx_notifier).await.expect("Failed to run subscriber")
 }
 
 impl Subscriber {
@@ -173,10 +164,7 @@ impl Subscriber {
             let future = Self::fetch_batches(self.inner.clone(), message);
             waiting.push_back(future);
 
-            self.inner
-                .metrics
-                .subscriber_recovered_certificates_count
-                .inc();
+            self.inner.metrics.subscriber_recovered_certificates_count.inc();
         }
 
         // Listen to sequenced consensus message and process them.
@@ -204,10 +192,7 @@ impl Subscriber {
 
             }
 
-            self.inner
-                .metrics
-                .waiting_elements_subscriber
-                .set(waiting.len() as i64);
+            self.inner.metrics.waiting_elements_subscriber.set(waiting.len() as i64);
         }
     }
 
@@ -227,56 +212,32 @@ impl Subscriber {
         }
 
         let sub_dag = Arc::new(deliver);
-        let mut subscriber_output = ConsensusOutput {
-            sub_dag: sub_dag.clone(),
-            batches: Vec::with_capacity(num_certs),
-        };
+        let mut subscriber_output = ConsensusOutput { sub_dag: sub_dag.clone(), batches: Vec::with_capacity(num_certs) };
 
-        let mut batch_digests_and_workers: HashMap<
-            NetworkPublicKey,
-            (HashSet<BatchDigest>, HashSet<NetworkPublicKey>),
-        > = HashMap::new();
+        let mut batch_digests_and_workers: HashMap<NetworkPublicKey, (HashSet<BatchDigest>, HashSet<NetworkPublicKey>)> =
+            HashMap::new();
 
         for cert in &sub_dag.certificates {
             for (digest, (worker_id, _)) in cert.header().payload().iter() {
                 let own_worker_name = inner
                     .worker_cache
-                    .worker(
-                        inner
-                            .committee
-                            .authority(&inner.authority_id)
-                            .unwrap()
-                            .protocol_key(),
-                        worker_id,
-                    )
+                    .worker(inner.committee.authority(&inner.authority_id).unwrap().protocol_key(), worker_id)
                     .unwrap_or_else(|_| panic!("worker_id {worker_id} is not in the worker cache"))
                     .name;
                 let workers = Self::workers_for_certificate(&inner, cert, worker_id);
-                let (batch_set, worker_set) = batch_digests_and_workers
-                    .entry(own_worker_name)
-                    .or_default();
+                let (batch_set, worker_set) = batch_digests_and_workers.entry(own_worker_name).or_default();
                 batch_set.insert(*digest);
                 worker_set.extend(workers);
             }
         }
 
-        let fetched_batches_timer = inner
-            .metrics
-            .batch_fetch_for_committed_subdag_total_latency
-            .start_timer();
-        inner
-            .metrics
-            .committed_subdag_batch_count
-            .observe(num_batches as f64);
-        let fetched_batches =
-            Self::fetch_batches_from_workers(&inner, batch_digests_and_workers).await;
+        let fetched_batches_timer = inner.metrics.batch_fetch_for_committed_subdag_total_latency.start_timer();
+        inner.metrics.committed_subdag_batch_count.observe(num_batches as f64);
+        let fetched_batches = Self::fetch_batches_from_workers(&inner, batch_digests_and_workers).await;
         drop(fetched_batches_timer);
 
         for batch in fetched_batches.values() {
-            inner
-                .metrics
-                .consensus_output_transactions
-                .inc_by(batch.transactions().len() as u64);
+            inner.metrics.consensus_output_transactions.inc_by(batch.transactions().len() as u64);
         }
 
         // Map all fetched batches to their respective certificates and submit as
@@ -284,26 +245,17 @@ impl Subscriber {
         for cert in &sub_dag.certificates {
             let mut output_batches = Vec::with_capacity(cert.header().payload().len());
 
-            inner
-                .metrics
-                .subscriber_current_round
-                .set(cert.round() as i64);
+            inner.metrics.subscriber_current_round.set(cert.round() as i64);
 
-            inner
-                .metrics
-                .subscriber_certificate_latency
-                .observe(cert.metadata().created_at.elapsed().as_secs_f64());
+            inner.metrics.subscriber_certificate_latency.observe(cert.metadata().created_at.elapsed().as_secs_f64());
 
             for (digest, (_, _)) in cert.header().payload().iter() {
                 inner.metrics.subscriber_processed_batches.inc();
-                let batch = fetched_batches
-                    .get(digest)
-                    .expect("[Protocol violation] Batch not found in fetched batches from workers of certificate signers");
-
-                debug!(
-                    "Adding fetched batch {digest} from certificate {} to consensus output",
-                    cert.digest()
+                let batch = fetched_batches.get(digest).expect(
+                    "[Protocol violation] Batch not found in fetched batches from workers of certificate signers",
                 );
+
+                debug!("Adding fetched batch {digest} from certificate {} to consensus output", cert.digest());
                 output_batches.push(batch.clone());
             }
             subscriber_output.batches.push(output_batches);
@@ -311,11 +263,7 @@ impl Subscriber {
         subscriber_output
     }
 
-    fn workers_for_certificate(
-        inner: &Inner,
-        certificate: &Certificate,
-        worker_id: &WorkerId,
-    ) -> Vec<NetworkPublicKey> {
+    fn workers_for_certificate(inner: &Inner, certificate: &Certificate, worker_id: &WorkerId) -> Vec<NetworkPublicKey> {
         // Can include own authority and worker, but worker will always check local storage when
         // fetching paylods.
         let authorities = certificate.signed_authorities(&inner.committee);
@@ -326,10 +274,7 @@ impl Subscriber {
                 match worker {
                     Ok(worker) => Some(worker.name),
                     Err(err) => {
-                        error!(
-                            "Worker {} not found for authority {}: {:?}",
-                            worker_id, authority, err
-                        );
+                        error!("Worker {} not found for authority {}: {:?}", worker_id, authority, err);
                         None
                     }
                 }
@@ -339,10 +284,7 @@ impl Subscriber {
 
     async fn fetch_batches_from_workers(
         inner: &Inner,
-        batch_digests_and_workers: HashMap<
-            NetworkPublicKey,
-            (HashSet<BatchDigest>, HashSet<NetworkPublicKey>),
-        >,
+        batch_digests_and_workers: HashMap<NetworkPublicKey, (HashSet<BatchDigest>, HashSet<NetworkPublicKey>)>,
     ) -> HashMap<BatchDigest, Batch> {
         let mut fetched_batches = HashMap::new();
 
@@ -356,16 +298,9 @@ impl Subscriber {
             // to NetworkClient.
             // Only have one worker for now so will leave this for a future
             // optimization.
-            let request = FetchBatchesRequest {
-                digests,
-                known_workers,
-            };
+            let request = FetchBatchesRequest { digests, known_workers };
             let batches = loop {
-                match inner
-                    .client
-                    .fetch_batches(worker_name.clone(), request.clone())
-                    .await
-                {
+                match inner.client.fetch_batches(worker_name.clone(), request.clone()).await {
                     Ok(resp) => break resp.batches,
                     Err(e) => {
                         if !matches!(e, LocalClientError::ShuttingDown) {
@@ -390,45 +325,19 @@ impl Subscriber {
         let metadata = batch.versioned_metadata();
         if let Some(received_at) = metadata.received_at() {
             let remote_duration = received_at.elapsed().as_secs_f64();
-            debug!(
-                "Batch was fetched for execution after being received from another worker {}s ago.",
-                remote_duration
-            );
-            inner
-                .metrics
-                .batch_execution_local_latency
-                .with_label_values(&["other"])
-                .observe(remote_duration);
+            debug!("Batch was fetched for execution after being received from another worker {}s ago.", remote_duration);
+            inner.metrics.batch_execution_local_latency.with_label_values(&["other"]).observe(remote_duration);
         } else {
-            let local_duration = batch
-                .versioned_metadata()
-                .created_at()
-                .elapsed()
-                .as_secs_f64();
-            debug!(
-                "Batch was fetched for execution after being created locally {}s ago.",
-                local_duration
-            );
-            inner
-                .metrics
-                .batch_execution_local_latency
-                .with_label_values(&["own"])
-                .observe(local_duration);
+            let local_duration = batch.versioned_metadata().created_at().elapsed().as_secs_f64();
+            debug!("Batch was fetched for execution after being created locally {}s ago.", local_duration);
+            inner.metrics.batch_execution_local_latency.with_label_values(&["own"]).observe(local_duration);
         };
 
-        let batch_fetch_duration = batch
-            .versioned_metadata()
-            .created_at()
-            .elapsed()
-            .as_secs_f64();
-        inner
-            .metrics
-            .batch_execution_latency
-            .observe(batch_fetch_duration);
+        let batch_fetch_duration = batch.versioned_metadata().created_at().elapsed().as_secs_f64();
+        inner.metrics.batch_execution_latency.observe(batch_fetch_duration);
         debug!(
             "Batch {:?} took {} seconds since it has been created to when it has been fetched for execution",
-            digest,
-            batch_fetch_duration,
+            digest, batch_fetch_duration,
         );
     }
 }

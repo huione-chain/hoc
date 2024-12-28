@@ -20,13 +20,12 @@ use crate::{
 pub(crate) struct KvProtocolConfigs(pub(crate) StoredGenesis);
 
 impl Processor for KvProtocolConfigs {
-    const NAME: &'static str = "kv_protocol_configs";
     type Value = StoredProtocolConfig;
 
+    const NAME: &'static str = "kv_protocol_configs";
+
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
-        let CheckpointData {
-            checkpoint_summary, ..
-        } = checkpoint.as_ref();
+        let CheckpointData { checkpoint_summary, .. } = checkpoint.as_ref();
 
         let protocol_version = if checkpoint_summary.sequence_number == 0 {
             self.0.initial_protocol_version()
@@ -36,10 +35,8 @@ impl Processor for KvProtocolConfigs {
             return Ok(vec![]);
         };
 
-        let protocol_config = ProtocolConfig::get_for_version(
-            protocol_version,
-            self.0.chain().context("Failed to identify chain")?,
-        );
+        let protocol_config =
+            ProtocolConfig::get_for_version(protocol_version, self.0.chain().context("Failed to identify chain")?);
 
         let protocol_version = protocol_version.as_u64() as i64;
         Ok(protocol_config
@@ -56,14 +53,10 @@ impl Processor for KvProtocolConfigs {
 
 #[async_trait::async_trait]
 impl Handler for KvProtocolConfigs {
-    const MIN_EAGER_ROWS: usize = 1;
     const MAX_PENDING_ROWS: usize = 10000;
+    const MIN_EAGER_ROWS: usize = 1;
 
     async fn commit(values: &[Self::Value], conn: &mut db::Connection<'_>) -> Result<usize> {
-        Ok(diesel::insert_into(kv_protocol_configs::table)
-            .values(values)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await?)
+        Ok(diesel::insert_into(kv_protocol_configs::table).values(values).on_conflict_do_nothing().execute(conn).await?)
     }
 }

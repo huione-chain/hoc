@@ -2,13 +2,18 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 use crate::consensus::{
-    metrics::ConsensusMetrics, utils, ConsensusError, ConsensusState, Dag, LeaderSchedule,
-    LeaderSwapTable, Outcome,
+    metrics::ConsensusMetrics,
+    utils,
+    ConsensusError,
+    ConsensusState,
+    Dag,
+    LeaderSchedule,
+    LeaderSwapTable,
+    Outcome,
 };
 use config::{Committee, Stake};
 use fastcrypto::hash::Hash;
-use std::collections::VecDeque;
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 use storage::ConsensusStore;
 use sui_protocol_config::ProtocolConfig;
 use tokio::time::Instant;
@@ -73,28 +78,23 @@ impl Bullshark {
         // sub dag we are going to create.
         // TODO: when schedule change is implemented we should probably change a little bit
         // this logic here.
-        let mut reputation_score =
-            if sub_dag_index == 1 || sub_dag_index % self.num_sub_dags_per_schedule == 0 {
-                ReputationScores::new(&self.committee)
-            } else {
-                state
-                    .last_committed_sub_dag
-                    .as_ref()
-                    .expect("Committed sub dag should always exist for sub_dag_index > 1")
-                    .reputation_score
-                    .clone()
-            };
+        let mut reputation_score = if sub_dag_index == 1 || sub_dag_index % self.num_sub_dags_per_schedule == 0 {
+            ReputationScores::new(&self.committee)
+        } else {
+            state
+                .last_committed_sub_dag
+                .as_ref()
+                .expect("Committed sub dag should always exist for sub_dag_index > 1")
+                .reputation_score
+                .clone()
+        };
 
         // update the score for the previous leader. If no previous leader exists,
         // then this is the first time we commit a leader, so no score update takes place
         if let Some(last_committed_sub_dag) = state.last_committed_sub_dag.as_ref() {
             for certificate in committed_sequence {
                 // TODO: we could iterate only the certificates of the round above the previous leader's round
-                if certificate
-                    .header()
-                    .parents()
-                    .iter()
-                    .any(|digest| *digest == last_committed_sub_dag.leader.digest())
+                if certificate.header().parents().iter().any(|digest| *digest == last_committed_sub_dag.leader.digest())
                 {
                     reputation_score.add_score(certificate.origin(), 1);
                 }
@@ -104,15 +104,11 @@ impl Bullshark {
         // we check if this is the last sub dag of the current schedule. If yes then we mark the
         // scores as final_of_schedule = true so any downstream user can now that those are the last
         // ones calculated for the current schedule.
-        reputation_score.final_of_schedule =
-            (sub_dag_index + 1) % self.num_sub_dags_per_schedule == 0;
+        reputation_score.final_of_schedule = (sub_dag_index + 1) % self.num_sub_dags_per_schedule == 0;
 
         // Always ensure that all the authorities are present in the reputation scores - even
         // when score is zero.
-        assert_eq!(
-            reputation_score.total_authorities() as usize,
-            self.committee.size()
-        );
+        assert_eq!(reputation_score.total_authorities() as usize, self.committee.size());
 
         reputation_score
     }
@@ -173,22 +169,14 @@ impl Bullshark {
         // record the last time we got a successful leader election
         let elapsed = self.last_successful_leader_election_timestamp.elapsed();
 
-        self.metrics
-            .commit_rounds_latency
-            .observe(elapsed.as_secs_f64());
+        self.metrics.commit_rounds_latency.observe(elapsed.as_secs_f64());
 
         self.last_successful_leader_election_timestamp = Instant::now();
 
         // The total leader_commits are expected to grow the same amount on validators,
         // but strong vs weak counts are not expected to be the same across validators.
-        self.metrics
-            .leader_commits
-            .with_label_values(&["strong"])
-            .inc();
-        self.metrics
-            .leader_commits
-            .with_label_values(&["weak"])
-            .inc_by(committed_sub_dags.len() as u64 - 1);
+        self.metrics.leader_commits.with_label_values(&["strong"]).inc();
+        self.metrics.leader_commits.with_label_values(&["weak"]).inc_by(committed_sub_dags.len() as u64 - 1);
 
         // Log the latest committed round of every authority (for debug).
         // Performance note: if tracing at the debug log level is disabled, this is cheap, see
@@ -197,14 +185,10 @@ impl Bullshark {
             debug!("Latest commit of {}: Round {}", name, round);
         }
 
-        let total_committed_certificates: u64 = committed_sub_dags
-            .iter()
-            .map(|sub_dag| sub_dag.certificates.len() as u64)
-            .sum();
+        let total_committed_certificates: u64 =
+            committed_sub_dags.iter().map(|sub_dag| sub_dag.certificates.len() as u64).sum();
 
-        self.metrics
-            .committed_certificates
-            .observe(total_committed_certificates as f64);
+        self.metrics.committed_certificates.observe(total_committed_certificates as f64);
 
         Ok((Outcome::Commit, committed_sub_dags))
     }
@@ -219,10 +203,7 @@ impl Bullshark {
         leader_round: Round,
         state: &mut ConsensusState,
     ) -> Result<(Outcome, Vec<CommittedSubDag>), ConsensusError> {
-        let leader = match self
-            .leader_schedule
-            .leader_certificate(leader_round, &state.dag)
-        {
+        let leader = match self.leader_schedule.leader_certificate(leader_round, &state.dag) {
             (_leader_authority, Some(certificate)) => certificate,
             (_leader_authority, None) => {
                 // leader has not been found - we don't have any certificate
@@ -288,8 +269,7 @@ impl Bullshark {
             );
 
             // Persist the update.
-            self.store
-                .write_consensus_state(&state.last_committed, &sub_dag)?;
+            self.store.write_consensus_state(&state.last_committed, &sub_dag)?;
 
             // Update the last sub dag
             state.last_committed_sub_dag = Some(sub_dag.clone());
@@ -320,23 +300,16 @@ impl Bullshark {
 
         let mut leader = leader;
         assert_eq!(leader.round() % 2, 0);
-        for r in (state.last_round.committed_round + 2..=leader.round() - 2)
-            .rev()
-            .step_by(2)
-        {
+        for r in (state.last_round.committed_round + 2..=leader.round() - 2).rev().step_by(2) {
             // Get the certificate proposed by the previous leader.
-            let (prev_leader, authority) =
-                match self.leader_schedule.leader_certificate(r, &state.dag) {
-                    (authority, Some(x)) => (x, authority),
-                    (authority, None) => {
-                        self.metrics
-                            .leader_election
-                            .with_label_values(&["not_found", authority.hostname()])
-                            .inc();
+            let (prev_leader, authority) = match self.leader_schedule.leader_certificate(r, &state.dag) {
+                (authority, Some(x)) => (x, authority),
+                (authority, None) => {
+                    self.metrics.leader_election.with_label_values(&["not_found", authority.hostname()]).inc();
 
-                        continue;
-                    }
-                };
+                    continue;
+                }
+            };
 
             // Check whether there is a path between the last two leaders.
             if self.linked(leader, prev_leader, &state.dag) {
@@ -345,10 +318,7 @@ impl Bullshark {
                 to_commit.push_front(prev_leader.clone());
                 leader = prev_leader;
             } else {
-                self.metrics
-                    .leader_election
-                    .with_label_values(&["no_path", authority.hostname()])
-                    .inc();
+                self.metrics.leader_election.with_label_values(&["no_path", authority.hostname()]).inc();
             }
         }
 
@@ -359,10 +329,7 @@ impl Bullshark {
         to_commit.iter().for_each(|certificate| {
             let authority = committee.authority(&certificate.origin()).unwrap();
 
-            metrics
-                .leader_election
-                .with_label_values(&["committed", authority.hostname()])
-                .inc();
+            metrics.leader_election.with_label_values(&["committed", authority.hostname()]).inc();
         });
 
         to_commit
@@ -376,11 +343,7 @@ impl Bullshark {
                 .get(&r)
                 .expect("We should have the whole history by now")
                 .values()
-                .filter(|(digest, _)| {
-                    parents
-                        .iter()
-                        .any(|x| x.header().parents().contains(digest))
-                })
+                .filter(|(digest, _)| parents.iter().any(|x| x.header().parents().contains(digest)))
                 .map(|(_, certificate)| certificate)
                 .collect();
         }
@@ -390,24 +353,17 @@ impl Bullshark {
     // When the provided `reputation_scores` are "final" for the current schedule window, then we
     // create the new leader swap table and update the leader schedule to use it. Otherwise we do
     // nothing. If the schedule has been updated then true is returned.
-    fn update_leader_schedule(
-        &mut self,
-        leader_round: Round,
-        reputation_scores: &ReputationScores,
-    ) -> bool {
+    fn update_leader_schedule(&mut self, leader_round: Round, reputation_scores: &ReputationScores) -> bool {
         if reputation_scores.final_of_schedule {
             // create the new swap table and update the scheduler
-            self.leader_schedule
-                .update_leader_swap_table(LeaderSwapTable::new(
-                    &self.committee,
-                    leader_round,
-                    reputation_scores,
-                    self.protocol_config.consensus_bad_nodes_stake_threshold(),
-                ));
+            self.leader_schedule.update_leader_swap_table(LeaderSwapTable::new(
+                &self.committee,
+                leader_round,
+                reputation_scores,
+                self.protocol_config.consensus_bad_nodes_stake_threshold(),
+            ));
 
-            self.metrics
-                .num_of_bad_nodes
-                .set(self.leader_schedule.num_of_bad_nodes() as i64);
+            self.metrics.num_of_bad_nodes.set(self.leader_schedule.num_of_bad_nodes() as i64);
 
             return true;
         }
@@ -415,9 +371,7 @@ impl Bullshark {
     }
 
     fn report_leader_on_time_metrics(&mut self, certificate_round: Round, state: &ConsensusState) {
-        if certificate_round > self.max_inserted_certificate_round
-            && certificate_round % 2 == 0
-            && certificate_round > 2
+        if certificate_round > self.max_inserted_certificate_round && certificate_round % 2 == 0 && certificate_round > 2
         {
             let previous_leader_round = certificate_round - 2;
 
@@ -434,19 +388,12 @@ impl Bullshark {
             let authority = self.leader_schedule.leader(previous_leader_round);
 
             if state.last_round.committed_round < previous_leader_round {
-                self.metrics
-                    .leader_commit_accuracy
-                    .with_label_values(&["miss", authority.hostname()])
-                    .inc();
+                self.metrics.leader_commit_accuracy.with_label_values(&["miss", authority.hostname()]).inc();
             } else {
-                self.metrics
-                    .leader_commit_accuracy
-                    .with_label_values(&["hit", authority.hostname()])
-                    .inc();
+                self.metrics.leader_commit_accuracy.with_label_values(&["hit", authority.hostname()]).inc();
             }
         }
 
-        self.max_inserted_certificate_round =
-            self.max_inserted_certificate_round.max(certificate_round);
+        self.max_inserted_certificate_round = self.max_inserted_certificate_round.max(certificate_round);
     }
 }

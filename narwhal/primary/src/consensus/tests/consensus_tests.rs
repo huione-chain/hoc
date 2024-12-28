@@ -8,17 +8,14 @@ use prometheus::Registry;
 use storage::NodeStorage;
 use sui_protocol_config::ProtocolConfig;
 use telemetry_subscribers::TelemetryGuards;
-use test_utils::latest_protocol_version;
-use test_utils::{temp_dir, CommitteeFixture};
+use test_utils::{latest_protocol_version, temp_dir, CommitteeFixture};
 use tokio::sync::watch;
-use types::{
-    Certificate, CertificateAPI, HeaderAPI, PreSubscribedBroadcastSender, ReputationScores,
-};
+use types::{Certificate, CertificateAPI, HeaderAPI, PreSubscribedBroadcastSender, ReputationScores};
 
-use crate::consensus::{
-    Bullshark, Consensus, ConsensusMetrics, ConsensusRound, LeaderSchedule, LeaderSwapTable,
+use crate::{
+    consensus::{Bullshark, Consensus, ConsensusMetrics, ConsensusRound, LeaderSchedule, LeaderSwapTable},
+    NUM_SHUTDOWN_RECEIVERS,
 };
-use crate::NUM_SHUTDOWN_RECEIVERS;
 
 /// This test is trying to compare the output of the Consensus algorithm when:
 /// (1) running without any crash for certificates processed from round 1 to 5 (inclusive)
@@ -49,10 +46,8 @@ async fn test_consensus_recovery_with_bullshark() {
 
     // AND make certificates for rounds 1 to 7 (inclusive)
     let ids: Vec<_> = fixture.authorities().map(|a| a.id()).collect();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
     let (certificates, _next_parents) =
         test_utils::make_optimal_certificates(&committee, &config, 1..=7, &genesis, &ids);
 
@@ -60,15 +55,13 @@ async fn test_consensus_recovery_with_bullshark() {
     let (tx_waiter, rx_waiter) = test_utils::test_channel!(100);
     let (tx_primary, _rx_primary) = test_utils::test_channel!(100);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
     let gc_depth = 50;
     let metrics = Arc::new(ConsensusMetrics::new(&Registry::new()));
-    let leader_schedule =
-        LeaderSchedule::from_store(committee.clone(), consensus_store.clone(), config.clone());
+    let leader_schedule = LeaderSchedule::from_store(committee.clone(), consensus_store.clone(), config.clone());
     let bullshark = Bullshark::new(
         committee.clone(),
         consensus_store.clone(),
@@ -158,16 +151,14 @@ async fn test_consensus_recovery_with_bullshark() {
     let (tx_waiter, rx_waiter) = test_utils::test_channel!(100);
     let (tx_primary, _rx_primary) = test_utils::test_channel!(100);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
 
     let storage = NodeStorage::reopen(temp_dir(), None);
 
     let consensus_store = storage.consensus_store;
     let certificate_store = storage.certificate_store;
 
-    let leader_schedule =
-        LeaderSchedule::from_store(committee.clone(), consensus_store.clone(), config.clone());
+    let leader_schedule = LeaderSchedule::from_store(committee.clone(), consensus_store.clone(), config.clone());
     let bullshark = Bullshark::new(
         committee.clone(),
         consensus_store.clone(),
@@ -236,8 +227,7 @@ async fn test_consensus_recovery_with_bullshark() {
     let (tx_waiter, rx_waiter) = test_utils::test_channel!(100);
     let (tx_primary, _rx_primary) = test_utils::test_channel!(100);
     let (tx_output, mut rx_output) = test_utils::test_channel!(1);
-    let (tx_consensus_round_updates, _rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (tx_consensus_round_updates, _rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
 
     let bullshark = Bullshark::new(
         committee.clone(),
@@ -305,14 +295,7 @@ async fn test_consensus_recovery_with_bullshark() {
     // AND ensure that scores are exactly the same
     assert_eq!(score_with_crash.scores_per_authority.len(), 4);
     assert_eq!(score_with_crash, score_no_crash);
-    assert_eq!(
-        score_with_crash
-            .scores_per_authority
-            .into_iter()
-            .filter(|(_, score)| *score == 1)
-            .count(),
-        4
-    );
+    assert_eq!(score_with_crash.scores_per_authority.into_iter().filter(|(_, score)| *score == 1).count(), 4);
 }
 
 fn setup_tracing() -> TelemetryGuards {

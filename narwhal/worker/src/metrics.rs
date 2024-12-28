@@ -3,18 +3,26 @@
 use mysten_network::metrics::MetricsCallbackProvider;
 use network::metrics::{NetworkConnectionMetrics, NetworkMetrics};
 use prometheus::{
-    default_registry, register_histogram_vec_with_registry, register_histogram_with_registry,
-    register_int_counter_vec_with_registry, register_int_counter_with_registry,
-    register_int_gauge_with_registry, Histogram, HistogramVec, IntCounter, IntCounterVec, IntGauge,
+    default_registry,
+    register_histogram_vec_with_registry,
+    register_histogram_with_registry,
+    register_int_counter_vec_with_registry,
+    register_int_counter_with_registry,
+    register_int_gauge_with_registry,
+    Histogram,
+    HistogramVec,
+    IntCounter,
+    IntCounterVec,
+    IntGauge,
     Registry,
 };
 use std::time::Duration;
 use tonic::Code;
 
 const LATENCY_SEC_BUCKETS: &[f64] = &[
-    0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4,
-    1.6, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.,
-    12.5, 15., 17.5, 20., 25., 30., 60., 90., 120., 180., 300.,
+    0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0,
+    3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10., 12.5, 15., 17.5, 20., 25., 30., 60., 90.,
+    120., 180., 300.,
 ];
 
 #[derive(Clone)]
@@ -178,24 +186,28 @@ impl WorkerChannelMetrics {
                 "tx_batch_maker",
                 "occupancy of the channel from the `worker::TxReceiverhandler` to the `worker::BatchMaker`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_quorum_waiter: register_int_gauge_with_registry!(
                 "tx_quorum_waiter",
                 "occupancy of the channel from the `worker::BatchMaker` to the `worker::QuorumWaiter`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
 
             // Totals:
             tx_batch_maker_total: register_int_counter_with_registry!(
                 "tx_batch_maker_total",
                 "total received from the channel from the `worker::TxReceiverhandler` to the `worker::BatchMaker`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_quorum_waiter_total: register_int_counter_with_registry!(
                 "tx_quorum_waiter_total",
                 "total received from the channel from the `worker::BatchMaker` to the `worker::QuorumWaiter`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
         }
     }
 }
@@ -241,9 +253,7 @@ impl MetricsCallbackProvider for WorkerEndpointMetrics {
         self.requests_by_route.with_label_values(&labels).inc();
 
         let req_latency_secs = latency.as_secs_f64();
-        self.req_latency_by_route
-            .with_label_values(&labels)
-            .observe(req_latency_secs);
+        self.req_latency_by_route.with_label_values(&labels).observe(req_latency_secs);
     }
 }
 

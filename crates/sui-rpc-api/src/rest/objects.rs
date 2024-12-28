@@ -1,23 +1,25 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::types::{GetObjectOptions, ObjectResponse};
 use crate::{
     reader::StateReader,
     response::ResponseContent,
-    rest::accept::AcceptFormat,
-    rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
-    rest::Page,
-    Result, RpcService, RpcServiceError,
+    rest::{
+        accept::AcceptFormat,
+        openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
+        Page,
+    },
+    types::{GetObjectOptions, ObjectResponse},
+    Result,
+    RpcService,
+    RpcServiceError,
 };
-use axum::extract::Query;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use serde::{Deserialize, Serialize};
 use sui_sdk_types::types::{Object, ObjectId, TypeTag, Version};
-use sui_types::sui_sdk_types_conversions::type_tag_core_to_sdk;
 use sui_types::{
     storage::{DynamicFieldIndexInfo, DynamicFieldKey},
-    sui_sdk_types_conversions::SdkTypeConversionError,
+    sui_sdk_types_conversions::{type_tag_core_to_sdk, SdkTypeConversionError},
 };
 use tap::Pipe;
 
@@ -32,22 +34,13 @@ impl ApiEndpoint<RpcService> for GetObject {
         "/objects/{object_id}"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Objects")
             .operation_id("GetObject")
             .path_parameter::<ObjectId>("object_id", generator)
             .query_parameters::<GetObjectOptions>(generator)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<ObjectResponse>(generator)
-                    .bcs_content()
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<ObjectResponse>(generator).bcs_content().build())
             .response(404, ResponseBuilder::new().build())
             .build()
     }
@@ -83,23 +76,14 @@ impl ApiEndpoint<RpcService> for GetObjectWithVersion {
         "/objects/{object_id}/version/{version}"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Objects")
             .operation_id("GetObjectWithVersion")
             .path_parameter::<ObjectId>("object_id", generator)
             .path_parameter::<Version>("version", generator)
             .query_parameters::<GetObjectOptions>(generator)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<ObjectResponse>(generator)
-                    .bcs_content()
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<ObjectResponse>(generator).bcs_content().build())
             .response(404, ResponseBuilder::new().build())
             .build()
     }
@@ -135,10 +119,7 @@ impl ApiEndpoint<RpcService> for ListDynamicFields {
         "/objects/{object_id}/dynamic-fields"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Objects")
             .operation_id("ListDynamicFields")
@@ -165,18 +146,10 @@ async fn list_dynamic_fields(
     accept: AcceptFormat,
     State(state): State<StateReader>,
 ) -> Result<Page<DynamicFieldInfo, ObjectId>> {
-    let indexes = state
-        .inner()
-        .indexes()
-        .ok_or_else(RpcServiceError::not_found)?;
+    let indexes = state.inner().indexes().ok_or_else(RpcServiceError::not_found)?;
     match accept {
         AcceptFormat::Json => {}
-        _ => {
-            return Err(RpcServiceError::new(
-                axum::http::StatusCode::BAD_REQUEST,
-                "invalid accept type",
-            ))
-        }
+        _ => return Err(RpcServiceError::new(axum::http::StatusCode::BAD_REQUEST, "invalid accept type")),
     }
 
     let limit = parameters.limit();
@@ -191,19 +164,12 @@ async fn list_dynamic_fields(
     let cursor = if dynamic_fields.len() > limit {
         // SAFETY: We've already verified that object_keys is greater than limit, which is
         // gaurenteed to be >= 1.
-        dynamic_fields
-            .pop()
-            .unwrap()
-            .field_id
-            .pipe(ObjectId::from)
-            .pipe(Some)
+        dynamic_fields.pop().unwrap().field_id.pipe(ObjectId::from).pipe(Some)
     } else {
         None
     };
 
-    ResponseContent::Json(dynamic_fields)
-        .pipe(|entries| Page { entries, cursor })
-        .pipe(Ok)
+    ResponseContent::Json(dynamic_fields).pipe(|entries| Page { entries, cursor }).pipe(Ok)
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -214,9 +180,7 @@ pub struct ListDynamicFieldsQueryParameters {
 
 impl ListDynamicFieldsQueryParameters {
     pub fn limit(&self) -> usize {
-        self.limit
-            .map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE))
-            .unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
+        self.limit.map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE)).unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
     }
 
     pub fn start(&self) -> Option<sui_types::base_types::ObjectID> {
@@ -242,12 +206,7 @@ impl TryFrom<(DynamicFieldKey, DynamicFieldIndexInfo)> for DynamicFieldInfo {
 
     fn try_from(value: (DynamicFieldKey, DynamicFieldIndexInfo)) -> Result<Self, Self::Error> {
         let DynamicFieldKey { parent, field_id } = value.0;
-        let DynamicFieldIndexInfo {
-            dynamic_field_type,
-            name_type,
-            name_value,
-            dynamic_object_id,
-        } = value.1;
+        let DynamicFieldIndexInfo { dynamic_field_type, name_type, name_value, dynamic_object_id } = value.1;
 
         Self {
             parent: parent.into(),
@@ -261,9 +220,7 @@ impl TryFrom<(DynamicFieldKey, DynamicFieldIndexInfo)> for DynamicFieldInfo {
     }
 }
 
-#[derive(
-    Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Debug, schemars::JsonSchema,
-)]
+#[derive(Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Debug, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum DynamicFieldType {
     Field,

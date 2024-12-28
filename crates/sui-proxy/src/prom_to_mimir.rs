@@ -1,7 +1,6 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-use crate::remote_write;
-use crate::var;
+use crate::{remote_write, var};
 use itertools::Itertools;
 use prometheus::proto::{Counter, Gauge, Histogram, Metric, MetricFamily, MetricType};
 use protobuf::RepeatedField;
@@ -17,17 +16,10 @@ impl From<&Metric> for Mimir<RepeatedField<remote_write::Label>> {
         // we consume metric labels from an owned version so we can sort them
         let mut m = m.to_owned();
         let mut sorted = m.take_label();
-        sorted.sort_by(|a, b| {
-            (a.get_name(), a.get_value())
-                .partial_cmp(&(b.get_name(), b.get_value()))
-                .unwrap()
-        });
+        sorted.sort_by(|a, b| (a.get_name(), a.get_value()).partial_cmp(&(b.get_name(), b.get_value())).unwrap());
         let mut r = RepeatedField::<remote_write::Label>::default();
         for label in sorted {
-            let lp = remote_write::Label {
-                name: label.get_name().into(),
-                value: label.get_value().into(),
-            };
+            let lp = remote_write::Label { name: label.get_name().into(), value: label.get_value().into() };
             r.push(lp);
         }
         Self { state: r }
@@ -35,8 +27,8 @@ impl From<&Metric> for Mimir<RepeatedField<remote_write::Label>> {
 }
 
 impl IntoIterator for Mimir<RepeatedField<remote_write::Label>> {
-    type Item = remote_write::Label;
     type IntoIter = std::vec::IntoIter<Self::Item>;
+    type Item = remote_write::Label;
 
     fn into_iter(self) -> Self::IntoIter {
         self.state.into_iter()
@@ -45,22 +37,12 @@ impl IntoIterator for Mimir<RepeatedField<remote_write::Label>> {
 
 impl From<&Counter> for Mimir<remote_write::Sample> {
     fn from(c: &Counter) -> Self {
-        Self {
-            state: remote_write::Sample {
-                value: c.get_value(),
-                ..Default::default()
-            },
-        }
+        Self { state: remote_write::Sample { value: c.get_value(), ..Default::default() } }
     }
 }
 impl From<&Gauge> for Mimir<remote_write::Sample> {
     fn from(c: &Gauge) -> Self {
-        Self {
-            state: remote_write::Sample {
-                value: c.get_value(),
-                ..Default::default()
-            },
-        }
+        Self { state: remote_write::Sample { value: c.get_value(), ..Default::default() } }
     }
 }
 impl Mimir<remote_write::Sample> {
@@ -72,9 +54,7 @@ impl Mimir<remote_write::Sample> {
 /// TODO implement histogram
 impl From<&Histogram> for Mimir<remote_write::Histogram> {
     fn from(_h: &Histogram) -> Self {
-        Self {
-            state: remote_write::Histogram::default(),
-        }
+        Self { state: remote_write::Histogram::default() }
     }
 }
 /// TODO implement histogram
@@ -87,8 +67,7 @@ impl Mimir<remote_write::Histogram> {
 impl From<Vec<MetricFamily>> for Mimir<Vec<remote_write::WriteRequest>> {
     fn from(metric_families: Vec<MetricFamily>) -> Self {
         // we may have more but we'll have at least this many timeseries
-        let mut timeseries: Vec<remote_write::TimeSeries> =
-            Vec::with_capacity(metric_families.len());
+        let mut timeseries: Vec<remote_write::TimeSeries> = Vec::with_capacity(metric_families.len());
 
         for mf in metric_families {
             // TOOD add From impl
@@ -130,8 +109,8 @@ impl From<Vec<MetricFamily>> for Mimir<Vec<remote_write::WriteRequest>> {
 }
 
 impl IntoIterator for Mimir<Vec<remote_write::WriteRequest>> {
-    type Item = remote_write::WriteRequest;
     type IntoIter = std::vec::IntoIter<Self::Item>;
+    type Item = remote_write::WriteRequest;
 
     fn into_iter(self) -> Self::IntoIter {
         self.state.into_iter()
@@ -152,13 +131,9 @@ impl From<MetricFamily> for Mimir<Vec<remote_write::TimeSeries>> {
             ts.labels.extend(vec![
                 // mimir requires that we use __name__ as a key that points to a value
                 // of the metric name
-                remote_write::Label {
-                    name: "__name__".into(),
-                    value: mf.get_name().into(),
-                },
+                remote_write::Label { name: "__name__".into(), value: mf.get_name().into() },
             ]);
-            ts.labels
-                .extend(Mimir::<RepeatedField<remote_write::Label>>::from(metric));
+            ts.labels.extend(Mimir::<RepeatedField<remote_write::Label>>::from(metric));
 
             // assumption here is that since a MetricFamily will have one MetricType, we'll only need
             // to look for one of these types.  Setting two different types on Metric at the same time
@@ -194,8 +169,7 @@ impl Mimir<remote_write::TimeSeries> {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::prom_to_mimir::Mimir;
-    use crate::remote_write;
+    use crate::{prom_to_mimir::Mimir, remote_write};
     use prometheus::proto;
     use protobuf::RepeatedField;
 
@@ -219,10 +193,7 @@ pub mod tests {
         mf
     }
     #[allow(dead_code)]
-    fn create_metric_gauge(
-        labels: RepeatedField<proto::LabelPair>,
-        gauge: proto::Gauge,
-    ) -> proto::Metric {
+    fn create_metric_gauge(labels: RepeatedField<proto::LabelPair>, gauge: proto::Gauge) -> proto::Metric {
         let mut m = proto::Metric::default();
         m.set_label(labels);
         m.set_gauge(gauge);
@@ -230,10 +201,7 @@ pub mod tests {
         m
     }
 
-    pub fn create_metric_counter(
-        labels: RepeatedField<proto::LabelPair>,
-        counter: proto::Counter,
-    ) -> proto::Metric {
+    pub fn create_metric_counter(labels: RepeatedField<proto::LabelPair>, counter: proto::Counter) -> proto::Metric {
         let mut m = proto::Metric::default();
         m.set_label(labels);
         m.set_counter(counter);
@@ -294,11 +262,7 @@ pub mod tests {
         labels: Vec<remote_write::Label>,
         samples: Vec<remote_write::Sample>,
     ) -> remote_write::TimeSeries {
-        remote_write::TimeSeries {
-            labels,
-            samples,
-            ..Default::default()
-        }
+        remote_write::TimeSeries { labels, samples, ..Default::default() }
     }
     // end mimir stuff
 
@@ -320,23 +284,11 @@ pub mod tests {
                 ),
                 vec![create_timeseries_with_samples(
                     vec![
-                        remote_write::Label {
-                            name: "__name__".into(),
-                            value: "test_gauge".into(),
-                        },
-                        remote_write::Label {
-                            name: "host".into(),
-                            value: "local-test-validator".into(),
-                        },
-                        remote_write::Label {
-                            name: "network".into(),
-                            value: "unittest-network".into(),
-                        },
+                        remote_write::Label { name: "__name__".into(), value: "test_gauge".into() },
+                        remote_write::Label { name: "host".into(), value: "local-test-validator".into() },
+                        remote_write::Label { name: "network".into(), value: "unittest-network".into() },
                     ],
-                    vec![remote_write::Sample {
-                        value: 2046.0,
-                        timestamp: 12345,
-                    }],
+                    vec![remote_write::Sample { value: 2046.0, timestamp: 12345 }],
                 )],
             ),
             (
@@ -354,23 +306,11 @@ pub mod tests {
                 ),
                 vec![create_timeseries_with_samples(
                     vec![
-                        remote_write::Label {
-                            name: "__name__".into(),
-                            value: "test_counter".into(),
-                        },
-                        remote_write::Label {
-                            name: "host".into(),
-                            value: "local-test-validator".into(),
-                        },
-                        remote_write::Label {
-                            name: "network".into(),
-                            value: "unittest-network".into(),
-                        },
+                        remote_write::Label { name: "__name__".into(), value: "test_counter".into() },
+                        remote_write::Label { name: "host".into(), value: "local-test-validator".into() },
+                        remote_write::Label { name: "network".into(), value: "unittest-network".into() },
                     ],
-                    vec![remote_write::Sample {
-                        value: 2046.0,
-                        timestamp: 12345,
-                    }],
+                    vec![remote_write::Sample { value: 2046.0, timestamp: 12345 }],
                 )],
             ),
         ];
@@ -378,20 +318,12 @@ pub mod tests {
             // TODO stop using state directly
             for (actual, expected) in Mimir::from(mf).state.into_iter().zip(expected_ts) {
                 assert_eq!(actual.labels, expected.labels);
-                for (actual_sample, expected_sample) in
-                    actual.samples.into_iter().zip(expected.samples)
-                {
-                    assert_eq!(
-                        actual_sample.value, expected_sample.value,
-                        "sample values do not match"
-                    );
+                for (actual_sample, expected_sample) in actual.samples.into_iter().zip(expected.samples) {
+                    assert_eq!(actual_sample.value, expected_sample.value, "sample values do not match");
 
                     // timestamps are injected on the sui-node and we copy it to our sample
                     // make sure that works
-                    assert_eq!(
-                        actual_sample.timestamp, expected_sample.timestamp,
-                        "timestamp should be non-zero"
-                    );
+                    assert_eq!(actual_sample.timestamp, expected_sample.timestamp, "timestamp should be non-zero");
                 }
             }
         }

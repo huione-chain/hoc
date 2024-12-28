@@ -18,9 +18,7 @@
 // 1. Run `cargo insta test --review` under `./config`.
 // 2. Review, accept or reject changes.
 
-use config::{
-    Import, NetworkAdminServerParameters, Parameters, PrometheusMetricsParameters, Stake,
-};
+use config::{Import, NetworkAdminServerParameters, Parameters, PrometheusMetricsParameters, Stake};
 use crypto::PublicKey;
 use insta::assert_json_snapshot;
 use mysten_network::Multiaddr;
@@ -51,9 +49,7 @@ fn leader_election_rotates_through_all() {
         let leader_steeping_by_2_id = leader_stepping_by_2.id();
 
         *leader_counts.entry(leader_id).or_insert(0) += 1;
-        *leader_counts_stepping_by_2
-            .entry(leader_steeping_by_2_id)
-            .or_insert(0) += 1;
+        *leader_counts_stepping_by_2.entry(leader_steeping_by_2_id).or_insert(0) += 1;
     }
     assert!(leader_counts.values().all(|v| *v >= 20));
     assert!(leader_counts_stepping_by_2.values().all(|v| *v >= 20));
@@ -63,38 +59,23 @@ fn leader_election_rotates_through_all() {
 fn update_primary_network_info_test() {
     let fixture = CommitteeFixture::builder().build();
     let committee = fixture.committee();
-    let res = committee
-        .clone()
-        .update_primary_network_info(BTreeMap::new())
-        .unwrap_err();
+    let res = committee.clone().update_primary_network_info(BTreeMap::new()).unwrap_err();
     for err in res {
-        assert!(matches!(
-            err,
-            config::CommitteeUpdateError::MissingFromUpdate(_)
-        ))
+        assert!(matches!(err, config::CommitteeUpdateError::MissingFromUpdate(_)))
     }
 
     let fixture = CommitteeFixture::builder().build();
     let committee2 = fixture.committee();
     let invalid_new_info = committee2
         .authorities()
-        .map(|authority| {
-            (
-                authority.protocol_key().clone(),
-                (authority.stake(), authority.primary_address()),
-            )
-        })
+        .map(|authority| (authority.protocol_key().clone(), (authority.stake(), authority.primary_address())))
         .collect::<BTreeMap<_, (Stake, Multiaddr)>>();
-    let res2 = committee
-        .clone()
-        .update_primary_network_info(invalid_new_info)
-        .unwrap_err();
+    let res2 = committee.clone().update_primary_network_info(invalid_new_info).unwrap_err();
     for err in res2 {
         // we'll get the two collections reporting missing from each other
         assert!(matches!(
             err,
-            config::CommitteeUpdateError::NotInCommittee(_)
-                | config::CommitteeUpdateError::MissingFromUpdate(_)
+            config::CommitteeUpdateError::NotInCommittee(_) | config::CommitteeUpdateError::MissingFromUpdate(_)
         ))
     }
 
@@ -108,15 +89,9 @@ fn update_primary_network_info_test() {
             )
         })
         .collect::<BTreeMap<_, (Stake, Multiaddr)>>();
-    let res2 = committee
-        .clone()
-        .update_primary_network_info(invalid_new_info)
-        .unwrap_err();
+    let res2 = committee.clone().update_primary_network_info(invalid_new_info).unwrap_err();
     for err in res2 {
-        assert!(matches!(
-            err,
-            config::CommitteeUpdateError::DifferentStake(_)
-        ))
+        assert!(matches!(err, config::CommitteeUpdateError::DifferentStake(_)))
     }
 
     let committee4 = committee.clone();
@@ -141,10 +116,7 @@ fn update_primary_network_info_test() {
     let res = comm.update_primary_network_info(new_info.clone());
     assert!(res.is_ok());
     for authority in comm.authorities() {
-        assert_eq!(
-            authority.primary_address(),
-            new_info.get(&authority.protocol_key().clone()).unwrap().1
-        );
+        assert_eq!(authority.primary_address(), new_info.get(&authority.protocol_key().clone()).unwrap().1);
     }
 }
 
@@ -161,9 +133,8 @@ fn parameters_snapshot_matches() {
     // config needs to change in all of these.
 
     // Avoid default which bind to random ports.
-    let prometheus_metrics_parameters = PrometheusMetricsParameters {
-        socket_addr: "/ip4/127.0.0.1/tcp/8081/http".parse().unwrap(),
-    };
+    let prometheus_metrics_parameters =
+        PrometheusMetricsParameters { socket_addr: "/ip4/127.0.0.1/tcp/8081/http".parse().unwrap() };
     let network_admin_server_parameters = NetworkAdminServerParameters {
         primary_network_admin_server_port: 1234,
         worker_network_admin_server_base_port: 5678,
@@ -210,8 +181,7 @@ fn parameters_import_snapshot_matches() {
     writeln!(file, "{input}").expect("Couldn't write to file");
 
     // WHEN
-    let params = Parameters::import(file_path.to_str().unwrap())
-        .expect("Failed to import given Parameters json");
+    let params = Parameters::import(file_path.to_str().unwrap()).expect("Failed to import given Parameters json");
 
     // THEN
     assert_json_snapshot!("parameters_import", params)

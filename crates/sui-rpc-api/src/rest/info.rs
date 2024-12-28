@@ -1,11 +1,13 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler};
-use crate::types::NodeInfo;
-use crate::{Result, RpcService};
-use axum::extract::State;
-use axum::Json;
+use crate::{
+    rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
+    types::NodeInfo,
+    Result,
+    RpcService,
+};
+use axum::{extract::State, Json};
 use documented::Documented;
 
 /// Get basic information about the state of a Node
@@ -25,20 +27,12 @@ impl ApiEndpoint<RpcService> for GetNodeInfo {
         true
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("General")
             .operation_id("Get NodeInfo")
             .description(Self::DOCS)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<NodeInfo>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<NodeInfo>(generator).build())
             .response(500, ResponseBuilder::new().build())
             .build()
     }

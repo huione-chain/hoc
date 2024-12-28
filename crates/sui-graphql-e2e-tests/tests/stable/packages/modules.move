@@ -7,13 +7,13 @@
 
 module pkg::m {
     use sui::coin::{Self, Coin};
-    use sui::sui::SUI;
+    use sui::hc::HC;
 
     public fun foo<C: drop>(x: u64, c: &Coin<C>): u64 {
         coin::value(c) + x
     }
 
-    public fun bar(c: &Coin<SUI>): u64 {
+    public fun bar(c: &Coin<HC>): u64 {
         foo(42, c) * foo(43, c)
     }
 }

@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 #[test]
 fn bootstrap() {
@@ -45,12 +44,7 @@ fn bootstrap() {
         panic!("failed to compile `sui` protos: {}", error);
     }
 
-    let status = std::process::Command::new("git")
-        .arg("diff")
-        .arg("--exit-code")
-        .arg("--")
-        .arg(out_dir)
-        .status();
+    let status = std::process::Command::new("git").arg("diff").arg("--exit-code").arg("--").arg(out_dir).status();
     match status {
         Ok(status) if !status.success() => panic!("You should commit the protobuf files"),
         Err(error) => panic!("failed to run `git diff`: {}", error),

@@ -230,6 +230,7 @@ mod tests {
     struct TestHandler;
     impl Processor for TestHandler {
         type Value = Entry;
+
         const NAME: &'static str = "test";
 
         fn process(&self, _: &Arc<CheckpointData>) -> anyhow::Result<Vec<Self::Value>> {

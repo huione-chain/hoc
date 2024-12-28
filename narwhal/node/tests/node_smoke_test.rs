@@ -18,31 +18,11 @@ fn test_primary_with_consensus() {
     let committee = fixture.committee();
     let worker_cache = fixture.worker_cache();
     let primary_keys_file_path = format!("{config_path}/smoke_test_primary_keys.json");
-    fixture
-        .authorities()
-        .next()
-        .unwrap()
-        .keypair()
-        .export(&primary_keys_file_path)
-        .unwrap();
-    let primary_network_keys_file_path =
-        format!("{config_path}/smoke_test_network_primary_keys.json");
-    fixture
-        .authorities()
-        .next()
-        .unwrap()
-        .network_keypair()
-        .export(&primary_network_keys_file_path)
-        .unwrap();
+    fixture.authorities().next().unwrap().keypair().export(&primary_keys_file_path).unwrap();
+    let primary_network_keys_file_path = format!("{config_path}/smoke_test_network_primary_keys.json");
+    fixture.authorities().next().unwrap().network_keypair().export(&primary_network_keys_file_path).unwrap();
     let worker_keys_file_path = format!("{config_path}/smoke_test_worker_keys.json");
-    fixture
-        .authorities()
-        .next()
-        .unwrap()
-        .worker(0)
-        .keypair()
-        .export(&worker_keys_file_path)
-        .unwrap();
+    fixture.authorities().next().unwrap().worker(0).keypair().export(&worker_keys_file_path).unwrap();
 
     let committee_file_path = format!("{config_path}/smoke_test_committee.json");
     committee.export(&committee_file_path).unwrap();

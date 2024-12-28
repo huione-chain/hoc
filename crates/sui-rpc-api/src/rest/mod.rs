@@ -59,10 +59,7 @@ pub fn build_rest_router(service: RpcService) -> axum::Router {
     let mut api = openapi::Api::new(info(service.software_version()));
 
     api.register_endpoints(
-        ENDPOINTS
-            .iter()
-            .copied()
-            .filter(|endpoint| endpoint.stable() || service.config.enable_unstable_apis()),
+        ENDPOINTS.iter().copied().filter(|endpoint| endpoint.stable() || service.config.enable_unstable_apis()),
     );
 
     Router::new()
@@ -86,10 +83,7 @@ pub struct PageCursor<C>(pub Option<C>);
 impl<C: std::fmt::Display> axum::response::IntoResponseParts for PageCursor<C> {
     type Error = (axum::http::StatusCode, String);
 
-    fn into_response_parts(
-        self,
-        res: ResponseParts,
-    ) -> std::result::Result<ResponseParts, Self::Error> {
+    fn into_response_parts(self, res: ResponseParts) -> std::result::Result<ResponseParts, Self::Error> {
         self.0
             .map(|cursor| [(crate::types::X_SUI_CURSOR, cursor.to_string())])
             .into_response_parts(res)
@@ -108,9 +102,7 @@ pub const MAX_PAGE_SIZE: usize = 100;
 
 impl<T: serde::Serialize, C: std::fmt::Display> axum::response::IntoResponse for Page<T, C> {
     fn into_response(self) -> axum::response::Response {
-        let cursor = self
-            .cursor
-            .map(|cursor| [(crate::types::X_SUI_CURSOR, cursor.to_string())]);
+        let cursor = self.cursor.map(|cursor| [(crate::types::X_SUI_CURSOR, cursor.to_string())]);
 
         (cursor, self.entries).into_response()
     }
@@ -124,17 +116,14 @@ impl axum::extract::FromRef<RpcService> for StateReader {
 }
 
 // Enable TransactionExecutor to be used as axum::extract::State
-impl axum::extract::FromRef<RpcService>
-    for Option<Arc<dyn sui_types::transaction_executor::TransactionExecutor>>
-{
+impl axum::extract::FromRef<RpcService> for Option<Arc<dyn sui_types::transaction_executor::TransactionExecutor>> {
     fn from_ref(input: &RpcService) -> Self {
         input.executor.clone()
     }
 }
 
 pub fn info(version: &'static str) -> openapiv3::v3_1::Info {
-    use openapiv3::v3_1::Contact;
-    use openapiv3::v3_1::License;
+    use openapiv3::v3_1::{Contact, License};
 
     openapiv3::v3_1::Info {
         title: "Sui Node Api".to_owned(),
@@ -159,10 +148,10 @@ async fn redirect(axum::extract::Path(path): axum::extract::Path<String>) -> Red
 }
 
 pub(crate) mod _schemars {
-    use schemars::schema::InstanceType;
-    use schemars::schema::Metadata;
-    use schemars::schema::SchemaObject;
-    use schemars::JsonSchema;
+    use schemars::{
+        schema::{InstanceType, Metadata, SchemaObject},
+        JsonSchema,
+    };
 
     pub(crate) struct U64;
 

@@ -29,7 +29,7 @@ export { isValidSuiNSName, normalizeSuiNSName } from './suins.js';
 
 export {
 	SUI_DECIMALS,
-	MIST_PER_SUI,
+	MIST_PER_HC,
 	MOVE_STDLIB_ADDRESS,
 	SUI_FRAMEWORK_ADDRESS,
 	SUI_SYSTEM_ADDRESS,

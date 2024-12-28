@@ -1,14 +1,13 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::base_types::{ObjectID, SequenceNumber, TransactionDigest};
-use crate::crypto::{AuthoritySignInfo, AuthorityStrongQuorumSignInfo};
-use crate::effects::{
-    SignedTransactionEffects, TransactionEffects, TransactionEvents,
-    VerifiedSignedTransactionEffects,
+use crate::{
+    base_types::{ObjectID, SequenceNumber, TransactionDigest},
+    crypto::{AuthoritySignInfo, AuthorityStrongQuorumSignInfo},
+    effects::{SignedTransactionEffects, TransactionEffects, TransactionEvents, VerifiedSignedTransactionEffects},
+    object::Object,
+    transaction::{CertifiedTransaction, SenderSignedData, SignedTransaction, Transaction},
 };
-use crate::object::Object;
-use crate::transaction::{CertifiedTransaction, SenderSignedData, SignedTransaction, Transaction};
 use move_core_types::annotated_value::MoveStructLayout;
 use serde::{Deserialize, Serialize};
 
@@ -55,15 +54,8 @@ impl ObjectInfoRequest {
         }
     }
 
-    pub fn latest_object_info_request(
-        object_id: ObjectID,
-        generate_layout: LayoutGenerationOption,
-    ) -> Self {
-        ObjectInfoRequest {
-            object_id,
-            generate_layout,
-            request_kind: ObjectInfoRequestKind::LatestObjectInfo,
-        }
+    pub fn latest_object_info_request(object_id: ObjectID, generate_layout: LayoutGenerationOption) -> Self {
+        ObjectInfoRequest { object_id, generate_layout, request_kind: ObjectInfoRequestKind::LatestObjectInfo }
     }
 }
 
@@ -103,11 +95,7 @@ pub enum TransactionStatus {
     /// (i.e. the signature part of the CertifiedTransaction), as well as the signed effects.
     /// The certificate signature is optional because for transactions executed in previous
     /// epochs, we won't keep around the certificate signatures.
-    Executed(
-        Option<AuthorityStrongQuorumSignInfo>,
-        SignedTransactionEffects,
-        TransactionEvents,
-    ),
+    Executed(Option<AuthorityStrongQuorumSignInfo>, SignedTransactionEffects, TransactionEvents),
 }
 
 impl TransactionStatus {

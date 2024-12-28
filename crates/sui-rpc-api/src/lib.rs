@@ -5,8 +5,7 @@ use mysten_network::callback::CallbackLayer;
 use reader::StateReader;
 use rest::build_rest_router;
 use std::sync::Arc;
-use sui_types::storage::RpcStateReader;
-use sui_types::transaction_executor::TransactionExecutor;
+use sui_types::{storage::RpcStateReader, transaction_executor::TransactionExecutor};
 use tap::Pipe;
 
 pub mod client;
@@ -26,8 +25,7 @@ pub use config::Config;
 pub use error::{Result, RpcServiceError};
 pub use metrics::RpcMetrics;
 pub use sui_types::full_checkpoint_content::{CheckpointData, CheckpointTransaction};
-pub use types::CheckpointResponse;
-pub use types::ObjectResponse;
+pub use types::{CheckpointResponse, ObjectResponse};
 
 #[derive(Clone)]
 pub struct RpcService {
@@ -83,23 +81,16 @@ impl RpcService {
 
         let grpc_router = {
             grpc::Services::new()
-                .add_service(crate::proto::node::node_server::NodeServer::new(
-                    self.clone(),
-                ))
+                .add_service(crate::proto::node::node_server::NodeServer::new(self.clone()))
                 .into_router()
         };
 
         rest_router
             .merge(grpc_router)
-            .layer(axum::middleware::map_response_with_state(
-                self,
-                response::append_info_headers,
-            ))
+            .layer(axum::middleware::map_response_with_state(self, response::append_info_headers))
             .pipe(|router| {
                 if let Some(metrics) = metrics {
-                    router.layer(CallbackLayer::new(
-                        metrics::RpcMetricsMakeCallbackHandler::new(metrics),
-                    ))
+                    router.layer(CallbackLayer::new(metrics::RpcMetricsMakeCallbackHandler::new(metrics)))
                 } else {
                     router
                 }

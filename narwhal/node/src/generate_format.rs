@@ -13,8 +13,17 @@ use serde_reflection::{Registry, Result, Samples, Tracer, TracerConfig};
 use std::{fs::File, io::Write};
 use test_utils::latest_protocol_version;
 use types::{
-    Batch, BatchDigest, Certificate, CertificateDigest, Header, HeaderDigest, HeaderV1Builder,
-    MetadataV1, VersionedMetadata, WorkerOthersBatchMessage, WorkerOwnBatchMessage,
+    Batch,
+    BatchDigest,
+    Certificate,
+    CertificateDigest,
+    Header,
+    HeaderDigest,
+    HeaderV1Builder,
+    MetadataV1,
+    VersionedMetadata,
+    WorkerOthersBatchMessage,
+    WorkerOwnBatchMessage,
     WorkerSynchronizeMessage,
 };
 
@@ -29,14 +38,8 @@ fn get_registry() -> Result<Registry> {
     // or involving generics (see [serde_reflection documentation](https://docs.rs/serde-reflection/latest/serde_reflection/)).
     // Trace the corresponding header
     let mut rng = StdRng::from_seed([0; 32]);
-    let (keys, network_keys): (Vec<_>, Vec<_>) = (0..4)
-        .map(|_| {
-            (
-                KeyPair::generate(&mut rng),
-                NetworkKeyPair::generate(&mut rng),
-            )
-        })
-        .unzip();
+    let (keys, network_keys): (Vec<_>, Vec<_>) =
+        (0..4).map(|_| (KeyPair::generate(&mut rng), NetworkKeyPair::generate(&mut rng))).unzip();
 
     let kp = keys[0].copy();
     let pk = kp.public().clone();
@@ -63,8 +66,7 @@ fn get_registry() -> Result<Registry> {
     let committee = committee_builder.build();
     tracer.trace_value(&mut samples, &committee)?;
 
-    let certificates: Vec<Certificate> =
-        Certificate::genesis(&latest_protocol_version(), &committee);
+    let certificates: Vec<Certificate> = Certificate::genesis(&latest_protocol_version(), &committee);
 
     // Find the author id inside the committee
     let authority = committee.authority_by_key(kp.public()).unwrap();
@@ -76,11 +78,7 @@ fn get_registry() -> Result<Registry> {
         .epoch(0)
         .created_at(0)
         .round(1)
-        .payload(
-            (0..4u32)
-                .map(|wid| (BatchDigest([0u8; 32]), (wid, 0u64)))
-                .collect(),
-        )
+        .payload((0..4u32).map(|wid| (BatchDigest([0u8; 32]), (wid, 0u64))).collect())
         .parents(certificates.iter().map(|x| x.digest()).collect())
         .build()
         .unwrap();
@@ -88,26 +86,22 @@ fn get_registry() -> Result<Registry> {
 
     let worker_pk = network_keys[0].public().clone();
     let signature = keys[0].sign(header.digest().as_ref());
-    let certificate = Certificate::new_unsigned(
-        &latest_protocol_version(),
-        &committee,
-        Header::V1(header.clone()),
-        vec![(authority.id(), signature)],
-    )
-    .unwrap();
+    let certificate =
+        Certificate::new_unsigned(&latest_protocol_version(), &committee, Header::V1(header.clone()), vec![(
+            authority.id(),
+            signature,
+        )])
+        .unwrap();
     tracer.trace_value(&mut samples, &certificate)?;
 
     // WorkerIndex & WorkerInfo will be present in a protocol message once dynamic
     // worker integration is complete.
     let worker_index = WorkerIndex(
-        vec![(
-            0,
-            WorkerInfo {
-                name: worker_pk,
-                worker_address: "/ip4/127.0.0.1/udp/500".to_string().parse().unwrap(),
-                transactions: "/ip4/127.0.0.1/tcp/400/http".to_string().parse().unwrap(),
-            },
-        )]
+        vec![(0, WorkerInfo {
+            name: worker_pk,
+            worker_address: "/ip4/127.0.0.1/udp/500".to_string().parse().unwrap(),
+            transactions: "/ip4/127.0.0.1/tcp/400/http".to_string().parse().unwrap(),
+        })]
         .into_iter()
         .collect(),
     );
@@ -116,20 +110,11 @@ fn get_registry() -> Result<Registry> {
     let own_batch = WorkerOwnBatchMessage {
         digest: BatchDigest([0u8; 32]),
         worker_id: 0,
-        metadata: VersionedMetadata::V1(MetadataV1 {
-            created_at: 0,
-            received_at: None,
-        }),
+        metadata: VersionedMetadata::V1(MetadataV1 { created_at: 0, received_at: None }),
     };
-    let others_batch = WorkerOthersBatchMessage {
-        digest: BatchDigest([0u8; 32]),
-        worker_id: 0,
-    };
-    let sync = WorkerSynchronizeMessage {
-        digests: vec![BatchDigest([0u8; 32])],
-        target: authority.id(),
-        is_certified: true,
-    };
+    let others_batch = WorkerOthersBatchMessage { digest: BatchDigest([0u8; 32]), worker_id: 0 };
+    let sync =
+        WorkerSynchronizeMessage { digests: vec![BatchDigest([0u8; 32])], target: authority.id(), is_certified: true };
 
     tracer.trace_value(&mut samples, &own_batch)?;
     tracer.trace_value(&mut samples, &others_batch)?;

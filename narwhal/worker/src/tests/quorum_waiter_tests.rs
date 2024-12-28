@@ -3,12 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
-use crate::metrics::WorkerMetrics;
-use crate::NUM_SHUTDOWN_RECEIVERS;
+use crate::{metrics::WorkerMetrics, NUM_SHUTDOWN_RECEIVERS};
 use prometheus::Registry;
-use test_utils::{
-    batch, latest_protocol_version, test_network, CommitteeFixture, WorkerToWorkerMockServer,
-};
+use test_utils::{batch, latest_protocol_version, test_network, CommitteeFixture, WorkerToWorkerMockServer};
 use types::PreSubscribedBroadcastSender;
 
 #[tokio::test]
@@ -39,22 +36,16 @@ async fn wait_for_quorum() {
 
     // Make a batch.
     let batch = batch(&latest_protocol_version());
-    let message = WorkerBatchMessage {
-        batch: batch.clone(),
-    };
+    let message = WorkerBatchMessage { batch: batch.clone() };
 
     // Spawn enough listeners to acknowledge our batches.
     let mut listener_handles = Vec::new();
     for worker in fixture.authorities().skip(1).map(|a| a.worker(0)) {
-        let handle =
-            WorkerToWorkerMockServer::spawn(worker.keypair(), worker.info().worker_address.clone());
+        let handle = WorkerToWorkerMockServer::spawn(worker.keypair(), worker.info().worker_address.clone());
         listener_handles.push(handle);
 
         // ensure that the networks are connected
-        network
-            .connect(worker.info().worker_address.to_anemo_address().unwrap())
-            .await
-            .unwrap();
+        network.connect(worker.info().worker_address.to_anemo_address().unwrap()).await.unwrap();
     }
 
     // Forward the batch along with the handlers to the `QuorumWaiter`.
@@ -98,22 +89,16 @@ async fn pipeline_for_quorum() {
 
     // Make a batch.
     let batch = batch(&latest_protocol_version());
-    let message = WorkerBatchMessage {
-        batch: batch.clone(),
-    };
+    let message = WorkerBatchMessage { batch: batch.clone() };
 
     // Spawn enough listeners to acknowledge our batches.
     let mut listener_handles = Vec::new();
     for worker in fixture.authorities().skip(1).map(|a| a.worker(0)) {
-        let handle =
-            WorkerToWorkerMockServer::spawn(worker.keypair(), worker.info().worker_address.clone());
+        let handle = WorkerToWorkerMockServer::spawn(worker.keypair(), worker.info().worker_address.clone());
         listener_handles.push(handle);
 
         // ensure that the networks are connected
-        network
-            .connect(worker.info().worker_address.to_anemo_address().unwrap())
-            .await
-            .unwrap();
+        network.connect(worker.info().worker_address.to_anemo_address().unwrap()).await.unwrap();
     }
 
     // Forward the batch along with the handlers to the `QuorumWaiter`.

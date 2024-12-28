@@ -5,24 +5,42 @@ use anyhow::Context;
 use bootstrap::bootstrap;
 use config::{ConsistencyConfig, IndexerConfig, PipelineLayer};
 use handlers::{
-    ev_emit_mod::EvEmitMod, ev_struct_inst::EvStructInst, kv_checkpoints::KvCheckpoints,
-    kv_epoch_ends::KvEpochEnds, kv_epoch_starts::KvEpochStarts, kv_feature_flags::KvFeatureFlags,
-    kv_objects::KvObjects, kv_protocol_configs::KvProtocolConfigs, kv_transactions::KvTransactions,
-    obj_info::ObjInfo, obj_versions::ObjVersions, sum_coin_balances::SumCoinBalances,
-    sum_displays::SumDisplays, sum_obj_types::SumObjTypes, sum_packages::SumPackages,
-    tx_affected_addresses::TxAffectedAddresses, tx_affected_objects::TxAffectedObjects,
-    tx_balance_changes::TxBalanceChanges, tx_calls::TxCalls, tx_digests::TxDigests,
-    tx_kinds::TxKinds, wal_coin_balances::WalCoinBalances, wal_obj_types::WalObjTypes,
+    ev_emit_mod::EvEmitMod,
+    ev_struct_inst::EvStructInst,
+    kv_checkpoints::KvCheckpoints,
+    kv_epoch_ends::KvEpochEnds,
+    kv_epoch_starts::KvEpochStarts,
+    kv_feature_flags::KvFeatureFlags,
+    kv_objects::KvObjects,
+    kv_protocol_configs::KvProtocolConfigs,
+    kv_transactions::KvTransactions,
+    obj_info::ObjInfo,
+    obj_versions::ObjVersions,
+    sum_coin_balances::SumCoinBalances,
+    sum_displays::SumDisplays,
+    sum_obj_types::SumObjTypes,
+    sum_packages::SumPackages,
+    tx_affected_addresses::TxAffectedAddresses,
+    tx_affected_objects::TxAffectedObjects,
+    tx_balance_changes::TxBalanceChanges,
+    tx_calls::TxCalls,
+    tx_digests::TxDigests,
+    tx_kinds::TxKinds,
+    wal_coin_balances::WalCoinBalances,
+    wal_obj_types::WalObjTypes,
 };
 use models::MIGRATIONS;
-use sui_indexer_alt_framework::db::DbArgs;
-use sui_indexer_alt_framework::ingestion::{ClientArgs, IngestionConfig};
-use sui_indexer_alt_framework::pipeline::{
-    concurrent::{ConcurrentConfig, PrunerConfig},
-    sequential::SequentialConfig,
-    CommitterConfig,
+use sui_indexer_alt_framework::{
+    db::DbArgs,
+    ingestion::{ClientArgs, IngestionConfig},
+    pipeline::{
+        concurrent::{ConcurrentConfig, PrunerConfig},
+        sequential::SequentialConfig,
+        CommitterConfig,
+    },
+    Indexer,
+    IndexerArgs,
 };
-use sui_indexer_alt_framework::{Indexer, IndexerArgs};
 use tokio_util::sync::CancellationToken;
 
 pub mod args;
@@ -46,14 +64,7 @@ pub async fn start_indexer(
     // For instance, we could also pass in dummy genesis data in the benchmark mode.
     with_genesis: bool,
 ) -> anyhow::Result<()> {
-    let IndexerConfig {
-        ingestion,
-        consistency,
-        committer,
-        pruner,
-        pipeline,
-        extra: _,
-    } = indexer_config.finish();
+    let IndexerConfig { ingestion, consistency, committer, pruner, pipeline, extra: _ } = indexer_config.finish();
 
     let PipelineLayer {
         sum_coin_balances,
@@ -84,11 +95,8 @@ pub async fn start_indexer(
 
     let ingestion = ingestion.finish(IngestionConfig::default());
 
-    let ConsistencyConfig {
-        consistent_pruning_interval_ms,
-        pruner_delay_ms,
-        consistent_range,
-    } = consistency.finish(ConsistencyConfig::default());
+    let ConsistencyConfig { consistent_pruning_interval_ms, pruner_delay_ms, consistent_range } =
+        consistency.finish(ConsistencyConfig::default());
 
     let committer = committer.finish(CommitterConfig::default());
     let pruner = pruner.finish(PrunerConfig::default());
@@ -109,15 +117,7 @@ pub async fn start_indexer(
     let cancel = CancellationToken::new();
     let retry_interval = ingestion.retry_interval();
 
-    let mut indexer = Indexer::new(
-        db_args,
-        indexer_args,
-        client_args,
-        ingestion,
-        &MIGRATIONS,
-        cancel.clone(),
-    )
-    .await?;
+    let mut indexer = Indexer::new(db_args, indexer_args, client_args, ingestion, &MIGRATIONS, cancel.clone()).await?;
 
     // These macros are responsible for registering pipelines with the indexer. It is responsible
     // for:
@@ -157,10 +157,7 @@ pub async fn start_indexer(
                 indexer
                     .sequential_pipeline(
                         $handler,
-                        layer.finish(SequentialConfig {
-                            committer: committer.clone(),
-                            ..Default::default()
-                        }),
+                        layer.finish(SequentialConfig { committer: committer.clone(), ..Default::default() }),
                     )
                     .await?
             }
@@ -171,27 +168,19 @@ pub async fn start_indexer(
         ($sum_handler:expr, $sum_config:expr; $wal_handler:expr, $wal_config:expr) => {
             if let Some(sum_layer) = $sum_config {
                 indexer
-                    .sequential_pipeline(
-                        $sum_handler,
-                        SequentialConfig {
-                            committer: sum_layer.finish(committer.clone()),
-                            checkpoint_lag: consistent_range,
-                        },
-                    )
+                    .sequential_pipeline($sum_handler, SequentialConfig {
+                        committer: sum_layer.finish(committer.clone()),
+                        checkpoint_lag: consistent_range,
+                    })
                     .await?;
 
                 if let Some(pruner_config) = pruner_config.clone() {
                     indexer
-                        .concurrent_pipeline(
-                            $wal_handler,
-                            ConcurrentConfig {
-                                committer: $wal_config
-                                    .unwrap_or_default()
-                                    .finish(committer.clone()),
-                                pruner: Some(pruner_config),
-                                checkpoint_lag: None,
-                            },
-                        )
+                        .concurrent_pipeline($wal_handler, ConcurrentConfig {
+                            committer: $wal_config.unwrap_or_default().finish(committer.clone()),
+                            pruner: Some(pruner_config),
+                            checkpoint_lag: None,
+                        })
                         .await?;
                 }
             }

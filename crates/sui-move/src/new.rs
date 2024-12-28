@@ -22,13 +22,9 @@ impl New {
     pub fn execute(self, path: Option<&Path>) -> anyhow::Result<()> {
         let name = &self.new.name.to_lowercase();
 
-        self.new
-            .execute(path, [(SUI_PKG_NAME, SUI_PKG_PATH)], [(name, "0x0")], "")?;
+        self.new.execute(path, [(SUI_PKG_NAME, SUI_PKG_PATH)], [(name, "0x0")], "")?;
         let p = path.unwrap_or_else(|| Path::new(&name));
-        let mut w = std::fs::File::create(
-            p.join(SourcePackageLayout::Sources.path())
-                .join(format!("{name}.move")),
-        )?;
+        let mut w = std::fs::File::create(p.join(SourcePackageLayout::Sources.path()).join(format!("{name}.move")))?;
         writeln!(
             w,
             r#"/*
@@ -44,10 +40,7 @@ module {name}::{name};
         )?;
 
         create_dir_all(p.join(SourcePackageLayout::Tests.path()))?;
-        let mut w = std::fs::File::create(
-            p.join(SourcePackageLayout::Tests.path())
-                .join(format!("{name}_tests.move")),
-        )?;
+        let mut w = std::fs::File::create(p.join(SourcePackageLayout::Tests.path()).join(format!("{name}_tests.move")))?;
         writeln!(
             w,
             r#"/*

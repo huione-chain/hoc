@@ -5,11 +5,12 @@
 use crate::metrics::WorkerMetrics;
 use config::WorkerId;
 use fastcrypto::hash::Hash;
-use futures::future::BoxFuture;
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
-use mysten_metrics::metered_channel::{Receiver, Sender};
-use mysten_metrics::{monitored_scope, spawn_logged_monitored_task};
+use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
+use mysten_metrics::{
+    metered_channel::{Receiver, Sender},
+    monitored_scope,
+    spawn_logged_monitored_task,
+};
 use network::{client::NetworkClient, WorkerToPrimaryClient};
 use std::sync::Arc;
 use store::{rocks::DBMap, Map};
@@ -20,8 +21,16 @@ use tokio::{
 };
 use tracing::{error, warn};
 use types::{
-    error::DagError, now, Batch, BatchAPI, BatchDigest, ConditionalBroadcastReceiver, MetadataAPI,
-    Transaction, TxResponse, WorkerOwnBatchMessage,
+    error::DagError,
+    now,
+    Batch,
+    BatchAPI,
+    BatchDigest,
+    ConditionalBroadcastReceiver,
+    MetadataAPI,
+    Transaction,
+    TxResponse,
+    WorkerOwnBatchMessage,
 };
 
 #[cfg(feature = "trace_transaction")]
@@ -198,11 +207,7 @@ impl BatchMaker {
 
             for id in tx_ids {
                 // NOTE: This log entry is used to compute performance.
-                tracing::info!(
-                    "Batch {:?} contains sample tx {}",
-                    digest,
-                    u64::from_be_bytes(id)
-                );
+                tracing::info!("Batch {:?} contains sample tx {}", digest, u64::from_be_bytes(id));
             }
 
             #[cfg(feature = "trace_transaction")]
@@ -222,11 +227,7 @@ impl BatchMaker {
                         }
                     })
                     .collect();
-                tracing::debug!(
-                    "Tracking IDs of transactions in the Batch {:?}: {:?}",
-                    digest,
-                    tracking_ids
-                );
+                tracing::debug!("Tracking IDs of transactions in the Batch {:?}: {:?}", digest, tracking_ids);
             }
 
             // NOTE: This log entry is used to compute performance.
@@ -235,19 +236,11 @@ impl BatchMaker {
 
         let reason = if timeout { "timeout" } else { "size_reached" };
 
-        self.node_metrics
-            .created_batch_size
-            .with_label_values(&[reason])
-            .observe(size as f64);
+        self.node_metrics.created_batch_size.with_label_values(&[reason]).observe(size as f64);
 
         // Send the batch through the deliver channel for further processing.
         let (notify_done, broadcasted_to_quorum) = tokio::sync::oneshot::channel();
-        if self
-            .tx_quorum_waiter
-            .send((batch.clone(), notify_done))
-            .await
-            .is_err()
-        {
+        if self.tx_quorum_waiter.send((batch.clone(), notify_done)).await.is_err() {
             tracing::debug!("{}", DagError::ShuttingDown);
             return None;
         }
@@ -264,10 +257,7 @@ impl BatchMaker {
         // we are deliberately measuring this after the sending to the downstream
         // channel tx_quorum_waiter as the operation is blocking and affects any further
         // batch creation.
-        self.node_metrics
-            .created_batch_latency
-            .with_label_values(&[reason])
-            .observe(batch_creation_duration);
+        self.node_metrics.created_batch_latency.with_label_values(&[reason]).observe(batch_creation_duration);
 
         // Clone things to not capture self
         let client = self.client.clone();
@@ -301,11 +291,7 @@ impl BatchMaker {
             }
 
             // Send the batch to the primary.
-            let message = WorkerOwnBatchMessage {
-                digest,
-                worker_id,
-                metadata,
-            };
+            let message = WorkerOwnBatchMessage { digest, worker_id, metadata };
             if let Err(e) = client.report_own_batch(message).await {
                 warn!("Failed to report our batch: {}", e);
                 // Drop all response handlers to signal error, since we

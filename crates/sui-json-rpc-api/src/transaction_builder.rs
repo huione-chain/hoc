@@ -2,16 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use fastcrypto::encoding::Base64;
-use jsonrpsee::core::RpcResult;
-use jsonrpsee::proc_macros::rpc;
+use jsonrpsee::{core::RpcResult, proc_macros::rpc};
 
 use sui_json::SuiJsonValue;
 use sui_json_rpc_types::{
-    RPCTransactionRequestParams, SuiTransactionBlockBuilderMode, SuiTypeTag, TransactionBlockBytes,
+    RPCTransactionRequestParams,
+    SuiTransactionBlockBuilderMode,
+    SuiTypeTag,
+    TransactionBlockBytes,
 };
 use sui_open_rpc_macros::open_rpc;
-use sui_types::base_types::{ObjectID, SuiAddress};
-use sui_types::sui_serde::BigInt;
+use sui_types::{
+    base_types::{ObjectID, SuiAddress},
+    sui_serde::BigInt,
+};
 
 #[open_rpc(namespace = "unsafe", tag = "Transaction Builder API")]
 #[rpc(server, client, namespace = "unsafe")]
@@ -224,7 +228,7 @@ pub trait TransactionBuilder {
         &self,
         /// the transaction signer's Sui address
         signer: SuiAddress,
-        /// Coin<SUI> object to stake
+        /// Coin<HC> object to stake
         coins: Vec<ObjectID>,
         /// stake amount
         amount: Option<BigInt<u64>>,

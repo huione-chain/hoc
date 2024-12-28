@@ -2428,15 +2428,15 @@ verify_groth16_proof
 verify_groth16_proof_internal
 	fun
 	0x2::groth16
-SUI
+HC
 	public struct
-	0x2::sui
+	0x2::hc
 new
 	fun
-	0x2::sui
+	0x2::hc
 transfer
 	public entry fun
-	0x2::sui
+	0x2::hc
 TransferRequest
 	public struct
 	0x2::transfer_policy

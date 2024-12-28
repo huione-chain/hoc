@@ -17,16 +17,11 @@ pub struct ExecutionIndices {
 
 impl Ord for ExecutionIndices {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (
-            self.last_committed_round,
-            self.sub_dag_index,
-            self.transaction_index,
-        )
-            .cmp(&(
-                other.last_committed_round,
-                other.sub_dag_index,
-                other.transaction_index,
-            ))
+        (self.last_committed_round, self.sub_dag_index, self.transaction_index).cmp(&(
+            other.last_committed_round,
+            other.sub_dag_index,
+            other.transaction_index,
+        ))
     }
 }
 

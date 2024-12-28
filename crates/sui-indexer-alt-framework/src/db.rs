@@ -2,15 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::anyhow;
-use diesel::migration::{self, Migration, MigrationSource, MigrationVersion};
-use diesel::pg::Pg;
-use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
+use diesel::{
+    migration::{self, Migration, MigrationSource, MigrationVersion},
+    pg::Pg,
+};
 use diesel_async::{
+    async_connection_wrapper::AsyncConnectionWrapper,
     pooled_connection::{
         bb8::{Pool, PooledConnection, RunError},
-        AsyncDieselConnectionManager, PoolError,
+        AsyncDieselConnectionManager,
+        PoolError,
     },
-    AsyncPgConnection, RunQueryDsl,
+    AsyncPgConnection,
+    RunQueryDsl,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations};
 use std::time::Duration;
@@ -87,9 +91,7 @@ impl Db {
                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
             END LOOP;
         END $$;";
-        diesel::sql_query(drop_all_tables)
-            .execute(&mut conn)
-            .await?;
+        diesel::sql_query(drop_all_tables).execute(&mut conn).await?;
         info!("Dropped all tables.");
 
         let drop_all_procedures = "
@@ -103,9 +105,7 @@ impl Db {
                 EXECUTE 'DROP PROCEDURE IF EXISTS ' || quote_ident(r.proname) || '(' || r.argtypes || ') CASCADE';
             END LOOP;
         END $$;";
-        diesel::sql_query(drop_all_procedures)
-            .execute(&mut conn)
-            .await?;
+        diesel::sql_query(drop_all_procedures).execute(&mut conn).await?;
         info!("Dropped all procedures.");
 
         let drop_all_functions = "
@@ -119,9 +119,7 @@ impl Db {
                 EXECUTE 'DROP FUNCTION IF EXISTS ' || quote_ident(r.proname) || '(' || r.argtypes || ') CASCADE';
             END LOOP;
         END $$;";
-        diesel::sql_query(drop_all_functions)
-            .execute(&mut conn)
-            .await?;
+        diesel::sql_query(drop_all_functions).execute(&mut conn).await?;
         info!("Database cleared.");
         Ok(())
     }
@@ -167,10 +165,7 @@ impl Db {
 impl Default for DbArgs {
     fn default() -> Self {
         Self {
-            database_url: Url::parse(
-                "postgres://postgres:postgrespw@localhost:5432/sui_indexer_alt",
-            )
-            .unwrap(),
+            database_url: Url::parse("postgres://postgres:postgrespw@localhost:5432/sui_indexer_alt").unwrap(),
             connection_pool_size: 100,
             connection_timeout_ms: 60_000,
         }
@@ -207,19 +202,13 @@ mod tests {
         let url = db.database().url();
 
         info!(%url);
-        let db_args = DbArgs {
-            database_url: url.clone(),
-            ..Default::default()
-        };
+        let db_args = DbArgs { database_url: url.clone(), ..Default::default() };
 
         let db = Db::new(db_args).await.unwrap();
         let mut conn = db.connect().await.unwrap();
 
         // Run a simple query to verify the db can properly be queried
-        let resp = diesel::sql_query("SELECT datname FROM pg_database")
-            .execute(&mut conn)
-            .await
-            .unwrap();
+        let resp = diesel::sql_query("SELECT datname FROM pg_database").execute(&mut conn).await.unwrap();
 
         info!(?resp);
     }
@@ -235,34 +224,26 @@ mod tests {
         let temp_db = TempDb::new().unwrap();
         let url = temp_db.database().url();
 
-        let db_args = DbArgs {
-            database_url: url.clone(),
-            ..Default::default()
-        };
+        let db_args = DbArgs { database_url: url.clone(), ..Default::default() };
 
         let db = Db::new(db_args.clone()).await.unwrap();
         let mut conn = db.connect().await.unwrap();
-        diesel::sql_query("CREATE TABLE test_table (id INTEGER PRIMARY KEY)")
-            .execute(&mut conn)
-            .await
-            .unwrap();
-        let cnt = diesel::sql_query(
-            "SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_name = 'test_table'",
-        )
-        .get_result::<CountResult>(&mut conn)
-        .await
-        .unwrap();
+        diesel::sql_query("CREATE TABLE test_table (id INTEGER PRIMARY KEY)").execute(&mut conn).await.unwrap();
+        let cnt =
+            diesel::sql_query("SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_name = 'test_table'")
+                .get_result::<CountResult>(&mut conn)
+                .await
+                .unwrap();
         assert_eq!(cnt.cnt, 1);
 
         reset_database(db_args, None).await.unwrap();
 
         let mut conn = db.connect().await.unwrap();
-        let cnt = diesel::sql_query(
-            "SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_name = 'test_table'",
-        )
-        .get_result::<CountResult>(&mut conn)
-        .await
-        .unwrap();
+        let cnt =
+            diesel::sql_query("SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_name = 'test_table'")
+                .get_result::<CountResult>(&mut conn)
+                .await
+                .unwrap();
         assert_eq!(cnt.cnt, 0);
     }
 }

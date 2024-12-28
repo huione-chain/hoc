@@ -3,7 +3,7 @@
 
 #[test_only]
 module sui::kiosk_test_utils {
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui::coin::{Self, Coin};
     use sui::package::{Self, Publisher};
     use sui::transfer_policy::{Self as policy, TransferPolicy, TransferPolicyCap};
@@ -33,7 +33,7 @@ module sui::kiosk_test_utils {
     }
 
     /// Prepare: Get Sui
-    public fun get_sui(amount: u64, ctx: &mut TxContext): Coin<SUI> {
+    public fun get_sui(amount: u64, ctx: &mut TxContext): Coin<HC> {
         coin::mint_for_testing(amount, ctx)
     }
 

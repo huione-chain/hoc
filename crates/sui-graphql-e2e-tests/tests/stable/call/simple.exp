@@ -25,13 +25,13 @@ task 4, line 31:
 //# view-object 0,0
 Owner: Account Address ( validator_0 )
 Version: 1
-Contents: sui::coin::Coin<sui::sui::SUI> {
+Contents: sui::coin::Coin<sui::hc::HC> {
     id: sui::object::UID {
         id: sui::object::ID {
             bytes: fake(0,0),
         },
     },
-    balance: sui::balance::Balance<sui::sui::SUI> {
+    balance: sui::balance::Balance<sui::hc::HC> {
         value: 30000000000000000u64,
     },
 }

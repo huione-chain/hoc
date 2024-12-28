@@ -11,8 +11,14 @@ use parking_lot::RwLock;
 use tokio::{select, time::sleep};
 use tracing::error;
 use types::{
-    error::LocalClientError, FetchBatchesRequest, FetchBatchesResponse, PrimaryToWorker,
-    WorkerOthersBatchMessage, WorkerOwnBatchMessage, WorkerSynchronizeMessage, WorkerToPrimary,
+    error::LocalClientError,
+    FetchBatchesRequest,
+    FetchBatchesResponse,
+    PrimaryToWorker,
+    WorkerOthersBatchMessage,
+    WorkerOwnBatchMessage,
+    WorkerSynchronizeMessage,
+    WorkerToPrimary,
 };
 
 use crate::traits::{PrimaryToWorkerClient, WorkerToPrimaryClient};
@@ -40,8 +46,8 @@ struct Inner {
 }
 
 impl NetworkClient {
-    const GET_CLIENT_RETRIES: usize = 50;
     const GET_CLIENT_INTERVAL: Duration = Duration::from_millis(100);
+    const GET_CLIENT_RETRIES: usize = 50;
 
     pub fn new(primary_peer_id: PeerId) -> Self {
         Self {
@@ -110,10 +116,7 @@ impl NetworkClient {
             }
             sleep(Self::GET_CLIENT_INTERVAL).await;
         }
-        Err(anemo::rpc::Status::internal(format!(
-            "The worker {} has not started",
-            worker_id
-        )))
+        Err(anemo::rpc::Status::internal(format!("The worker {} has not started", worker_id)))
     }
 
     pub fn set_worker_to_primary_local_handler(&self, handler: Arc<dyn WorkerToPrimary>) {
@@ -121,11 +124,7 @@ impl NetworkClient {
         inner.worker_to_primary_handler = Some(handler);
     }
 
-    pub fn set_primary_to_worker_local_handler(
-        &self,
-        worker_id: PeerId,
-        handler: Arc<dyn PrimaryToWorker>,
-    ) {
+    pub fn set_primary_to_worker_local_handler(&self, worker_id: PeerId, handler: Arc<dyn PrimaryToWorker>) {
         let mut inner = self.inner.write();
         inner.primary_to_worker_handler.insert(worker_id, handler);
     }
@@ -160,9 +159,7 @@ impl NetworkClient {
         Err(LocalClientError::WorkerNotStarted(peer_id))
     }
 
-    async fn get_worker_to_primary_handler(
-        &self,
-    ) -> Result<Arc<dyn WorkerToPrimary>, LocalClientError> {
+    async fn get_worker_to_primary_handler(&self) -> Result<Arc<dyn WorkerToPrimary>, LocalClientError> {
         for _ in 0..Self::GET_CLIENT_RETRIES {
             {
                 let inner = self.inner.read();
@@ -175,9 +172,7 @@ impl NetworkClient {
             }
             sleep(Self::GET_CLIENT_INTERVAL).await;
         }
-        Err(LocalClientError::PrimaryNotStarted(
-            self.inner.read().primary_peer_id,
-        ))
+        Err(LocalClientError::PrimaryNotStarted(self.inner.read().primary_peer_id))
     }
 }
 
@@ -190,9 +185,7 @@ impl PrimaryToWorkerClient for NetworkClient {
         worker_name: NetworkPublicKey,
         request: WorkerSynchronizeMessage,
     ) -> Result<(), LocalClientError> {
-        let c = self
-            .get_primary_to_worker_handler(PeerId(worker_name.0.into()))
-            .await?;
+        let c = self.get_primary_to_worker_handler(PeerId(worker_name.0.into())).await?;
         select! {
             resp = c.synchronize(Request::new(request)) => {
                 resp.map_err(|e| LocalClientError::Internal(format!("{e:?}")))?;
@@ -209,9 +202,7 @@ impl PrimaryToWorkerClient for NetworkClient {
         worker_name: NetworkPublicKey,
         request: FetchBatchesRequest,
     ) -> Result<FetchBatchesResponse, LocalClientError> {
-        let c = self
-            .get_primary_to_worker_handler(PeerId(worker_name.0.into()))
-            .await?;
+        let c = self.get_primary_to_worker_handler(PeerId(worker_name.0.into())).await?;
         select! {
             resp = c.fetch_batches(Request::new(request)) => {
                 Ok(resp.map_err(|e| LocalClientError::Internal(format!("{e:?}")))?.into_inner())
@@ -225,10 +216,7 @@ impl PrimaryToWorkerClient for NetworkClient {
 
 #[async_trait]
 impl WorkerToPrimaryClient for NetworkClient {
-    async fn report_own_batch(
-        &self,
-        request: WorkerOwnBatchMessage,
-    ) -> Result<(), LocalClientError> {
+    async fn report_own_batch(&self, request: WorkerOwnBatchMessage) -> Result<(), LocalClientError> {
         let c = self.get_worker_to_primary_handler().await?;
         select! {
             resp = c.report_own_batch(Request::new(request)) => {
@@ -241,10 +229,7 @@ impl WorkerToPrimaryClient for NetworkClient {
         }
     }
 
-    async fn report_others_batch(
-        &self,
-        request: WorkerOthersBatchMessage,
-    ) -> Result<(), LocalClientError> {
+    async fn report_others_batch(&self, request: WorkerOthersBatchMessage) -> Result<(), LocalClientError> {
         let c = self.get_worker_to_primary_handler().await?;
         select! {
             resp = c.report_others_batch(Request::new(request)) => {

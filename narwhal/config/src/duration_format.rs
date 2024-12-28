@@ -34,9 +34,7 @@ where
             .map_err(|e| serde::de::Error::custom(e.to_string()));
     }
 
-    Err(serde::de::Error::custom(format!(
-        "Wrong format detected: {s}. It should be number in milliseconds, e.x 10ms"
-    )))
+    Err(serde::de::Error::custom(format!("Wrong format detected: {s}. It should be number in milliseconds, e.x 10ms")))
 }
 
 pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
@@ -75,8 +73,7 @@ mod tests {
           }"#;
 
         // WHEN
-        let result: MockProperties =
-            serde_json::from_str(input).expect("Couldn't deserialize string");
+        let result: MockProperties = serde_json::from_str(input).expect("Couldn't deserialize string");
 
         // THEN
         assert_eq!(result.property_1.as_millis(), 1_000);
@@ -96,8 +93,7 @@ mod tests {
           }"#;
 
         // WHEN
-        let result: MockProperties =
-            serde_json::from_str(input).expect("Couldn't deserialize string");
+        let result: MockProperties = serde_json::from_str(input).expect("Couldn't deserialize string");
 
         // THEN
         let serialized = serde_json::to_string(&result).unwrap();

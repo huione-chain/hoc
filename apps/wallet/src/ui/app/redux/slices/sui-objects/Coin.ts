@@ -6,8 +6,8 @@ import type { SuiMoveObject, SuiObjectData } from '@mysten/sui/client';
 const COIN_TYPE = '0x2::coin::Coin';
 const COIN_TYPE_ARG_REGEX = /^0x2::coin::Coin<(.+)>$/;
 
-export const GAS_TYPE_ARG = '0x2::sui::SUI';
-export const GAS_SYMBOL = 'SUI';
+export const GAS_TYPE_ARG = '0x2::hc::HC';
+export const GAS_SYMBOL = 'HC';
 
 // TODO use sdk
 export class Coin {
@@ -23,7 +23,7 @@ export class Coin {
 
 	public static isSUI(obj: SuiMoveObject) {
 		const arg = Coin.getCoinTypeArg(obj);
-		return arg ? Coin.getCoinSymbol(arg) === 'SUI' : false;
+		return arg ? Coin.getCoinSymbol(arg) === 'HC' : false;
 	}
 
 	public static getCoinSymbol(coinTypeArg: string) {

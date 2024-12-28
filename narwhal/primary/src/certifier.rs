@@ -6,13 +6,10 @@ use crate::{aggregators::VotesAggregator, metrics::PrimaryMetrics, synchronizer:
 use config::{AuthorityIdentifier, Committee};
 use crypto::{NetworkPublicKey, Signature};
 use fastcrypto::signature_service::SignatureService;
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
-use mysten_metrics::metered_channel::Receiver;
-use mysten_metrics::{monitored_future, spawn_logged_monitored_task};
+use futures::{stream::FuturesUnordered, StreamExt};
+use mysten_metrics::{metered_channel::Receiver, monitored_future, spawn_logged_monitored_task};
 use mysten_network::anemo_ext::NetworkExt;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use storage::CertificateStore;
 use sui_macros::fail_point_async;
 use sui_protocol_config::ProtocolConfig;
@@ -24,8 +21,15 @@ use tracing::{debug, enabled, error, info, instrument, warn};
 use types::{
     ensure,
     error::{DagError, DagResult},
-    Certificate, CertificateDigest, ConditionalBroadcastReceiver, Header, HeaderAPI,
-    PrimaryToPrimaryClient, RequestVoteRequest, Vote, VoteAPI,
+    Certificate,
+    CertificateDigest,
+    ConditionalBroadcastReceiver,
+    Header,
+    HeaderAPI,
+    PrimaryToPrimaryClient,
+    RequestVoteRequest,
+    Vote,
+    VoteAPI,
 };
 
 #[cfg(test)]
@@ -142,12 +146,10 @@ impl Certifier {
             } else {
                 let expected_count = missing_parents.len();
                 let parents: Vec<_> = certificate_store
-                    .read_all(
-                        missing_parents
+                    .read_all(missing_parents
                             .into_iter()
                             // Only provide certs that are parents for the requested vote.
-                            .filter(|parent| header.parents().contains(parent)),
-                    )?
+                            .filter(|parent| header.parents().contains(parent)))?
                     .into_iter()
                     .flatten()
                     .collect();
@@ -158,11 +160,8 @@ impl Certifier {
                 parents
             };
 
-            let request = anemo::Request::new(RequestVoteRequest {
-                header: header.clone(),
-                parents,
-            })
-            .with_timeout(Duration::from_secs(5));
+            let request = anemo::Request::new(RequestVoteRequest { header: header.clone(), parents })
+                .with_timeout(Duration::from_secs(5));
             match client.request_vote(request).await {
                 Ok(response) => {
                     let response = response.into_body();
@@ -198,41 +197,27 @@ impl Certifier {
 
         // Verify the vote. Note that only the header digest is signed by the vote.
         ensure!(
-            vote.header_digest() == header.digest()
-                && vote.origin() == header.author()
-                && vote.author() == authority,
+            vote.header_digest() == header.digest() && vote.origin() == header.author() && vote.author() == authority,
             DagError::UnexpectedVote(vote.header_digest())
         );
         // Possible equivocations.
-        ensure!(
-            header.epoch() == vote.epoch(),
-            DagError::InvalidEpoch {
-                expected: header.epoch(),
-                received: vote.epoch()
-            }
-        );
-        ensure!(
-            header.round() == vote.round(),
-            DagError::InvalidRound {
-                expected: header.round(),
-                received: vote.round()
-            }
-        );
+        ensure!(header.epoch() == vote.epoch(), DagError::InvalidEpoch {
+            expected: header.epoch(),
+            received: vote.epoch()
+        });
+        ensure!(header.round() == vote.round(), DagError::InvalidRound {
+            expected: header.round(),
+            received: vote.round()
+        });
 
         // Ensure the header is from the correct epoch.
-        ensure!(
-            vote.epoch() == committee.epoch(),
-            DagError::InvalidEpoch {
-                expected: committee.epoch(),
-                received: vote.epoch()
-            }
-        );
+        ensure!(vote.epoch() == committee.epoch(), DagError::InvalidEpoch {
+            expected: committee.epoch(),
+            received: vote.epoch()
+        });
 
         // Ensure the authority has voting rights.
-        ensure!(
-            committee.stake_by_id(vote.author()) > 0,
-            DagError::UnknownAuthority(vote.author().to_string())
-        );
+        ensure!(committee.stake_by_id(vote.author()) > 0, DagError::UnknownAuthority(vote.author().to_string()));
 
         Ok(vote)
     }
@@ -255,10 +240,7 @@ impl Certifier {
                 header.epoch(),
                 committee.epoch()
             );
-            return Err(DagError::InvalidEpoch {
-                expected: committee.epoch(),
-                received: header.epoch(),
-            });
+            return Err(DagError::InvalidEpoch { expected: committee.epoch(), received: header.epoch() });
         }
 
         metrics.proposed_header_round.set(header.round() as i64);
@@ -269,21 +251,12 @@ impl Certifier {
         let mut certificate = votes_aggregator.append(vote, &committee, &header)?;
 
         // Trigger vote requests.
-        let peers = committee
-            .others_primaries_by_id(authority_id)
-            .into_iter()
-            .map(|(name, _, network_key)| (name, network_key));
+        let peers =
+            committee.others_primaries_by_id(authority_id).into_iter().map(|(name, _, network_key)| (name, network_key));
         let mut requests: FuturesUnordered<_> = peers
             .map(|(name, target)| {
                 let header = header.clone();
-                Self::request_vote(
-                    network.clone(),
-                    committee.clone(),
-                    certificate_store.clone(),
-                    name,
-                    target,
-                    header,
-                )
+                Self::request_vote(network.clone(), committee.clone(), certificate_store.clone(), name, target, header)
             })
             .collect();
         loop {
@@ -314,18 +287,14 @@ impl Certifier {
         let certificate = certificate.ok_or_else(|| {
             // Log detailed header info if we failed to form a certificate.
             if enabled!(tracing::Level::WARN) {
-                let mut msg = format!(
-                    "Failed to form certificate from header {header:?} with parent certificates:\n"
-                );
+                let mut msg = format!("Failed to form certificate from header {header:?} with parent certificates:\n");
                 for parent_digest in header.parents().iter() {
                     let parent_msg = match certificate_store.read(*parent_digest) {
                         Ok(Some(cert)) => format!("{cert:?}\n"),
                         Ok(None) => {
                             format!("!!!missing certificate for digest {parent_digest:?}!!!\n")
                         }
-                        Err(e) => format!(
-                            "!!!error retrieving certificate for digest {parent_digest:?}: {e:?}\n"
-                        ),
+                        Err(e) => format!("!!!error retrieving certificate for digest {parent_digest:?}: {e:?}\n"),
                     };
                     msg.push_str(&parent_msg);
                 }
@@ -346,21 +315,16 @@ impl Certifier {
                 error!("{e}");
                 panic!("Storage failure: killing node.");
             }
-            Err(
-                e @ DagError::TooOld(..)
-                | e @ DagError::VoteTooOld(..)
-                | e @ DagError::InvalidEpoch { .. },
-            ) => debug!("{e}"),
+            Err(e @ DagError::TooOld(..) | e @ DagError::VoteTooOld(..) | e @ DagError::InvalidEpoch { .. }) => {
+                debug!("{e}")
+            }
             Err(e) => warn!("{e}"),
         }
     }
 
     // Main loop listening to incoming messages.
     pub async fn run(mut self) -> DagResult<Self> {
-        info!(
-            "Core on node {} has started successfully.",
-            self.authority_id
-        );
+        info!("Core on node {} has started successfully.", self.authority_id);
         loop {
             let result = tokio::select! {
                 // We also receive here our new headers created by the `Proposer`.

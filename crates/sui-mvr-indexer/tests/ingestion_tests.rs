@@ -2,22 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::sync::Arc;
 
-use diesel::ExpressionMethods;
-use diesel::QueryDsl;
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use simulacrum::Simulacrum;
-use sui_mvr_indexer::errors::IndexerError;
-use sui_mvr_indexer::handlers::TransactionObjectChangesToCommit;
-use sui_mvr_indexer::models::{checkpoints::StoredCheckpoint, objects::StoredObjectSnapshot};
-use sui_mvr_indexer::schema::{checkpoints, objects_snapshot};
-use sui_mvr_indexer::store::indexer_store::IndexerStore;
-use sui_mvr_indexer::test_utils::{
-    set_up, set_up_with_start_and_end_checkpoints, wait_for_checkpoint, wait_for_objects_snapshot,
+use sui_mvr_indexer::{
+    errors::IndexerError,
+    handlers::TransactionObjectChangesToCommit,
+    models::{checkpoints::StoredCheckpoint, objects::StoredObjectSnapshot},
+    schema::{checkpoints, objects_snapshot},
+    store::indexer_store::IndexerStore,
+    test_utils::{set_up, set_up_with_start_and_end_checkpoints, wait_for_checkpoint, wait_for_objects_snapshot},
+    types::{EventIndex, IndexedDeletedObject, IndexedObject, TxIndex},
 };
-use sui_mvr_indexer::types::EventIndex;
-use sui_mvr_indexer::types::IndexedDeletedObject;
-use sui_mvr_indexer::types::IndexedObject;
-use sui_mvr_indexer::types::TxIndex;
 use sui_types::base_types::SuiAddress;
 use tempfile::tempdir;
 
@@ -40,24 +36,17 @@ pub async fn test_checkpoint_range_ingestion() -> Result<(), IndexerError> {
     // Set up indexer with specific start and end checkpoints
     let start_checkpoint = 2;
     let end_checkpoint = 4;
-    let (_, pg_store, _, _database) = set_up_with_start_and_end_checkpoints(
-        Arc::new(sim),
-        data_ingestion_path,
-        start_checkpoint,
-        end_checkpoint,
-    )
-    .await;
+    let (_, pg_store, _, _database) =
+        set_up_with_start_and_end_checkpoints(Arc::new(sim), data_ingestion_path, start_checkpoint, end_checkpoint)
+            .await;
 
     // Wait for the indexer to catch up to the end checkpoint
     wait_for_checkpoint(&pg_store, end_checkpoint).await?;
 
     // Verify that only checkpoints within the specified range were ingested
     let mut connection = pg_store.pool().dedicated_connection().await.unwrap();
-    let checkpoint_count: i64 = checkpoints::table
-        .count()
-        .get_result(&mut connection)
-        .await
-        .expect("Failed to count checkpoints");
+    let checkpoint_count: i64 =
+        checkpoints::table.count().get_result(&mut connection).await.expect("Failed to count checkpoints");
     assert_eq!(checkpoint_count, 3, "Expected 3 checkpoints to be ingested");
 
     // Verify the range of ingested checkpoints
@@ -73,16 +62,8 @@ pub async fn test_checkpoint_range_ingestion() -> Result<(), IndexerError> {
         .await
         .expect("Failed to get max checkpoint")
         .expect("Max checkpoint should be Some");
-    assert_eq!(
-        min_checkpoint, start_checkpoint as i64,
-        "Minimum ingested checkpoint should be {}",
-        start_checkpoint
-    );
-    assert_eq!(
-        max_checkpoint, end_checkpoint as i64,
-        "Maximum ingested checkpoint should be {}",
-        end_checkpoint
-    );
+    assert_eq!(min_checkpoint, start_checkpoint as i64, "Minimum ingested checkpoint should be {}", start_checkpoint);
+    assert_eq!(max_checkpoint, end_checkpoint as i64, "Maximum ingested checkpoint should be {}", end_checkpoint);
 
     Ok(())
 }
@@ -121,10 +102,7 @@ pub async fn test_objects_snapshot() -> Result<(), IndexerError> {
         .first::<i64>(&mut connection)
         .await
         .expect("Failed to read max checkpoint_sequence_number from objects_snapshot");
-    assert_eq!(
-        max_checkpoint_sequence_number,
-        max_expected_checkpoint_sequence_number as i64
-    );
+    assert_eq!(max_checkpoint_sequence_number, max_expected_checkpoint_sequence_number as i64);
 
     // Get the object state at max_expected_checkpoint_sequence_number and assert.
     let last_tx = last_transaction.unwrap();
@@ -133,19 +111,13 @@ pub async fn test_objects_snapshot() -> Result<(), IndexerError> {
 
     let snapshot_object = objects_snapshot::table
         .filter(objects_snapshot::object_id.eq(obj_id.to_vec()))
-        .filter(
-            objects_snapshot::checkpoint_sequence_number
-                .eq(max_expected_checkpoint_sequence_number as i64),
-        )
+        .filter(objects_snapshot::checkpoint_sequence_number.eq(max_expected_checkpoint_sequence_number as i64))
         .first::<StoredObjectSnapshot>(&mut connection)
         .await
         .expect("Failed reading object from objects_snapshot");
     // Assert that the object state is as expected at checkpoint max_expected_checkpoint_sequence_number
     assert_eq!(snapshot_object.object_id, obj_id.to_vec());
-    assert_eq!(
-        snapshot_object.checkpoint_sequence_number,
-        max_expected_checkpoint_sequence_number as i64
-    );
+    assert_eq!(snapshot_object.checkpoint_sequence_number, max_expected_checkpoint_sequence_number as i64);
     assert_eq!(snapshot_object.owner_type, Some(1));
     assert_eq!(snapshot_object.owner_id, Some(gas_owner_id.to_vec()));
     Ok(())

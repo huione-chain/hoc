@@ -1,12 +1,17 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler};
-use crate::RpcService;
-use crate::RpcServiceError;
-use crate::{reader::StateReader, Result};
-use axum::extract::{Path, State};
-use axum::Json;
+use crate::{
+    reader::StateReader,
+    rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
+    Result,
+    RpcService,
+    RpcServiceError,
+};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sui_sdk_types::types::{ObjectId, StructTag};
@@ -23,20 +28,12 @@ impl ApiEndpoint<RpcService> for GetCoinInfo {
         "/coins/{coin_type}"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Coins")
             .operation_id("GetCoinInfo")
             .path_parameter::<StructTag>("coin_type", generator)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<CoinInfo>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<CoinInfo>(generator).build())
             .response(404, ResponseBuilder::new().build())
             .build()
     }
@@ -46,23 +43,13 @@ impl ApiEndpoint<RpcService> for GetCoinInfo {
     }
 }
 
-async fn get_coin_info(
-    Path(coin_type): Path<StructTag>,
-    State(state): State<StateReader>,
-) -> Result<Json<CoinInfo>> {
-    let indexes = state
-        .inner()
-        .indexes()
-        .ok_or_else(RpcServiceError::not_found)?;
+async fn get_coin_info(Path(coin_type): Path<StructTag>, State(state): State<StateReader>) -> Result<Json<CoinInfo>> {
+    let indexes = state.inner().indexes().ok_or_else(RpcServiceError::not_found)?;
 
     let core_coin_type = struct_tag_sdk_to_core(coin_type.clone())?;
 
-    let sui_types::storage::CoinInfo {
-        coin_metadata_object_id,
-        treasury_object_id,
-    } = indexes
-        .get_coin_info(&core_coin_type)?
-        .ok_or_else(|| CoinNotFoundError(coin_type.clone()))?;
+    let sui_types::storage::CoinInfo { coin_metadata_object_id, treasury_object_id } =
+        indexes.get_coin_info(&core_coin_type)?.ok_or_else(|| CoinNotFoundError(coin_type.clone()))?;
 
     let metadata = if let Some(coin_metadata_object_id) = coin_metadata_object_id {
         state
@@ -73,7 +60,9 @@ async fn get_coin_info(
             .map_err(|_| {
                 RpcServiceError::new(
                     axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Unable to read object {coin_metadata_object_id} for coin type {core_coin_type} as CoinMetadata"),
+                    format!(
+                        "Unable to read object {coin_metadata_object_id} for coin type {core_coin_type} as CoinMetadata"
+                    ),
                 )
             })?
             .map(CoinMetadata::from)
@@ -103,11 +92,7 @@ async fn get_coin_info(
         None
     };
 
-    Ok(Json(CoinInfo {
-        coin_type,
-        metadata,
-        treasury,
-    }))
+    Ok(Json(CoinInfo { coin_type, metadata, treasury }))
 }
 
 #[derive(Debug)]
@@ -172,8 +157,5 @@ pub struct CoinTreasury {
 }
 
 impl CoinTreasury {
-    const SUI: Self = Self {
-        id: None,
-        total_supply: sui_types::gas_coin::TOTAL_SUPPLY_MIST,
-    };
+    const SUI: Self = Self { id: None, total_supply: sui_types::gas_coin::TOTAL_SUPPLY_MIST };
 }

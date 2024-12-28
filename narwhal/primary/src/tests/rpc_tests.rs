@@ -27,29 +27,14 @@ async fn test_server_authorizations() {
 
         let primary_network = test_client.get_primary_network().await.unwrap();
         let primary_target_name = target_authority.network_key();
-        let request = anemo::Request::new(FetchCertificatesRequest::default())
-            .with_timeout(Duration::from_secs(5));
-        primary_network
-            .fetch_certificates(&primary_target_name, request)
-            .await
-            .unwrap();
+        let request = anemo::Request::new(FetchCertificatesRequest::default()).with_timeout(Duration::from_secs(5));
+        primary_network.fetch_certificates(&primary_target_name, request).await.unwrap();
 
         let worker_network = test_client.get_worker_network(0).await.unwrap();
-        let worker_target_name = test_worker_cache
-            .workers
-            .get(target_authority.protocol_key())
-            .unwrap()
-            .0
-            .get(&0)
-            .unwrap()
-            .name
-            .clone();
-        let request = anemo::Request::new(RequestBatchesRequest::default())
-            .with_timeout(Duration::from_secs(5));
-        worker_network
-            .request_batches(&worker_target_name, request)
-            .await
-            .unwrap();
+        let worker_target_name =
+            test_worker_cache.workers.get(target_authority.protocol_key()).unwrap().0.get(&0).unwrap().name.clone();
+        let request = anemo::Request::new(RequestBatchesRequest::default()).with_timeout(Duration::from_secs(5));
+        worker_network.request_batches(&worker_target_name, request).await.unwrap();
     }
 
     // Set up primaries and workers with a another committee.
@@ -62,9 +47,7 @@ async fn test_server_authorizations() {
         let unreachable_committee = unreachable_cluster.committee.clone();
         let unreachable_worker_cache = unreachable_cluster.worker_cache.clone();
 
-        let unreachable_authority = unreachable_committee
-            .authority(&AuthorityIdentifier(0))
-            .unwrap();
+        let unreachable_authority = unreachable_committee.authority(&AuthorityIdentifier(0)).unwrap();
         let primary_target_name = unreachable_authority.network_key();
         let primary_peer_id: PeerId = PeerId(primary_target_name.0.to_bytes());
         let primary_address = unreachable_authority.primary_address();
@@ -73,13 +56,9 @@ async fn test_server_authorizations() {
             .connect_with_peer_id(primary_address.to_anemo_address().unwrap(), primary_peer_id)
             .await
             .unwrap();
-        let request = anemo::Request::new(FetchCertificatesRequest::default())
-            .with_timeout(Duration::from_secs(5));
+        let request = anemo::Request::new(FetchCertificatesRequest::default()).with_timeout(Duration::from_secs(5));
         // Removing the AllowedPeers RequireAuthorizationLayer for primary should make this succeed.
-        assert!(primary_network
-            .fetch_certificates(&primary_target_name, request)
-            .await
-            .is_err());
+        assert!(primary_network.fetch_certificates(&primary_target_name, request).await.is_err());
 
         let worker_network = test_client.get_worker_network(0).await.unwrap();
         let worker_target_name = unreachable_worker_cache
@@ -91,12 +70,8 @@ async fn test_server_authorizations() {
             .unwrap()
             .name
             .clone();
-        let request = anemo::Request::new(RequestBatchesRequest::default())
-            .with_timeout(Duration::from_secs(5));
+        let request = anemo::Request::new(RequestBatchesRequest::default()).with_timeout(Duration::from_secs(5));
         // Removing the AllowedPeers RequireAuthorizationLayer for workers should make this succeed.
-        assert!(worker_network
-            .request_batches(&worker_target_name, request)
-            .await
-            .is_err());
+        assert!(worker_network.request_batches(&worker_target_name, request).await.is_err());
     }
 }

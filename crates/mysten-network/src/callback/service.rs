@@ -20,10 +20,7 @@ pub struct Callback<S, M> {
 impl<S, M> Callback<S, M> {
     /// Create a new [`Callback`].
     pub fn new(inner: S, make_callback_handler: M) -> Self {
-        Self {
-            inner,
-            make_callback_handler,
-        }
+        Self { inner, make_callback_handler }
     }
 
     /// Returns a new [`Layer`] that wraps services with a [`CallbackLayer`] middleware.
@@ -57,9 +54,9 @@ where
     S: Service<Request<RequestBody>, Response = Response<ResponseBody>>,
     M: MakeCallbackHandler,
 {
-    type Response = Response<ResponseBody>;
     type Error = S::Error;
     type Future = ResponseFuture<S::Future, M::Handler>;
+    type Response = Response<ResponseBody>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -70,9 +67,6 @@ where
         let handler = self.make_callback_handler.make_handler(&head);
         let request = Request::from_parts(head, body);
 
-        ResponseFuture {
-            inner: self.inner.call(request),
-            handler: Some(handler),
-        }
+        ResponseFuture { inner: self.inner.call(request), handler: Some(handler) }
     }
 }

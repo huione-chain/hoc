@@ -1,19 +1,26 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::response::Bcs;
-use crate::rest::openapi::{
-    ApiEndpoint, OperationBuilder, RequestBodyBuilder, ResponseBuilder, RouteHandler,
+use crate::{
+    response::Bcs,
+    rest::openapi::{ApiEndpoint, OperationBuilder, RequestBodyBuilder, ResponseBuilder, RouteHandler},
+    types::{ExecuteTransactionOptions, ExecuteTransactionResponse},
+    Result,
+    RpcService,
 };
-use crate::types::ExecuteTransactionOptions;
-use crate::types::ExecuteTransactionResponse;
-use crate::{Result, RpcService};
-use axum::extract::{Query, State};
-use axum::Json;
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use schemars::JsonSchema;
 use std::net::SocketAddr;
 use sui_sdk_types::types::{
-    BalanceChange, Object, SignedTransaction, Transaction, TransactionEffects, TransactionEvents,
+    BalanceChange,
+    Object,
+    SignedTransaction,
+    Transaction,
+    TransactionEffects,
+    TransactionEvents,
 };
 
 pub struct ExecuteTransaction;
@@ -27,21 +34,13 @@ impl ApiEndpoint<RpcService> for ExecuteTransaction {
         "/transactions"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Transactions")
             .operation_id("ExecuteTransaction")
             .query_parameters::<ExecuteTransactionOptions>(generator)
             .request_body(RequestBodyBuilder::new().bcs_content().build())
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<ExecuteTransactionResponse>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<ExecuteTransactionResponse>(generator).build())
             .build()
     }
 
@@ -61,10 +60,7 @@ async fn execute_transaction(
     client_address: Option<axum::extract::ConnectInfo<SocketAddr>>,
     Bcs(transaction): Bcs<SignedTransaction>,
 ) -> Result<Json<ExecuteTransactionResponse>> {
-    state
-        .execute_transaction(transaction, client_address.map(|a| a.0), &options)
-        .await
-        .map(Json)
+    state.execute_transaction(transaction, client_address.map(|a| a.0), &options).await.map(Json)
 }
 
 pub struct SimulateTransaction;
@@ -78,21 +74,13 @@ impl ApiEndpoint<RpcService> for SimulateTransaction {
         "/transactions/simulate"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("Transactions")
             .operation_id("SimulateTransaction")
             .query_parameters::<SimulateTransactionQueryParameters>(generator)
             .request_body(RequestBodyBuilder::new().bcs_content().build())
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<TransactionSimulationResponse>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<TransactionSimulationResponse>(generator).build())
             .build()
     }
 
@@ -107,9 +95,7 @@ async fn simulate_transaction(
     //TODO allow accepting JSON as well as BCS
     Bcs(transaction): Bcs<Transaction>,
 ) -> Result<Json<TransactionSimulationResponse>> {
-    state
-        .simulate_transaction(&parameters, transaction)
-        .map(Json)
+    state.simulate_transaction(&parameters, transaction).map(Json)
 }
 
 /// Response type for the transaction simulation endpoint

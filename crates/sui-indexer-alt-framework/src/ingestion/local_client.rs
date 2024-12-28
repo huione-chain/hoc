@@ -25,10 +25,7 @@ impl IngestionClientTrait for LocalIngestionClient {
             if e.kind() == std::io::ErrorKind::NotFound {
                 FetchError::NotFound
             } else {
-                FetchError::Transient {
-                    reason: "io_error",
-                    error: e.into(),
-                }
+                FetchError::Transient { reason: "io_error", error: e.into() }
             }
         })?;
         Ok(Bytes::from(bytes))
@@ -37,9 +34,10 @@ impl IngestionClientTrait for LocalIngestionClient {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::ingestion::client::IngestionClient;
-    use crate::ingestion::test_utils::test_checkpoint_data;
-    use crate::metrics::tests::test_metrics;
+    use crate::{
+        ingestion::{client::IngestionClient, test_utils::test_checkpoint_data},
+        metrics::tests::test_metrics,
+    };
     use std::sync::Arc;
     use sui_storage::blob::{Blob, BlobEncoding};
     use tokio_util::sync::CancellationToken;
@@ -53,15 +51,7 @@ pub(crate) mod tests {
 
         let metrics = Arc::new(test_metrics());
         let local_client = IngestionClient::new_local(tempdir, metrics);
-        let checkpoint = local_client
-            .fetch(1, &CancellationToken::new())
-            .await
-            .unwrap();
-        assert_eq!(
-            Blob::encode(&*checkpoint, BlobEncoding::Bcs)
-                .unwrap()
-                .to_bytes(),
-            test_checkpoint
-        );
+        let checkpoint = local_client.fetch(1, &CancellationToken::new()).await.unwrap();
+        assert_eq!(Blob::encode(&*checkpoint, BlobEncoding::Bcs).unwrap().to_bytes(), test_checkpoint);
     }
 }

@@ -5,9 +5,12 @@ use crate::{NodeStorage, PayloadToken};
 use config::WorkerId;
 use mysten_common::sync::notify_read::NotifyRead;
 use std::sync::Arc;
-use store::reopen;
-use store::rocks::{open_cf, MetricConf, ReadWriteOptions};
-use store::{rocks::DBMap, Map, TypedStoreError};
+use store::{
+    reopen,
+    rocks::{open_cf, DBMap, MetricConf, ReadWriteOptions},
+    Map,
+    TypedStoreError,
+};
 use sui_macros::fail_point;
 use types::BatchDigest;
 
@@ -22,22 +25,13 @@ pub struct PayloadStore {
 
 impl PayloadStore {
     pub fn new(payload_store: DBMap<(BatchDigest, WorkerId), PayloadToken>) -> Self {
-        Self {
-            store: payload_store,
-            notify_subscribers: Arc::new(NotifyRead::new()),
-        }
+        Self { store: payload_store, notify_subscribers: Arc::new(NotifyRead::new()) }
     }
 
     pub fn new_for_tests() -> Self {
-        let rocksdb = open_cf(
-            tempfile::tempdir().unwrap(),
-            None,
-            MetricConf::default(),
-            &[NodeStorage::PAYLOAD_CF],
-        )
-        .expect("Cannot open database");
-        let map =
-            reopen!(&rocksdb, NodeStorage::PAYLOAD_CF;<(BatchDigest, WorkerId), PayloadToken>);
+        let rocksdb = open_cf(tempfile::tempdir().unwrap(), None, MetricConf::default(), &[NodeStorage::PAYLOAD_CF])
+            .expect("Cannot open database");
+        let map = reopen!(&rocksdb, NodeStorage::PAYLOAD_CF;<(BatchDigest, WorkerId), PayloadToken>);
         PayloadStore::new(map)
     }
 
@@ -59,8 +53,7 @@ impl PayloadStore {
     ) -> Result<(), TypedStoreError> {
         fail_point!("narwhal-store-before-write");
 
-        self.store
-            .multi_insert(keys.clone().into_iter().map(|e| (e, 0u8)))?;
+        self.store.multi_insert(keys.clone().into_iter().map(|e| (e, 0u8)))?;
 
         keys.into_iter().for_each(|(digest, worker_id)| {
             self.notify_subscribers.notify(&(digest, worker_id), &());
@@ -72,23 +65,13 @@ impl PayloadStore {
 
     /// Queries the store whether the batch with provided `digest` and `worker_id` exists. It returns
     /// `true` if exists, `false` otherwise.
-    pub fn contains(
-        &self,
-        digest: BatchDigest,
-        worker_id: WorkerId,
-    ) -> Result<bool, TypedStoreError> {
-        self.store
-            .get(&(digest, worker_id))
-            .map(|result| result.is_some())
+    pub fn contains(&self, digest: BatchDigest, worker_id: WorkerId) -> Result<bool, TypedStoreError> {
+        self.store.get(&(digest, worker_id)).map(|result| result.is_some())
     }
 
     /// When called the method will wait until the entry of batch with `digest` and `worker_id`
     /// becomes available.
-    pub async fn notify_contains(
-        &self,
-        digest: BatchDigest,
-        worker_id: WorkerId,
-    ) -> Result<(), TypedStoreError> {
+    pub async fn notify_contains(&self, digest: BatchDigest, worker_id: WorkerId) -> Result<(), TypedStoreError> {
         let receiver = self.notify_subscribers.register_one(&(digest, worker_id));
 
         // let's read the value because we might have missed the opportunity
@@ -115,10 +98,7 @@ impl PayloadStore {
     }
 
     #[allow(clippy::let_and_return)]
-    pub fn remove_all(
-        &self,
-        keys: impl IntoIterator<Item = (BatchDigest, WorkerId)>,
-    ) -> Result<(), TypedStoreError> {
+    pub fn remove_all(&self, keys: impl IntoIterator<Item = (BatchDigest, WorkerId)>) -> Result<(), TypedStoreError> {
         fail_point!("narwhal-store-before-write");
 
         let result = self.store.multi_remove(keys);
@@ -141,8 +121,7 @@ mod tests {
         let store = PayloadStore::new_for_tests();
 
         // run the tests a few times
-        let batch: Batch =
-            test_utils::fixture_batch_with_transactions(10, &latest_protocol_version());
+        let batch: Batch = test_utils::fixture_batch_with_transactions(10, &latest_protocol_version());
         let id = batch.digest();
         let worker_id = 0;
 
@@ -153,8 +132,7 @@ mod tests {
         let mut handles = vec![];
         for _i in 0..5 {
             let cloned_store = store.clone();
-            let handle =
-                tokio::spawn(async move { cloned_store.notify_contains(id, worker_id).await });
+            let handle = tokio::spawn(async move { cloned_store.notify_contains(id, worker_id).await });
 
             handles.push(handle)
         }

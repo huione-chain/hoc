@@ -2,51 +2,56 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use clap::*;
-use ethers::providers::Middleware;
-use ethers::types::Address as EthAddress;
+use ethers::{providers::Middleware, types::Address as EthAddress};
 use fastcrypto::encoding::{Encoding, Hex};
-use shared_crypto::intent::Intent;
-use shared_crypto::intent::IntentMessage;
-use std::collections::BTreeMap;
-use std::collections::HashMap;
-use std::str::from_utf8;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::Duration;
-use sui_bridge::client::bridge_authority_aggregator::BridgeAuthorityAggregator;
-use sui_bridge::crypto::{BridgeAuthorityPublicKey, BridgeAuthorityPublicKeyBytes};
-use sui_bridge::eth_transaction_builder::build_eth_transaction;
-use sui_bridge::metrics::BridgeMetrics;
-use sui_bridge::sui_client::SuiClient;
-use sui_bridge::sui_transaction_builder::build_sui_transaction;
-use sui_bridge::types::BridgeActionType;
-use sui_bridge::utils::{
-    examine_key, generate_bridge_authority_key_and_write_to_file,
-    generate_bridge_client_key_and_write_to_file, generate_bridge_node_config_and_write_to_file,
+use shared_crypto::intent::{Intent, IntentMessage};
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::{from_utf8, FromStr},
+    sync::Arc,
+    time::Duration,
 };
-use sui_bridge::utils::{get_eth_contracts, EthBridgeContracts};
+use sui_bridge::{
+    client::bridge_authority_aggregator::BridgeAuthorityAggregator,
+    crypto::{BridgeAuthorityPublicKey, BridgeAuthorityPublicKeyBytes},
+    eth_transaction_builder::build_eth_transaction,
+    metrics::BridgeMetrics,
+    sui_client::SuiClient,
+    sui_transaction_builder::build_sui_transaction,
+    types::BridgeActionType,
+    utils::{
+        examine_key,
+        generate_bridge_authority_key_and_write_to_file,
+        generate_bridge_client_key_and_write_to_file,
+        generate_bridge_node_config_and_write_to_file,
+        get_eth_contracts,
+        EthBridgeContracts,
+    },
+};
 use sui_bridge_cli::{
-    make_action, select_contract_address, Args, BridgeCliConfig, BridgeCommand,
-    LoadedBridgeCliConfig, Network, SEPOLIA_BRIDGE_PROXY_ADDR,
+    make_action,
+    select_contract_address,
+    Args,
+    BridgeCliConfig,
+    BridgeCommand,
+    LoadedBridgeCliConfig,
+    Network,
+    SEPOLIA_BRIDGE_PROXY_ADDR,
 };
 use sui_config::Config;
-use sui_sdk::SuiClient as SuiSdkClient;
-use sui_sdk::SuiClientBuilder;
-use sui_types::base_types::SuiAddress;
-use sui_types::bridge::BridgeChainId;
-use sui_types::bridge::{MoveTypeCommitteeMember, MoveTypeCommitteeMemberRegistration};
-use sui_types::committee::TOTAL_VOTING_POWER;
-use sui_types::crypto::AuthorityPublicKeyBytes;
-use sui_types::crypto::Signature;
-use sui_types::crypto::ToFromBytes;
-use sui_types::transaction::Transaction;
+use sui_sdk::{SuiClient as SuiSdkClient, SuiClientBuilder};
+use sui_types::{
+    base_types::SuiAddress,
+    bridge::{BridgeChainId, MoveTypeCommitteeMember, MoveTypeCommitteeMemberRegistration},
+    committee::TOTAL_VOTING_POWER,
+    crypto::{AuthorityPublicKeyBytes, Signature, ToFromBytes},
+    transaction::Transaction,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Init logging
-    let (_guard, _filter_handle) = telemetry_subscribers::TelemetryConfig::new()
-        .with_env()
-        .init();
+    let (_guard, _filter_handle) = telemetry_subscribers::TelemetryConfig::new().with_env().init();
     let args = Args::parse();
 
     match args.command {
@@ -58,53 +63,28 @@ async fn main() -> anyhow::Result<()> {
             generate_bridge_client_key_and_write_to_file(&path, use_ecdsa)?;
             println!("Bridge client key generated at {}", path.display());
         }
-        BridgeCommand::ExamineKey {
-            path,
-            is_validator_key,
-        } => {
+        BridgeCommand::ExamineKey { path, is_validator_key } => {
             examine_key(&path, is_validator_key)?;
         }
         BridgeCommand::CreateBridgeNodeConfigTemplate { path, run_client } => {
             generate_bridge_node_config_and_write_to_file(&path, run_client)?;
-            println!(
-                "Bridge node config template generated at {}",
-                path.display()
-            );
+            println!("Bridge node config template generated at {}", path.display());
         }
 
-        BridgeCommand::Governance {
-            config_path,
-            chain_id,
-            cmd,
-            dry_run,
-        } => {
+        BridgeCommand::Governance { config_path, chain_id, cmd, dry_run } => {
             let chain_id = BridgeChainId::try_from(chain_id).expect("Invalid chain id");
             println!("Chain ID: {:?}", chain_id);
             let config = BridgeCliConfig::load(config_path).expect("Couldn't load BridgeCliConfig");
             let config = LoadedBridgeCliConfig::load(config).await?;
             let metrics = Arc::new(BridgeMetrics::new_for_testing());
-            let sui_bridge_client =
-                SuiClient::<SuiSdkClient>::new(&config.sui_rpc_url, metrics.clone()).await?;
+            let sui_bridge_client = SuiClient::<SuiSdkClient>::new(&config.sui_rpc_url, metrics.clone()).await?;
 
-            let (sui_key, sui_address, gas_object_ref) = config
-                .get_sui_account_info()
-                .await
-                .expect("Failed to get sui account info");
-            let bridge_summary = sui_bridge_client
-                .get_bridge_summary()
-                .await
-                .expect("Failed to get bridge summary");
-            let bridge_committee = Arc::new(
-                sui_bridge_client
-                    .get_bridge_committee()
-                    .await
-                    .expect("Failed to get bridge committee"),
-            );
-            let agg = BridgeAuthorityAggregator::new(
-                bridge_committee,
-                metrics,
-                Arc::new(BTreeMap::new()),
-            );
+            let (sui_key, sui_address, gas_object_ref) =
+                config.get_sui_account_info().await.expect("Failed to get sui account info");
+            let bridge_summary = sui_bridge_client.get_bridge_summary().await.expect("Failed to get bridge summary");
+            let bridge_committee =
+                Arc::new(sui_bridge_client.get_bridge_committee().await.expect("Failed to get bridge committee"));
+            let agg = BridgeAuthorityAggregator::new(bridge_committee, metrics, Arc::new(BTreeMap::new()));
 
             // Handle Sui Side
             if chain_id.is_sui_chain() {
@@ -117,20 +97,14 @@ async fn main() -> anyhow::Result<()> {
                 // Create BridgeAction
                 let sui_action = make_action(sui_chain_id, &cmd);
                 println!("Action to execute on Sui: {:?}", sui_action);
-                let certified_action = agg
-                    .request_committee_signatures(sui_action)
-                    .await
-                    .expect("Failed to request committee signatures");
+                let certified_action =
+                    agg.request_committee_signatures(sui_action).await.expect("Failed to request committee signatures");
                 if dry_run {
                     println!("Dryrun succeeded.");
                     return Ok(());
                 }
-                let bridge_arg = sui_bridge_client
-                    .get_mutable_bridge_object_arg_must_succeed()
-                    .await;
-                let rgp = sui_bridge_client
-                    .get_reference_gas_price_until_success()
-                    .await;
+                let bridge_arg = sui_bridge_client.get_mutable_bridge_object_arg_must_succeed().await;
+                let rgp = sui_bridge_client.get_reference_gas_price_until_success().await;
                 let id_token_map = sui_bridge_client.get_token_id_map().await.unwrap();
                 let tx = build_sui_transaction(
                     sui_address,
@@ -141,10 +115,8 @@ async fn main() -> anyhow::Result<()> {
                     rgp,
                 )
                 .expect("Failed to build sui transaction");
-                let sui_sig = Signature::new_secure(
-                    &IntentMessage::new(Intent::sui_transaction(), tx.clone()),
-                    &sui_key,
-                );
+                let sui_sig =
+                    Signature::new_secure(&IntentMessage::new(Intent::sui_transaction(), tx.clone()), &sui_key);
                 let tx = Transaction::from_data(tx, vec![sui_sig]);
                 let resp = sui_bridge_client
                     .execute_transaction_block_with_effects(tx)
@@ -153,10 +125,7 @@ async fn main() -> anyhow::Result<()> {
                 if resp.status_ok().unwrap() {
                     println!("Sui Transaction succeeded: {:?}", resp.digest);
                 } else {
-                    println!(
-                        "Sui Transaction failed: {:?}. Effects: {:?}",
-                        resp.digest, resp.effects
-                    );
+                    println!("Sui Transaction failed: {:?}. Effects: {:?}", resp.digest, resp.effects);
                 }
                 return Ok(());
             }
@@ -169,22 +138,16 @@ async fn main() -> anyhow::Result<()> {
             println!("Action to execute on Eth: {:?}", eth_action);
             // Create Eth Signer Client
             // TODO if a validator is blocklisted on eth, ignore their signatures?
-            let certified_action = agg
-                .request_committee_signatures(eth_action)
-                .await
-                .expect("Failed to request committee signatures");
+            let certified_action =
+                agg.request_committee_signatures(eth_action).await.expect("Failed to request committee signatures");
             if dry_run {
                 println!("Dryrun succeeded.");
                 return Ok(());
             }
             let contract_address = select_contract_address(&config, &cmd);
-            let tx = build_eth_transaction(
-                contract_address,
-                eth_signer_client.clone(),
-                certified_action,
-            )
-            .await
-            .expect("Failed to build eth transaction");
+            let tx = build_eth_transaction(contract_address, eth_signer_client.clone(), certified_action)
+                .await
+                .expect("Failed to build eth transaction");
             println!("sending Eth tx: {:?}", tx);
             match tx.send().await {
                 Ok(tx_hash) => {
@@ -199,18 +162,10 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
 
-        BridgeCommand::ViewEthBridge {
-            network,
-            bridge_proxy,
-            eth_rpc_url,
-        } => {
+        BridgeCommand::ViewEthBridge { network, bridge_proxy, eth_rpc_url } => {
             let bridge_proxy = match network {
-                Some(Network::Testnet) => {
-                    Ok(EthAddress::from_str(SEPOLIA_BRIDGE_PROXY_ADDR).unwrap())
-                }
-                None => bridge_proxy.ok_or(anyhow::anyhow!(
-                    "Network or bridge proxy address must be provided"
-                )),
+                Some(Network::Testnet) => Ok(EthAddress::from_str(SEPOLIA_BRIDGE_PROXY_ADDR).unwrap()),
+                None => bridge_proxy.ok_or(anyhow::anyhow!("Network or bridge proxy address must be provided")),
             }?;
             let provider = Arc::new(
                 ethers::prelude::Provider::<ethers::providers::Http>::try_from(eth_rpc_url)
@@ -218,43 +173,21 @@ async fn main() -> anyhow::Result<()> {
                     .interval(std::time::Duration::from_millis(2000)),
             );
             let chain_id = provider.get_chainid().await?;
-            let EthBridgeContracts {
-                bridge,
-                committee,
-                limiter,
-                vault,
-                config,
-            } = get_eth_contracts(bridge_proxy, &provider).await?;
+            let EthBridgeContracts { bridge, committee, limiter, vault, config } =
+                get_eth_contracts(bridge_proxy, &provider).await?;
             let message_type = BridgeActionType::EvmContractUpgrade as u8;
             let bridge_upgrade_next_nonce: u64 = bridge.nonces(message_type).call().await?;
             let committee_upgrade_next_nonce: u64 = committee.nonces(message_type).call().await?;
             let limiter_upgrade_next_nonce: u64 = limiter.nonces(message_type).call().await?;
             let config_upgrade_next_nonce: u64 = config.nonces(message_type).call().await?;
 
-            let token_transfer_next_nonce: u64 = bridge
-                .nonces(BridgeActionType::TokenTransfer as u8)
-                .call()
-                .await?;
-            let blocklist_update_nonce: u64 = committee
-                .nonces(BridgeActionType::UpdateCommitteeBlocklist as u8)
-                .call()
-                .await?;
-            let emergency_button_nonce: u64 = bridge
-                .nonces(BridgeActionType::EmergencyButton as u8)
-                .call()
-                .await?;
-            let limit_update_nonce: u64 = limiter
-                .nonces(BridgeActionType::LimitUpdate as u8)
-                .call()
-                .await?;
-            let asset_price_update_nonce: u64 = config
-                .nonces(BridgeActionType::AssetPriceUpdate as u8)
-                .call()
-                .await?;
-            let add_tokens_nonce: u64 = config
-                .nonces(BridgeActionType::AddTokensOnEvm as u8)
-                .call()
-                .await?;
+            let token_transfer_next_nonce: u64 = bridge.nonces(BridgeActionType::TokenTransfer as u8).call().await?;
+            let blocklist_update_nonce: u64 =
+                committee.nonces(BridgeActionType::UpdateCommitteeBlocklist as u8).call().await?;
+            let emergency_button_nonce: u64 = bridge.nonces(BridgeActionType::EmergencyButton as u8).call().await?;
+            let limit_update_nonce: u64 = limiter.nonces(BridgeActionType::LimitUpdate as u8).call().await?;
+            let asset_price_update_nonce: u64 = config.nonces(BridgeActionType::AssetPriceUpdate as u8).call().await?;
+            let add_tokens_nonce: u64 = config.nonces(BridgeActionType::AddTokensOnEvm as u8).call().await?;
 
             let print = OutputEthBridge {
                 chain_id: chain_id.as_u64(),
@@ -303,20 +236,14 @@ async fn main() -> anyhow::Result<()> {
                 .active_validators
                 .into_iter()
                 .map(|summary| {
-                    let protocol_key =
-                        AuthorityPublicKeyBytes::from_bytes(&summary.protocol_pubkey_bytes)
-                            .unwrap();
+                    let protocol_key = AuthorityPublicKeyBytes::from_bytes(&summary.protocol_pubkey_bytes).unwrap();
                     (summary.sui_address, (protocol_key, summary.name))
                 })
                 .collect::<HashMap<_, _>>();
             let mut authorities = vec![];
             let mut output_wrapper = Output::<OutputSuiBridgeRegistration>::default();
             for (_, member) in move_type_bridge_committee.member_registration {
-                let MoveTypeCommitteeMemberRegistration {
-                    sui_address,
-                    bridge_pubkey_bytes,
-                    http_rest_url,
-                } = member;
+                let MoveTypeCommitteeMemberRegistration { sui_address, bridge_pubkey_bytes, http_rest_url } = member;
                 let Ok(pubkey) = BridgeAuthorityPublicKey::from_bytes(&bridge_pubkey_bytes) else {
                     output_wrapper.add_error(format!(
                         "Invalid bridge pubkey for validator {}: {:?}",
@@ -338,10 +265,7 @@ async fn main() -> anyhow::Result<()> {
                 let stake = stakes.get(protocol_key).unwrap();
                 authorities.push((name, sui_address, pubkey, eth_address, url, stake));
             }
-            let total_stake = authorities
-                .iter()
-                .map(|(_, _, _, _, _, stake)| **stake)
-                .sum::<u64>();
+            let total_stake = authorities.iter().map(|(_, _, _, _, _, stake)| **stake).sum::<u64>();
             let mut output = OutputSuiBridgeRegistration {
                 total_registered_stake: total_stake as f32 / TOTAL_VOTING_POWER as f32 * 100.0,
                 ..Default::default()
@@ -362,11 +286,7 @@ async fn main() -> anyhow::Result<()> {
             println!("{}", serde_json::to_string_pretty(&output_wrapper).unwrap());
         }
 
-        BridgeCommand::ViewSuiBridge {
-            sui_rpc_url,
-            hex,
-            ping,
-        } => {
+        BridgeCommand::ViewSuiBridge { sui_rpc_url, hex, ping } => {
             let metrics = Arc::new(BridgeMetrics::new_for_testing());
             let sui_bridge_client = SuiClient::<SuiSdkClient>::new(&sui_rpc_url, metrics).await?;
             let bridge_summary = sui_bridge_client
@@ -422,20 +342,9 @@ async fn main() -> anyhow::Result<()> {
                     let client_clone = client.clone();
                     ping_tasks.push(client_clone.get(url.clone()).send());
                 }
-                authorities.push((
-                    name,
-                    sui_address,
-                    pubkey,
-                    eth_address,
-                    url,
-                    voting_power,
-                    blocklisted,
-                ));
+                authorities.push((name, sui_address, pubkey, eth_address, url, voting_power, blocklisted));
             }
-            let total_stake = authorities
-                .iter()
-                .map(|(_, _, _, _, _, stake, _)| *stake)
-                .sum::<u64>();
+            let total_stake = authorities.iter().map(|(_, _, _, _, _, stake, _)| *stake).sum::<u64>();
             let mut output = OutputSuiBridge {
                 total_stake: total_stake as f32 / TOTAL_VOTING_POWER as f32 * 100.0,
                 ..Default::default()
@@ -458,11 +367,7 @@ async fn main() -> anyhow::Result<()> {
             for ((name, sui_address, pubkey, eth_address, url, stake, blocklisted), ping_resp) in
                 authorities.into_iter().zip(ping_tasks_resp)
             {
-                let pubkey = if hex {
-                    Hex::encode(pubkey.as_bytes())
-                } else {
-                    pubkey.to_string()
-                };
+                let pubkey = if hex { Hex::encode(pubkey.as_bytes()) } else { pubkey.to_string() };
                 match ping_resp {
                     Some(resp) => {
                         if resp {
@@ -476,11 +381,7 @@ async fn main() -> anyhow::Result<()> {
                             url,
                             stake,
                             blocklisted: Some(blocklisted),
-                            status: Some(if resp {
-                                "online".to_string()
-                            } else {
-                                "offline".to_string()
-                            }),
+                            status: Some(if resp { "online".to_string() } else { "offline".to_string() }),
                         });
                     }
                     None => {
@@ -498,15 +399,12 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             if ping {
-                output.total_online_stake =
-                    Some(total_online_stake as f32 / TOTAL_VOTING_POWER as f32 * 100.0);
+                output.total_online_stake = Some(total_online_stake as f32 / TOTAL_VOTING_POWER as f32 * 100.0);
             }
 
             // sequence nonces
             for (type_, nonce) in bridge_summary.sequence_nums {
-                output
-                    .nonces
-                    .insert(BridgeActionType::try_from(type_).unwrap(), nonce);
+                output.nonces.insert(BridgeActionType::try_from(type_).unwrap(), nonce);
             }
 
             output_wrapper.inner = output;
@@ -516,8 +414,7 @@ async fn main() -> anyhow::Result<()> {
             let config = BridgeCliConfig::load(config_path).expect("Couldn't load BridgeCliConfig");
             let config = LoadedBridgeCliConfig::load(config).await?;
             let metrics = Arc::new(BridgeMetrics::new_for_testing());
-            let sui_bridge_client =
-                SuiClient::<SuiSdkClient>::new(&config.sui_rpc_url, metrics).await?;
+            let sui_bridge_client = SuiClient::<SuiSdkClient>::new(&config.sui_rpc_url, metrics).await?;
             cmd.handle(&config, sui_bridge_client).await?;
             return Ok(());
         }

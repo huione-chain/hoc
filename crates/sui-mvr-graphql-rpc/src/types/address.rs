@@ -52,18 +52,12 @@ impl Address {
         before: Option<object::Cursor>,
         filter: Option<ObjectFilter>,
     ) -> Result<Connection<String, MoveObject>> {
-        OwnerImpl::from(self)
-            .objects(ctx, first, after, last, before, filter)
-            .await
+        OwnerImpl::from(self).objects(ctx, first, after, last, before, filter).await
     }
 
     /// Total balance of all coins with marker type owned by this address. If type is not supplied,
-    /// it defaults to `0x2::sui::SUI`.
-    pub(crate) async fn balance(
-        &self,
-        ctx: &Context<'_>,
-        type_: Option<ExactTypeFilter>,
-    ) -> Result<Option<Balance>> {
+    /// it defaults to `0x2::hc::HC`.
+    pub(crate) async fn balance(&self, ctx: &Context<'_>, type_: Option<ExactTypeFilter>) -> Result<Option<Balance>> {
         OwnerImpl::from(self).balance(ctx, type_).await
     }
 
@@ -76,14 +70,12 @@ impl Address {
         last: Option<u64>,
         before: Option<balance::Cursor>,
     ) -> Result<Connection<String, Balance>> {
-        OwnerImpl::from(self)
-            .balances(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(self).balances(ctx, first, after, last, before).await
     }
 
     /// The coin objects for this address.
     ///
-    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::sui::SUI`.
+    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::hc::HC`.
     pub(crate) async fn coins(
         &self,
         ctx: &Context<'_>,
@@ -93,9 +85,7 @@ impl Address {
         before: Option<object::Cursor>,
         type_: Option<ExactTypeFilter>,
     ) -> Result<Connection<String, Coin>> {
-        OwnerImpl::from(self)
-            .coins(ctx, first, after, last, before, type_)
-            .await
+        OwnerImpl::from(self).coins(ctx, first, after, last, before, type_).await
     }
 
     /// The `0x3::staking_pool::StakedSui` objects owned by this address.
@@ -107,9 +97,7 @@ impl Address {
         last: Option<u64>,
         before: Option<object::Cursor>,
     ) -> Result<Connection<String, StakedSui>> {
-        OwnerImpl::from(self)
-            .staked_suis(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(self).staked_suis(ctx, first, after, last, before).await
     }
 
     /// The domain explicitly configured as the default domain pointing to this address.
@@ -131,9 +119,7 @@ impl Address {
         last: Option<u64>,
         before: Option<object::Cursor>,
     ) -> Result<Connection<String, SuinsRegistration>> {
-        OwnerImpl::from(self)
-            .suins_registrations(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(self).suins_registrations(ctx, first, after, last, before).await
     }
 
     /// Similar behavior to the `transactionBlocks` in Query but supporting the additional
@@ -173,30 +159,19 @@ impl Address {
 
         let Some(filter) = filter.unwrap_or_default().intersect(match relation {
             // Relationship defaults to "sent" if none is supplied.
-            Some(R::Sent) | None => TransactionBlockFilter {
-                sent_address: Some(self.address),
-                ..Default::default()
-            },
+            Some(R::Sent) | None => TransactionBlockFilter { sent_address: Some(self.address), ..Default::default() },
 
-            Some(R::Affected) => TransactionBlockFilter {
-                affected_address: Some(self.address),
-                ..Default::default()
-            },
+            Some(R::Affected) => TransactionBlockFilter { affected_address: Some(self.address), ..Default::default() },
         }) else {
             return Ok(ScanConnection::new(false, false));
         };
 
-        TransactionBlock::paginate(ctx, page, filter, self.checkpoint_viewed_at, scan_limit)
-            .await
-            .extend()
+        TransactionBlock::paginate(ctx, page, filter, self.checkpoint_viewed_at, scan_limit).await.extend()
     }
 }
 
 impl From<&Address> for OwnerImpl {
     fn from(address: &Address) -> Self {
-        OwnerImpl {
-            address: address.address,
-            checkpoint_viewed_at: address.checkpoint_viewed_at,
-        }
+        OwnerImpl { address: address.address, checkpoint_viewed_at: address.checkpoint_viewed_at }
     }
 }

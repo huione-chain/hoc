@@ -1,15 +1,11 @@
 // Copyright (c) 2021, Facebook, Inc. and its affiliates
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-#![warn(
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    rust_2021_compatibility
-)]
+#![warn(future_incompatible, nonstandard_style, rust_2018_idioms, rust_2021_compatibility)]
 
 use fastcrypto::{
-    bls12381, ed25519,
+    bls12381,
+    ed25519,
     error::FastCryptoError,
     hash::{Blake2b256, HashFunction},
     traits::{AggregateAuthenticator, Signer, VerifyingKey},
@@ -59,11 +55,7 @@ pub trait NarwhalAuthoritySignature {
         T: Serialize;
 
     /// Verify the signature on an intent message against the public key.
-    fn verify_secure<T>(
-        &self,
-        value: &IntentMessage<T>,
-        author: &PublicKey,
-    ) -> Result<(), FastCryptoError>
+    fn verify_secure<T>(&self, value: &IntentMessage<T>, author: &PublicKey) -> Result<(), FastCryptoError>
     where
         T: Serialize;
 }
@@ -77,11 +69,7 @@ impl NarwhalAuthoritySignature for Signature {
         secret.sign(&message)
     }
 
-    fn verify_secure<T>(
-        &self,
-        value: &IntentMessage<T>,
-        public_key: &PublicKey,
-    ) -> Result<(), FastCryptoError>
+    fn verify_secure<T>(&self, value: &IntentMessage<T>, public_key: &PublicKey) -> Result<(), FastCryptoError>
     where
         T: Serialize,
     {
@@ -91,21 +79,13 @@ impl NarwhalAuthoritySignature for Signature {
 }
 
 pub trait NarwhalAuthorityAggregateSignature {
-    fn verify_secure<T>(
-        &self,
-        value: &IntentMessage<T>,
-        pks: &[PublicKey],
-    ) -> Result<(), FastCryptoError>
+    fn verify_secure<T>(&self, value: &IntentMessage<T>, pks: &[PublicKey]) -> Result<(), FastCryptoError>
     where
         T: Serialize;
 }
 
 impl NarwhalAuthorityAggregateSignature for AggregateSignature {
-    fn verify_secure<T>(
-        &self,
-        value: &IntentMessage<T>,
-        pks: &[PublicKey],
-    ) -> Result<(), FastCryptoError>
+    fn verify_secure<T>(&self, value: &IntentMessage<T>, pks: &[PublicKey]) -> Result<(), FastCryptoError>
     where
         T: Serialize,
     {

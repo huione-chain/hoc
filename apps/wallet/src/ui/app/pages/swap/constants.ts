@@ -18,7 +18,7 @@ export const initialValues = {
 export type FormValues = typeof initialValues;
 
 export enum Coins {
-	SUI = 'SUI',
+	HC = 'HC',
 	USDC = 'USDC',
 	USDT = 'USDT',
 	WETH = 'WETH',

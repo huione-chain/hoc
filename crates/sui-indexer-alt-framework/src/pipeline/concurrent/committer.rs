@@ -75,21 +75,12 @@ pub(super) fn committer<H: Handler + 'static>(
                             return Ok(());
                         }
 
-                        metrics
-                            .total_committer_batches_attempted
-                            .with_label_values(&[H::NAME])
-                            .inc();
+                        metrics.total_committer_batches_attempted.with_label_values(&[H::NAME]).inc();
 
-                        let guard = metrics
-                            .committer_commit_latency
-                            .with_label_values(&[H::NAME])
-                            .start_timer();
+                        let guard = metrics.committer_commit_latency.with_label_values(&[H::NAME]).start_timer();
 
                         let mut conn = db.connect().await.map_err(|e| {
-                            warn!(
-                                pipeline = H::NAME,
-                                "Committed failed to get connection for DB"
-                            );
+                            warn!(pipeline = H::NAME, "Committed failed to get connection for DB");
                             BE::transient(Break::Err(e.into()))
                         })?;
 
@@ -106,10 +97,7 @@ pub(super) fn committer<H: Handler + 'static>(
                                     "Wrote batch",
                                 );
 
-                                metrics
-                                    .total_committer_batches_succeeded
-                                    .with_label_values(&[H::NAME])
-                                    .inc();
+                                metrics.total_committer_batches_succeeded.with_label_values(&[H::NAME]).inc();
 
                                 metrics
                                     .total_committer_rows_committed
@@ -121,10 +109,7 @@ pub(super) fn committer<H: Handler + 'static>(
                                     .with_label_values(&[H::NAME])
                                     .inc_by(affected as u64);
 
-                                metrics
-                                    .committer_tx_rows
-                                    .with_label_values(&[H::NAME])
-                                    .observe(affected as f64);
+                                metrics.committer_tx_rows.with_label_values(&[H::NAME]).observe(affected as f64);
 
                                 Ok(())
                             }

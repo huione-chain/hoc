@@ -3,7 +3,8 @@
 
 use crate::{
     rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
-    Result, RpcService,
+    Result,
+    RpcService,
 };
 use axum::extract::{Query, State};
 use documented::Documented;
@@ -29,10 +30,7 @@ impl ApiEndpoint<RpcService> for HealthCheck {
         true
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("General")
             .operation_id("Health Check")

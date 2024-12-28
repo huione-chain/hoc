@@ -8,9 +8,7 @@ mod objects;
 mod resolve;
 mod transactions;
 
-async fn transfer_coin(
-    context: &sui_sdk::wallet_context::WalletContext,
-) -> sui_sdk_types::types::TransactionDigest {
+async fn transfer_coin(context: &sui_sdk::wallet_context::WalletContext) -> sui_sdk_types::types::TransactionDigest {
     let gas_price = context.get_reference_gas_price().await.unwrap();
     let accounts_and_objs = context.get_all_accounts_and_gas_objects().await.unwrap();
     let sender = accounts_and_objs[0].0;

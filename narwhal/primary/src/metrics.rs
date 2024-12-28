@@ -3,17 +3,27 @@
 use network::metrics::NetworkMetrics;
 use prometheus::{
     core::{AtomicI64, GenericGauge},
-    default_registry, linear_buckets, register_histogram_vec_with_registry,
-    register_histogram_with_registry, register_int_counter_vec_with_registry,
-    register_int_counter_with_registry, register_int_gauge_vec_with_registry,
-    register_int_gauge_with_registry, Histogram, HistogramVec, IntCounter, IntCounterVec, IntGauge,
-    IntGaugeVec, Registry,
+    default_registry,
+    linear_buckets,
+    register_histogram_vec_with_registry,
+    register_histogram_with_registry,
+    register_int_counter_vec_with_registry,
+    register_int_counter_with_registry,
+    register_int_gauge_vec_with_registry,
+    register_int_gauge_with_registry,
+    Histogram,
+    HistogramVec,
+    IntCounter,
+    IntCounterVec,
+    IntGauge,
+    IntGaugeVec,
+    Registry,
 };
 
 const LATENCY_SEC_BUCKETS: &[f64] = &[
-    0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4,
-    1.6, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.,
-    12.5, 15., 17.5, 20., 25., 30., 60., 90., 120., 180., 300.,
+    0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0,
+    3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10., 12.5, 15., 17.5, 20., 25., 30., 60., 90.,
+    120., 180., 300.,
 ];
 
 #[derive(Clone)]
@@ -94,27 +104,26 @@ pub struct PrimaryChannelMetrics {
 }
 
 impl PrimaryChannelMetrics {
+    pub const DESC_COMMITTED_CERTS: &'static str =
+        "occupancy of the channel from the `Consensus` to the `primary::StateHandler`";
+    pub const DESC_COMMITTED_CERTS_TOTAL: &'static str =
+        "total received on channel from the `Consensus` to the `primary::StateHandler`";
+    pub const DESC_NEW_CERTS: &'static str =
+        "occupancy of the channel from the `primary::Synchronizer` to the `Consensus`";
+    pub const DESC_NEW_CERTS_TOTAL: &'static str =
+        "total received on channel from the `primary::Synchronizer` to the `Consensus`";
     // The consistent use of this constant in the below, as well as in `node::spawn_primary` is
     // load-bearing, see `replace_registered_committed_certificates_metric`.
     pub const NAME_COMMITTED_CERTS: &'static str = "tx_committed_certificates";
-    pub const DESC_COMMITTED_CERTS: &'static str =
-        "occupancy of the channel from the `Consensus` to the `primary::StateHandler`";
-    // The consistent use of this constant in the below, as well as in `node::spawn_primary` is
-    // load-bearing, see `replace_registered_new_certificates_metric`.
-    pub const NAME_NEW_CERTS: &'static str = "tx_new_certificates";
-    pub const DESC_NEW_CERTS: &'static str =
-        "occupancy of the channel from the `primary::Synchronizer` to the `Consensus`";
-
     // The consistent use of this constant in the below, as well as in `node::spawn_primary` is
     // load-bearing, see `replace_registered_committed_certificates_metric`.
     pub const NAME_COMMITTED_CERTS_TOTAL: &'static str = "tx_committed_certificates_total";
-    pub const DESC_COMMITTED_CERTS_TOTAL: &'static str =
-        "total received on channel from the `Consensus` to the `primary::StateHandler`";
+    // The consistent use of this constant in the below, as well as in `node::spawn_primary` is
+    // load-bearing, see `replace_registered_new_certificates_metric`.
+    pub const NAME_NEW_CERTS: &'static str = "tx_new_certificates";
     // The consistent use of this constant in the below, as well as in `node::spawn_primary` is
     // load-bearing, see `replace_registered_new_certificates_metric`.
     pub const NAME_NEW_CERTS_TOTAL: &'static str = "tx_new_certificates_total";
-    pub const DESC_NEW_CERTS_TOTAL: &'static str =
-        "total received on channel from the `primary::Synchronizer` to the `Consensus`";
 
     pub fn new(registry: &Registry) -> Self {
         Self {
@@ -122,109 +131,126 @@ impl PrimaryChannelMetrics {
                 "tx_others_digests",
                 "occupancy of the channel from the `primary::WorkerReceiverHandler` to the `primary::PayloadReceiver`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_our_digests: register_int_gauge_with_registry!(
                 "tx_our_digests",
                 "occupancy of the channel from the `primary::WorkerReceiverHandler` to the `primary::Proposer`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_parents: register_int_gauge_with_registry!(
                 "tx_parents",
                 "occupancy of the channel from the `primary::Synchronizer` to the `primary::Proposer`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_headers: register_int_gauge_with_registry!(
                 "tx_headers",
                 "occupancy of the channel from the `primary::Proposer` to the `primary::Certifier`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_certificate_fetcher: register_int_gauge_with_registry!(
                 "tx_certificate_fetcher",
                 "occupancy of the channel from the `primary::Synchronizer` to the `primary::CertificaterWaiter`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_committed_certificates: register_int_gauge_with_registry!(
                 Self::NAME_COMMITTED_CERTS,
                 Self::DESC_COMMITTED_CERTS,
                 registry
-            ).unwrap(),
-            tx_new_certificates: register_int_gauge_with_registry!(
-                Self::NAME_NEW_CERTS,
-                Self::DESC_NEW_CERTS,
-                registry
-            ).unwrap(),
+            )
+            .unwrap(),
+            tx_new_certificates: register_int_gauge_with_registry!(Self::NAME_NEW_CERTS, Self::DESC_NEW_CERTS, registry)
+                .unwrap(),
             tx_committed_own_headers: register_int_gauge_with_registry!(
                 "tx_committed_own_headers",
                 "occupancy of the channel signaling own committed headers.",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_certificate_acceptor: register_int_gauge_with_registry!(
                 "tx_certificate_acceptor",
                 "occupancy of the internal synchronizer channel that is accepting new certificates.",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_batch_tasks: register_int_gauge_with_registry!(
                 "tx_batch_tasks",
                 "Occupancy of the channel synchronizing batches for provided headers & certificates",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
 
             // totals
             tx_others_digests_total: register_int_counter_with_registry!(
                 "tx_others_digests_total",
                 "total received on channel from the `primary::WorkerReceiverHandler` to the `primary::PayloadReceiver`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_our_digests_total: register_int_counter_with_registry!(
                 "tx_our_digests_total",
                 "total received on channel from the `primary::WorkerReceiverHandler` to the `primary::Proposer`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_parents_total: register_int_counter_with_registry!(
                 "tx_parents_total",
                 "total received on channel from the `primary::Synchronizer` to the `primary::Proposer`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_headers_total: register_int_counter_with_registry!(
                 "tx_headers_total",
                 "total received on channel from the `primary::Proposer` to the `primary::Certifier`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_certificate_fetcher_total: register_int_counter_with_registry!(
                 "tx_certificate_fetcher_total",
                 "total received on channel from the `primary::Synchronizer` to the `primary::CertificaterWaiter`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_state_handler_total: register_int_counter_with_registry!(
                 "tx_state_handler_total",
                 "total received on channel from the `primary::WorkerReceiverHandler` to the `primary::StateHandler`",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_committed_certificates_total: register_int_counter_with_registry!(
                 Self::NAME_COMMITTED_CERTS_TOTAL,
                 Self::DESC_COMMITTED_CERTS_TOTAL,
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_new_certificates_total: register_int_counter_with_registry!(
                 Self::NAME_NEW_CERTS_TOTAL,
                 Self::DESC_NEW_CERTS_TOTAL,
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_committed_own_headers_total: register_int_counter_with_registry!(
                 "tx_committed_own_headers_total",
                 "total received on channel signaling own committed headers.",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_certificate_acceptor_total: register_int_counter_with_registry!(
                 "tx_certificate_acceptor_total",
                 "total received on the internal synchronizer channel that is accepting new certificates.",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
             tx_batch_tasks_total: register_int_counter_with_registry!(
                 "tx_batch_tasks_total",
                 "total received on the channel synchronizing batches for provided headers & certificates",
                 registry
-            ).unwrap(),
+            )
+            .unwrap(),
         }
     }
 
@@ -233,12 +259,9 @@ impl PrimaryChannelMetrics {
         registry: &Registry,
         collector: Box<GenericGauge<AtomicI64>>,
     ) {
-        let new_certificates_counter =
-            IntGauge::new(Self::NAME_NEW_CERTS, Self::DESC_NEW_CERTS).unwrap();
+        let new_certificates_counter = IntGauge::new(Self::NAME_NEW_CERTS, Self::DESC_NEW_CERTS).unwrap();
         // TODO: Sanity-check by hashing the descs against one another
-        registry
-            .unregister(Box::new(new_certificates_counter.clone()))
-            .unwrap();
+        registry.unregister(Box::new(new_certificates_counter.clone())).unwrap();
         registry.register(collector).unwrap();
         self.tx_new_certificates = new_certificates_counter;
     }
@@ -251,9 +274,7 @@ impl PrimaryChannelMetrics {
         let committed_certificates_counter =
             IntGauge::new(Self::NAME_COMMITTED_CERTS, Self::DESC_COMMITTED_CERTS).unwrap();
         // TODO: Sanity-check by hashing the descs against one another
-        registry
-            .unregister(Box::new(committed_certificates_counter.clone()))
-            .unwrap();
+        registry.unregister(Box::new(committed_certificates_counter.clone())).unwrap();
         registry.register(collector).unwrap();
         self.tx_committed_certificates = committed_certificates_counter;
     }

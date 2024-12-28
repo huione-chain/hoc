@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    certificate_fetcher::CertificateFetcher, consensus::ConsensusRound, metrics::PrimaryMetrics,
-    primary::NUM_SHUTDOWN_RECEIVERS, synchronizer::Synchronizer, PrimaryChannelMetrics,
+    certificate_fetcher::CertificateFetcher,
+    consensus::ConsensusRound,
+    metrics::PrimaryMetrics,
+    primary::NUM_SHUTDOWN_RECEIVERS,
+    synchronizer::Synchronizer,
+    PrimaryChannelMetrics,
 };
 use anemo::async_trait;
 use anyhow::Result;
@@ -16,23 +20,37 @@ use network::client::NetworkClient;
 use once_cell::sync::OnceCell;
 use prometheus::Registry;
 use std::{collections::BTreeSet, sync::Arc, time::Duration};
-use storage::CertificateStore;
-use storage::NodeStorage;
+use storage::{CertificateStore, NodeStorage};
 use test_utils::{get_protocol_config, latest_protocol_version, temp_dir, CommitteeFixture};
 use tokio::{
     sync::{
         mpsc::{self, error::TryRecvError, Receiver, Sender},
-        watch, Mutex,
+        watch,
+        Mutex,
     },
     time::sleep,
 };
-use types::HeaderV1;
-use types::TimestampMs;
 use types::{
-    BatchDigest, Certificate, CertificateAPI, CertificateDigest, FetchCertificatesRequest,
-    FetchCertificatesResponse, Header, HeaderAPI, HeaderDigest, PreSubscribedBroadcastSender,
-    PrimaryToPrimary, PrimaryToPrimaryServer, RequestVoteRequest, RequestVoteResponse, Round,
-    SendCertificateRequest, SendCertificateResponse, SignatureVerificationState,
+    BatchDigest,
+    Certificate,
+    CertificateAPI,
+    CertificateDigest,
+    FetchCertificatesRequest,
+    FetchCertificatesResponse,
+    Header,
+    HeaderAPI,
+    HeaderDigest,
+    HeaderV1,
+    PreSubscribedBroadcastSender,
+    PrimaryToPrimary,
+    PrimaryToPrimaryServer,
+    RequestVoteRequest,
+    RequestVoteResponse,
+    Round,
+    SendCertificateRequest,
+    SendCertificateResponse,
+    SignatureVerificationState,
+    TimestampMs,
 };
 
 pub struct NetworkProxy {
@@ -46,10 +64,7 @@ impl PrimaryToPrimary for NetworkProxy {
         &self,
         request: anemo::Request<SendCertificateRequest>,
     ) -> Result<anemo::Response<SendCertificateResponse>, anemo::rpc::Status> {
-        unimplemented!(
-            "FetchCertificateProxy::send_certificate() is unimplemented!! {:#?}",
-            request
-        );
+        unimplemented!("FetchCertificateProxy::send_certificate() is unimplemented!! {:#?}", request);
     }
 
     async fn request_vote(
@@ -63,13 +78,8 @@ impl PrimaryToPrimary for NetworkProxy {
         &self,
         request: anemo::Request<FetchCertificatesRequest>,
     ) -> Result<anemo::Response<FetchCertificatesResponse>, anemo::rpc::Status> {
-        self.request
-            .send(request.into_body())
-            .await
-            .map_err(|e| anemo::rpc::Status::from_error(Box::new(e)))?;
-        Ok(anemo::Response::new(
-            self.response.lock().await.recv().await.unwrap(),
-        ))
+        self.request.send(request.into_body()).await.map_err(|e| anemo::rpc::Status::from_error(Box::new(e)))?;
+        Ok(anemo::Response::new(self.response.lock().await.recv().await.unwrap()))
     }
 }
 
@@ -91,10 +101,7 @@ async fn verify_certificates_v2_in_store(
                 match cert.signature_verification_state() {
                     SignatureVerificationState::VerifiedDirectly(_) => verified_directly += 1,
                     SignatureVerificationState::VerifiedIndirectly(_) => verified_indirectly += 1,
-                    _ => panic!(
-                        "Found unexpected stored signature state {:?}",
-                        cert.signature_verification_state()
-                    ),
+                    _ => panic!("Found unexpected stored signature state {:?}", cert.signature_verification_state()),
                 };
                 continue;
             }
@@ -107,10 +114,7 @@ async fn verify_certificates_v2_in_store(
         sleep(Duration::from_secs(1)).await;
     }
     if let Some(i) = missing {
-        panic!(
-            "Missing certificate in store: input index {}, certificate: {:?}",
-            i, certificates[i]
-        );
+        panic!("Missing certificate in store: input index {}, certificate: {:?}", i, certificates[i]);
     }
 
     assert_eq!(
@@ -125,10 +129,7 @@ async fn verify_certificates_v2_in_store(
     );
 }
 
-async fn verify_certificates_v1_in_store(
-    certificate_store: &CertificateStore,
-    certificates: &[Certificate],
-) {
+async fn verify_certificates_v1_in_store(certificate_store: &CertificateStore, certificates: &[Certificate]) {
     let mut missing = None;
     for _ in 0..20 {
         missing = None;
@@ -145,28 +146,16 @@ async fn verify_certificates_v1_in_store(
         sleep(Duration::from_secs(1)).await;
     }
     if let Some(i) = missing {
-        panic!(
-            "Missing certificate in store: input index {}, certificate: {:?}",
-            i, certificates[i]
-        );
+        panic!("Missing certificate in store: input index {}, certificate: {:?}", i, certificates[i]);
     }
 }
 
-fn verify_certificates_not_in_store(
-    certificate_store: &CertificateStore,
-    certificates: &[Certificate],
-) {
-    let found_certificates = certificate_store
-        .read_all(certificates.iter().map(|c| c.digest()))
-        .unwrap();
+fn verify_certificates_not_in_store(certificate_store: &CertificateStore, certificates: &[Certificate]) {
+    let found_certificates = certificate_store.read_all(certificates.iter().map(|c| c.digest())).unwrap();
 
     let found_count = found_certificates.iter().filter(|&c| c.is_some()).count();
 
-    assert_eq!(
-        found_count, 0,
-        "Found {} certificates in the store",
-        found_count
-    );
+    assert_eq!(found_count, 0, "Found {} certificates in the store", found_count);
 }
 
 // Used below to construct malformed Headers
@@ -213,8 +202,7 @@ async fn fetch_certificates_v1_basic() {
     let payload_store = store.payload_store.clone();
 
     // Signal rounds
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     // Make a synchronizer for certificates.
     let synchronizer = Arc::new(Synchronizer::new(
@@ -235,21 +223,17 @@ async fn fetch_certificates_v1_basic() {
     ));
 
     let fake_primary_addr = fake_primary.address().to_anemo_address().unwrap();
-    let fake_route =
-        anemo::Router::new().add_rpc_service(PrimaryToPrimaryServer::new(NetworkProxy {
-            request: tx_fetch_req,
-            response: Arc::new(Mutex::new(rx_fetch_resp)),
-        }));
+    let fake_route = anemo::Router::new().add_rpc_service(PrimaryToPrimaryServer::new(NetworkProxy {
+        request: tx_fetch_req,
+        response: Arc::new(Mutex::new(rx_fetch_resp)),
+    }));
     let fake_server_network = anemo::Network::bind(fake_primary_addr.clone())
         .server_name("narwhal")
         .private_key(fake_primary.network_keypair().copy().private().0.to_bytes())
         .start(fake_route)
         .unwrap();
     let client_network = test_utils::test_network(primary.network_keypair(), primary.address());
-    client_network
-        .connect_with_peer_id(fake_primary_addr, fake_server_network.peer_id())
-        .await
-        .unwrap();
+    client_network.connect_with_peer_id(fake_primary_addr, fake_server_network.peer_id()).await.unwrap();
 
     // Make a certificate fetcher
     let _certificate_fetcher_handle = CertificateFetcher::spawn(
@@ -266,28 +250,18 @@ async fn fetch_certificates_v1_basic() {
     );
 
     // Generate headers and certificates in successive rounds
-    let genesis_certs: Vec<_> =
-        Certificate::genesis(&cert_v1_protocol_config, &fixture.committee());
+    let genesis_certs: Vec<_> = Certificate::genesis(&cert_v1_protocol_config, &fixture.committee());
     for cert in genesis_certs.iter() {
-        certificate_store
-            .write(cert.clone())
-            .expect("Writing certificate to store failed");
+        certificate_store.write(cert.clone()).expect("Writing certificate to store failed");
     }
 
-    let mut current_round: Vec<_> = genesis_certs
-        .into_iter()
-        .map(|cert| cert.header().clone())
-        .collect();
+    let mut current_round: Vec<_> = genesis_certs.into_iter().map(|cert| cert.header().clone()).collect();
     let mut headers = vec![];
     let rounds = 60;
     for i in 0..rounds {
         let parents: BTreeSet<_> = current_round
             .into_iter()
-            .map(|header| {
-                fixture
-                    .certificate(&cert_v1_protocol_config, &header)
-                    .digest()
-            })
+            .map(|header| fixture.certificate(&cert_v1_protocol_config, &header).digest())
             .collect();
         (_, current_round) = fixture.headers_round(i, &parents, &cert_v1_protocol_config);
         headers.extend(current_round.clone());
@@ -308,19 +282,13 @@ async fn fetch_certificates_v1_basic() {
     assert_eq!(240, total_certificates);
 
     for cert in certificates.iter().take(4) {
-        certificate_store
-            .write(cert.clone())
-            .expect("Writing certificate to store failed");
+        certificate_store.write(cert.clone()).expect("Writing certificate to store failed");
     }
     let mut num_written = 4;
 
     // Send a primary message for a certificate with parents that do not exist locally, to trigger fetching.
     let target_index = 123;
-    assert!(!synchronizer
-        .get_missing_parents(&certificates[target_index].clone())
-        .await
-        .unwrap()
-        .is_empty());
+    assert!(!synchronizer.get_missing_parents(&certificates[target_index].clone()).await.unwrap().is_empty());
 
     // Verify the fetch request.
     let mut req = rx_fetch_req.recv().await.unwrap();
@@ -334,21 +302,12 @@ async fn fetch_certificates_v1_basic() {
     // Send back another 62 certificates.
     let first_batch_len = 62;
     let first_batch_resp = FetchCertificatesResponse {
-        certificates: certificates
-            .iter()
-            .skip(num_written)
-            .take(first_batch_len)
-            .cloned()
-            .collect_vec(),
+        certificates: certificates.iter().skip(num_written).take(first_batch_len).cloned().collect_vec(),
     };
     tx_fetch_resp.try_send(first_batch_resp.clone()).unwrap();
 
     // The certificates up to index 4 + 62 = 66 should be written to store eventually by core.
-    verify_certificates_v1_in_store(
-        &certificate_store,
-        &certificates[0..(num_written + first_batch_len)],
-    )
-    .await;
+    verify_certificates_v1_in_store(&certificate_store, &certificates[0..(num_written + first_batch_len)]).await;
     num_written += first_batch_len;
 
     // The certificate fetcher should send out another fetch request, because it has not received certificate 123.
@@ -377,21 +336,12 @@ async fn fetch_certificates_v1_basic() {
     // Send back another 123 + 1 - 66 = 58 certificates.
     let second_batch_len = target_index + 1 - num_written;
     let second_batch_resp = FetchCertificatesResponse {
-        certificates: certificates
-            .iter()
-            .skip(num_written)
-            .take(second_batch_len)
-            .cloned()
-            .collect_vec(),
+        certificates: certificates.iter().skip(num_written).take(second_batch_len).cloned().collect_vec(),
     };
     tx_fetch_resp.try_send(second_batch_resp.clone()).unwrap();
 
     // The certificates 4 ~ 64 should become available in store eventually.
-    verify_certificates_v1_in_store(
-        &certificate_store,
-        &certificates[0..(num_written + second_batch_len)],
-    )
-    .await;
+    verify_certificates_v1_in_store(&certificate_store, &certificates[0..(num_written + second_batch_len)]).await;
     num_written += second_batch_len;
 
     // No new fetch request is expected.
@@ -414,11 +364,7 @@ async fn fetch_certificates_v1_basic() {
     }
 
     let target_index = num_written + 8;
-    assert!(!synchronizer
-        .get_missing_parents(&certificates[target_index].clone())
-        .await
-        .unwrap()
-        .is_empty());
+    assert!(!synchronizer.get_missing_parents(&certificates[target_index].clone()).await.unwrap().is_empty());
 
     // Verify the fetch request.
     let req = rx_fetch_req.recv().await.unwrap();
@@ -438,19 +384,14 @@ async fn fetch_certificates_v1_basic() {
     // Add cert with incorrect digest.
     let mut cert = certificates[num_written].clone();
     // This is a bit tedious to craft
-    let cert_header =
-        unsafe { std::mem::transmute::<HeaderV1, BadHeader>(cert.header().as_v1().clone()) };
+    let cert_header = unsafe { std::mem::transmute::<HeaderV1, BadHeader>(cert.header().as_v1().clone()) };
     let wrong_header = BadHeader { ..cert_header };
     let wolf_header = unsafe { std::mem::transmute::<BadHeader, HeaderV1>(wrong_header) };
     cert.update_header(wolf_header.into());
     certs.push(cert);
     // Add cert without all parents in storage.
     certs.push(certificates[num_written + 1].clone());
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     // Verify no certificate is written to store.
     sleep(Duration::from_secs(1)).await;
@@ -463,11 +404,7 @@ async fn fetch_certificates_v1_basic() {
     for cert in certificates.iter().skip(num_written).take(8) {
         certs.push(fixture.certificate(&cert_v2_config, cert.header()));
     }
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     sleep(Duration::from_secs(1)).await;
     verify_certificates_not_in_store(&certificate_store, &certificates[num_written..target_index]);
@@ -503,8 +440,7 @@ async fn fetch_certificates_v2_basic() {
     let payload_store = store.payload_store.clone();
 
     // Signal rounds
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(0, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
     // Make a synchronizer for certificates.
     let synchronizer = Arc::new(Synchronizer::new(
@@ -525,21 +461,17 @@ async fn fetch_certificates_v2_basic() {
     ));
 
     let fake_primary_addr = fake_primary.address().to_anemo_address().unwrap();
-    let fake_route =
-        anemo::Router::new().add_rpc_service(PrimaryToPrimaryServer::new(NetworkProxy {
-            request: tx_fetch_req,
-            response: Arc::new(Mutex::new(rx_fetch_resp)),
-        }));
+    let fake_route = anemo::Router::new().add_rpc_service(PrimaryToPrimaryServer::new(NetworkProxy {
+        request: tx_fetch_req,
+        response: Arc::new(Mutex::new(rx_fetch_resp)),
+    }));
     let fake_server_network = anemo::Network::bind(fake_primary_addr.clone())
         .server_name("narwhal")
         .private_key(fake_primary.network_keypair().copy().private().0.to_bytes())
         .start(fake_route)
         .unwrap();
     let client_network = test_utils::test_network(primary.network_keypair(), primary.address());
-    client_network
-        .connect_with_peer_id(fake_primary_addr, fake_server_network.peer_id())
-        .await
-        .unwrap();
+    client_network.connect_with_peer_id(fake_primary_addr, fake_server_network.peer_id()).await.unwrap();
 
     // Make a certificate fetcher
     let _certificate_fetcher_handle = CertificateFetcher::spawn(
@@ -558,22 +490,15 @@ async fn fetch_certificates_v2_basic() {
     // Generate headers and certificates in successive rounds
     let genesis_certs: Vec<_> = Certificate::genesis(&cert_v2_config, &fixture.committee());
     for cert in genesis_certs.iter() {
-        certificate_store
-            .write(cert.clone())
-            .expect("Writing certificate to store failed");
+        certificate_store.write(cert.clone()).expect("Writing certificate to store failed");
     }
 
-    let mut current_round: Vec<_> = genesis_certs
-        .into_iter()
-        .map(|cert| cert.header().clone())
-        .collect();
+    let mut current_round: Vec<_> = genesis_certs.into_iter().map(|cert| cert.header().clone()).collect();
     let mut headers = vec![];
     let rounds = 100;
     for i in 0..rounds {
-        let parents: BTreeSet<_> = current_round
-            .into_iter()
-            .map(|header| fixture.certificate(&cert_v2_config, &header).digest())
-            .collect();
+        let parents: BTreeSet<_> =
+            current_round.into_iter().map(|header| fixture.certificate(&cert_v2_config, &header).digest()).collect();
         (_, current_round) = fixture.headers_round(i, &parents, &cert_v2_config);
         headers.extend(current_round.clone());
     }
@@ -596,23 +521,15 @@ async fn fetch_certificates_v2_basic() {
         // Manually writing the certificates to store so we can consider them verified
         // directly
         cert.set_signature_verification_state(SignatureVerificationState::VerifiedDirectly(
-            cert.aggregated_signature()
-                .expect("Invalid Signature")
-                .clone(),
+            cert.aggregated_signature().expect("Invalid Signature").clone(),
         ));
-        certificate_store
-            .write(cert.clone())
-            .expect("Writing certificate to store failed");
+        certificate_store.write(cert.clone()).expect("Writing certificate to store failed");
     }
     let mut num_written = 4;
 
     // Send a primary message for a certificate with parents that do not exist locally, to trigger fetching.
     let target_index = 123;
-    assert!(!synchronizer
-        .get_missing_parents(&certificates[target_index].clone())
-        .await
-        .unwrap()
-        .is_empty());
+    assert!(!synchronizer.get_missing_parents(&certificates[target_index].clone()).await.unwrap().is_empty());
 
     // Verify the fetch request.
     let mut req = rx_fetch_req.recv().await.unwrap();
@@ -626,12 +543,7 @@ async fn fetch_certificates_v2_basic() {
     // Send back another 62 certificates.
     let first_batch_len = 62;
     let first_batch_resp = FetchCertificatesResponse {
-        certificates: certificates
-            .iter()
-            .skip(num_written)
-            .take(first_batch_len)
-            .cloned()
-            .collect_vec(),
+        certificates: certificates.iter().skip(num_written).take(first_batch_len).cloned().collect_vec(),
     };
     tx_fetch_resp.try_send(first_batch_resp.clone()).unwrap();
 
@@ -671,12 +583,7 @@ async fn fetch_certificates_v2_basic() {
     // Send back another 123 + 1 - 66 = 58 certificates.
     let second_batch_len = target_index + 1 - num_written;
     let second_batch_resp = FetchCertificatesResponse {
-        certificates: certificates
-            .iter()
-            .skip(num_written)
-            .take(second_batch_len)
-            .cloned()
-            .collect_vec(),
+        certificates: certificates.iter().skip(num_written).take(second_batch_len).cloned().collect_vec(),
     };
     tx_fetch_resp.try_send(second_batch_resp.clone()).unwrap();
 
@@ -710,11 +617,7 @@ async fn fetch_certificates_v2_basic() {
     }
 
     let target_index = num_written + 204;
-    assert!(!synchronizer
-        .get_missing_parents(&certificates[target_index].clone())
-        .await
-        .unwrap()
-        .is_empty());
+    assert!(!synchronizer.get_missing_parents(&certificates[target_index].clone()).await.unwrap().is_empty());
 
     // Verify the fetch request.
     let req = rx_fetch_req.recv().await.unwrap();
@@ -734,19 +637,14 @@ async fn fetch_certificates_v2_basic() {
     // Add cert with incorrect digest.
     let mut cert = certificates[num_written].clone();
     // This is a bit tedious to craft
-    let cert_header =
-        unsafe { std::mem::transmute::<HeaderV1, BadHeader>(cert.header().as_v1().clone()) };
+    let cert_header = unsafe { std::mem::transmute::<HeaderV1, BadHeader>(cert.header().as_v1().clone()) };
     let wrong_header = BadHeader { ..cert_header };
     let wolf_header = unsafe { std::mem::transmute::<BadHeader, HeaderV1>(wrong_header) };
     cert.update_header(Header::from(wolf_header));
     certs.push(cert);
     // Add cert without all parents in storage.
     certs.push(certificates[num_written + 1].clone());
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     // Verify no certificate is written to store.
     sleep(Duration::from_secs(1)).await;
@@ -756,16 +654,12 @@ async fn fetch_certificates_v2_basic() {
     let mut certs = Vec::new();
     for cert in certificates.iter().skip(num_written).take(204) {
         let mut cert = cert.clone();
-        cert.set_signature_verification_state(SignatureVerificationState::Unverified(
-            AggregateSignatureBytes::default(),
-        ));
+        cert.set_signature_verification_state(
+            SignatureVerificationState::Unverified(AggregateSignatureBytes::default()),
+        );
         certs.push(cert);
     }
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     sleep(Duration::from_secs(1)).await;
     verify_certificates_not_in_store(&certificate_store, &certificates[num_written..target_index]);
@@ -775,11 +669,7 @@ async fn fetch_certificates_v2_basic() {
     for cert in certificates.iter().skip(num_written).take(204) {
         certs.push(fixture.certificate(&get_protocol_config(28), cert.header()));
     }
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     sleep(Duration::from_secs(1)).await;
     verify_certificates_not_in_store(&certificate_store, &certificates[num_written..target_index]);
@@ -790,11 +680,7 @@ async fn fetch_certificates_v2_basic() {
     for cert in certificates.iter().skip(num_written).take(204) {
         certs.push(cert.clone());
     }
-    tx_fetch_resp
-        .try_send(FetchCertificatesResponse {
-            certificates: certs,
-        })
-        .unwrap();
+    tx_fetch_resp.try_send(FetchCertificatesResponse { certificates: certs }).unwrap();
 
     verify_certificates_v2_in_store(
         &certificate_store,

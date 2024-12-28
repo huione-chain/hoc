@@ -16,7 +16,9 @@ use sui_indexer_alt_framework::{
     pipeline::{sequential::Handler, Processor},
 };
 use sui_types::{
-    base_types::ObjectID, effects::TransactionEffectsAPI, full_checkpoint_content::CheckpointData,
+    base_types::ObjectID,
+    effects::TransactionEffectsAPI,
+    full_checkpoint_content::CheckpointData,
     object::Owner,
 };
 
@@ -31,16 +33,12 @@ const MAX_DELETE_CHUNK_ROWS: usize = i16::MAX as usize;
 pub(crate) struct SumObjTypes;
 
 impl Processor for SumObjTypes {
-    const NAME: &'static str = "sum_obj_types";
-
     type Value = StoredObjectUpdate<StoredSumObjType>;
 
+    const NAME: &'static str = "sum_obj_types";
+
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> anyhow::Result<Vec<Self::Value>> {
-        let CheckpointData {
-            transactions,
-            checkpoint_summary,
-            ..
-        } = checkpoint.as_ref();
+        let CheckpointData { transactions, checkpoint_summary, .. } = checkpoint.as_ref();
 
         let cp_sequence_number = checkpoint_summary.sequence_number;
         let mut values: BTreeMap<ObjectID, Self::Value> = BTreeMap::new();
@@ -64,12 +62,7 @@ impl Processor for SumObjTypes {
                     }
 
                     Entry::Vacant(entry) => {
-                        entry.insert(StoredObjectUpdate {
-                            object_id,
-                            object_version,
-                            cp_sequence_number,
-                            update: None,
-                        });
+                        entry.insert(StoredObjectUpdate { object_id, object_version, cp_sequence_number, update: None });
                     }
                 }
             }
@@ -112,17 +105,14 @@ impl Processor for SumObjTypes {
                                 package: type_.map(|t| t.address().to_vec()),
                                 module: type_.map(|t| t.module().to_string()),
                                 name: type_.map(|t| t.name().to_string()),
-                                instantiation: type_
-                                    .map(|t| bcs::to_bytes(&t.type_params()))
-                                    .transpose()
-                                    .map_err(|e| {
+                                instantiation: type_.map(|t| bcs::to_bytes(&t.type_params())).transpose().map_err(
+                                    |e| {
                                         anyhow!(
                                             "Failed to serialize type parameters for {}: {e}",
-                                            object
-                                                .id()
-                                                .to_canonical_display(/* with_prefix */ true),
+                                            object.id().to_canonical_display(/* with_prefix */ true),
                                         )
-                                    })?,
+                                    },
+                                )?,
                             }),
                         });
                     }

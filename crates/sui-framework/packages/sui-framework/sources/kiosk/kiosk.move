@@ -87,7 +87,7 @@ use sui::coin::{Self, Coin};
 use sui::dynamic_field as df;
 use sui::dynamic_object_field as dof;
 use sui::event;
-use sui::sui::SUI;
+use sui::hc::HC;
 use sui::transfer_policy::{Self, TransferPolicy, TransferRequest};
 
 /// Allows calling `cap.kiosk()` to retrieve `for` field from `KioskOwnerCap`.
@@ -132,7 +132,7 @@ const ENotListed: u64 = 12;
 public struct Kiosk has key, store {
     id: UID,
     /// Balance of the Kiosk - all profits from sales go here.
-    profits: Balance<SUI>,
+    profits: Balance<HC>,
     /// Always point to `sender` of the transaction.
     /// Can be changed by calling `set_owner` with Cap.
     owner: address,
@@ -258,7 +258,7 @@ public fun new(ctx: &mut TxContext): (Kiosk, KioskOwnerCap) {
 /// Unpacks and destroys a Kiosk returning the profits (even if "0").
 /// Can only be performed by the bearer of the `KioskOwnerCap` in the
 /// case where there's no items inside and a `Kiosk` is not shared.
-public fun close_and_withdraw(self: Kiosk, cap: KioskOwnerCap, ctx: &mut TxContext): Coin<SUI> {
+public fun close_and_withdraw(self: Kiosk, cap: KioskOwnerCap, ctx: &mut TxContext): Coin<HC> {
     let Kiosk { id, profits, owner: _, item_count, allow_extensions: _ } = self;
     let KioskOwnerCap { id: cap_id, `for` } = cap;
 
@@ -372,7 +372,7 @@ public fun delist<T: key + store>(self: &mut Kiosk, cap: &KioskOwnerCap, id: ID)
 public fun purchase<T: key + store>(
     self: &mut Kiosk,
     id: ID,
-    payment: Coin<SUI>,
+    payment: Coin<HC>,
 ): (T, TransferRequest<T>) {
     let price = df::remove<Listing, u64>(&mut self.id, Listing { id, is_exclusive: false });
     let inner = dof::remove<Item, T>(&mut self.id, Item { id });
@@ -417,7 +417,7 @@ public fun list_with_purchase_cap<T: key + store>(
 public fun purchase_with_cap<T: key + store>(
     self: &mut Kiosk,
     purchase_cap: PurchaseCap<T>,
-    payment: Coin<SUI>,
+    payment: Coin<HC>,
 ): (T, TransferRequest<T>) {
     let PurchaseCap { id, item_id, kiosk_id, min_price } = purchase_cap;
     id.delete();
@@ -453,7 +453,7 @@ public fun withdraw(
     cap: &KioskOwnerCap,
     amount: Option<u64>,
     ctx: &mut TxContext,
-): Coin<SUI> {
+): Coin<HC> {
     assert!(self.has_access(cap), ENotOwner);
 
     let amount = if (amount.is_some()) {
@@ -567,7 +567,7 @@ public fun profits_amount(self: &Kiosk): u64 {
 }
 
 /// Get mutable access to `profits` - owner only action.
-public fun profits_mut(self: &mut Kiosk, cap: &KioskOwnerCap): &mut Balance<SUI> {
+public fun profits_mut(self: &mut Kiosk, cap: &KioskOwnerCap): &mut Balance<HC> {
     assert!(self.has_access(cap), ENotOwner);
     &mut self.profits
 }

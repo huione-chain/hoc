@@ -1,12 +1,7 @@
 // Copyright (c) 2021, Facebook, Inc. and its affiliates
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-#![warn(
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    rust_2021_compatibility
-)]
+#![warn(future_incompatible, nonstandard_style, rust_2018_idioms, rust_2021_compatibility)]
 #![allow(clippy::async_yields_async)]
 
 pub mod admin;
@@ -20,10 +15,7 @@ mod traits;
 
 pub use crate::{
     retry::RetryConfig,
-    traits::{
-        PrimaryToPrimaryRpc, PrimaryToWorkerClient, ReliableNetwork, WorkerRpc,
-        WorkerToPrimaryClient,
-    },
+    traits::{PrimaryToPrimaryRpc, PrimaryToWorkerClient, ReliableNetwork, WorkerRpc, WorkerToPrimaryClient},
 };
 
 /// This adapter will make a [`tokio::task::JoinHandle`] abort its handled task when the handle is dropped.
@@ -40,10 +32,7 @@ impl<T> Drop for CancelOnDropHandler<T> {
 impl<T> std::future::Future for CancelOnDropHandler<T> {
     type Output = T;
 
-    fn poll(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
+    fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Self::Output> {
         use futures::future::FutureExt;
         // If the task panics just propagate it up
         self.0.poll_unpin(cx).map(Result::unwrap)

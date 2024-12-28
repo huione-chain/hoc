@@ -1,12 +1,18 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::reader::StateReader;
-use crate::rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler};
-use crate::{response::ResponseContent, Result};
-use crate::{rest::Page, RpcService, RpcServiceError};
-use axum::extract::Query;
-use axum::extract::{Path, State};
+use crate::{
+    reader::StateReader,
+    response::ResponseContent,
+    rest::{
+        openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
+        Page,
+    },
+    Result,
+    RpcService,
+    RpcServiceError,
+};
+use axum::extract::{Path, Query, State};
 use openapiv3::v3_1::Operation;
 use sui_sdk_types::types::{Address, ObjectId, StructTag, Version};
 use sui_types::sui_sdk_types_conversions::struct_tag_core_to_sdk;
@@ -49,10 +55,7 @@ async fn list_account_objects(
     Query(parameters): Query<ListAccountOwnedObjectsQueryParameters>,
     State(state): State<StateReader>,
 ) -> Result<Page<AccountOwnedObjectInfo, ObjectId>> {
-    let indexes = state
-        .inner()
-        .indexes()
-        .ok_or_else(RpcServiceError::not_found)?;
+    let indexes = state.inner().indexes().ok_or_else(RpcServiceError::not_found)?;
     let limit = parameters.limit();
     let start = parameters.start();
 
@@ -78,10 +81,7 @@ async fn list_account_objects(
         None
     };
 
-    object_info
-        .pipe(ResponseContent::Json)
-        .pipe(|entries| Page { entries, cursor })
-        .pipe(Ok)
+    object_info.pipe(ResponseContent::Json).pipe(|entries| Page { entries, cursor }).pipe(Ok)
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -92,9 +92,7 @@ pub struct ListAccountOwnedObjectsQueryParameters {
 
 impl ListAccountOwnedObjectsQueryParameters {
     pub fn limit(&self) -> usize {
-        self.limit
-            .map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE))
-            .unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
+        self.limit.map(|l| (l as usize).clamp(1, crate::rest::MAX_PAGE_SIZE)).unwrap_or(crate::rest::DEFAULT_PAGE_SIZE)
     }
 
     pub fn start(&self) -> Option<sui_types::base_types::ObjectID> {

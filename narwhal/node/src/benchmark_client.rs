@@ -10,11 +10,11 @@ use narwhal_node::metrics::NarwhalBenchMetrics;
 use prometheus::Registry;
 use rand::{
     rngs::{SmallRng, StdRng},
-    Rng, RngCore, SeedableRng,
+    Rng,
+    RngCore,
+    SeedableRng,
 };
-use std::str::FromStr;
-use std::sync::Arc;
-use std::time::SystemTime;
+use std::{str::FromStr, sync::Arc, time::SystemTime};
 use tokio::{
     net::TcpStream,
     time::{interval, sleep, Duration, Instant},
@@ -104,9 +104,7 @@ async fn main() -> Result<(), eyre::Report> {
     set_global_default(subscriber).expect("Failed to set subscriber");
 
     let registry_service = mysten_metrics::start_prometheus_server(
-        format!("{}:{}", app.client_metric_host, app.client_metric_port)
-            .parse()
-            .unwrap(),
+        format!("{}:{}", app.client_metric_host, app.client_metric_port).parse().unwrap(),
     );
     let registry: Registry = registry_service.default_registry();
     mysten_metrics::init_metrics(&registry);
@@ -172,9 +170,7 @@ impl Client {
     pub async fn send(&self) -> Result<(), eyre::Report> {
         // The transaction size must be at least 100 bytes to ensure all txs are different.
         if self.size < 100 {
-            return Err(eyre::Report::msg(
-                "Transaction size must be at least 100 bytes",
-            ));
+            return Err(eyre::Report::msg("Transaction size must be at least 100 bytes"));
         }
 
         let mut handles = Vec::new();
@@ -196,11 +192,7 @@ impl Client {
         let metrics = Arc::new(self.metrics.clone());
 
         for i in 0..num_parallel_tasks {
-            let task_rate = if i < remaining_transactions {
-                base_rate_per_task + 1
-            } else {
-                base_rate_per_task
-            };
+            let task_rate = if i < remaining_transactions { base_rate_per_task + 1 } else { base_rate_per_task };
             let task_interval = Duration::from_millis(1000 / task_rate);
 
             let local_client_clone = Arc::clone(&self.local_client);
@@ -243,16 +235,13 @@ impl Client {
 
                     let submission_error: Option<eyre::Report>;
                     if local_client.is_some() {
-                        if let Err(e) = submit_to_consensus(&local_client_clone, transaction).await
-                        {
+                        if let Err(e) = submit_to_consensus(&local_client_clone, transaction).await {
                             submission_error = Some(e)
                         } else {
                             submission_error = None;
                         }
                     } else {
-                        let tx_proto = TransactionProto {
-                            transactions: vec![Bytes::from(transaction)],
-                        };
+                        let tx_proto = TransactionProto { transactions: vec![Bytes::from(transaction)] };
                         if let Err(e) = grpc_client.submit_transaction(tx_proto).await {
                             submission_error = Some(eyre::Report::msg(format!("{e}")));
                         } else {
@@ -274,9 +263,7 @@ impl Client {
                         let latency_s = now.elapsed().as_secs_f64();
                         let latency_squared_s = latency_s.powf(2.0);
                         metrics_clone.narwhal_client_latency_s.observe(latency_s);
-                        metrics_clone
-                            .narwhal_client_latency_squared_s
-                            .inc_by(latency_squared_s);
+                        metrics_clone.narwhal_client_latency_squared_s.inc_by(latency_squared_s);
                     }
                 }
             });
@@ -303,9 +290,7 @@ impl Client {
                 }
 
                 let time_from_start = start_time.elapsed();
-                metrics_clone
-                    .narwhal_benchmark_duration
-                    .set(time_from_start.as_secs() as i64);
+                metrics_clone.narwhal_benchmark_duration.set(time_from_start.as_secs() as i64);
 
                 // Log the metrics
                 let benchmark_duration = metrics_clone.narwhal_benchmark_duration.get();
@@ -342,10 +327,7 @@ impl Client {
         join_all(all_nodes.iter().cloned().map(|address| {
             info!("Waiting for {address} to be online...");
             tokio::spawn(async move {
-                while TcpStream::connect(&*address.socket_addrs(|| None).unwrap())
-                    .await
-                    .is_err()
-                {
+                while TcpStream::connect(&*address.socket_addrs(|| None).unwrap()).await.is_err() {
                     sleep(Duration::from_millis(10)).await;
                 }
             })
@@ -359,27 +341,18 @@ pub fn parse_url(s: &str) -> Result<Url, url::ParseError> {
 }
 
 pub fn url_to_multiaddr(url: &Url) -> Result<Multiaddr, eyre::Report> {
-    let host_str = url
-        .host_str()
-        .ok_or(eyre::Report::msg("URL does not have a host"))?;
-    let port = url
-        .port()
-        .ok_or(eyre::Report::msg("URL does not specify a port"))?;
+    let host_str = url.host_str().ok_or(eyre::Report::msg("URL does not have a host"))?;
+    let port = url.port().ok_or(eyre::Report::msg("URL does not specify a port"))?;
 
     Multiaddr::try_from(format!("/ip4/{}/tcp/{}/http", host_str, port))
         .map_err(|_| eyre::Report::msg("Failed to create Multiaddr from URL"))
 }
 
 pub fn timestamp_utc() -> Duration {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
+    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
 }
 
-async fn submit_to_consensus(
-    client_arc: &Arc<LazyNarwhalClient>,
-    transaction: Vec<u8>,
-) -> Result<(), eyre::Report> {
+async fn submit_to_consensus(client_arc: &Arc<LazyNarwhalClient>, transaction: Vec<u8>) -> Result<(), eyre::Report> {
     let client = {
         let c = client_arc.client.load();
         if c.is_some() {

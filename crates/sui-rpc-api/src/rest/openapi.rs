@@ -17,8 +17,21 @@ use axum::{
 };
 use documented::Documented;
 use openapiv3::v3_1::{
-    Components, Header, Info, MediaType, OpenApi, Operation, Parameter, ParameterData, PathItem,
-    Paths, ReferenceOr, RequestBody, Response, SchemaObject, Tag,
+    Components,
+    Header,
+    Info,
+    MediaType,
+    OpenApi,
+    Operation,
+    Parameter,
+    ParameterData,
+    PathItem,
+    Paths,
+    ReferenceOr,
+    RequestBody,
+    Response,
+    SchemaObject,
+    Tag,
 };
 use schemars::{gen::SchemaGenerator, JsonSchema};
 use tap::Pipe;
@@ -85,16 +98,10 @@ pub struct Api<'a, S> {
 
 impl<'a, S> Api<'a, S> {
     pub fn new(info: Info) -> Self {
-        Self {
-            endpoints: Vec::new(),
-            info,
-        }
+        Self { endpoints: Vec::new(), info }
     }
 
-    pub fn register_endpoints<I: IntoIterator<Item = &'a dyn ApiEndpoint<S>>>(
-        &mut self,
-        endpoints: I,
-    ) {
+    pub fn register_endpoints<I: IntoIterator<Item = &'a dyn ApiEndpoint<S>>>(&mut self, endpoints: I) {
         self.endpoints.extend(endpoints);
     }
 
@@ -124,10 +131,7 @@ impl<'a, S> Api<'a, S> {
     /// Internal routine for constructing the OpenAPI definition describing this
     /// API in its JSON form.
     fn gen_openapi(&self, info: Info) -> openapiv3::versioned::OpenApi {
-        let mut openapi = OpenApi {
-            info,
-            ..Default::default()
-        };
+        let mut openapi = OpenApi { info, ..Default::default() };
 
         let settings = schemars::gen::SchemaSettings::draft07().with(|s| {
             s.definitions_path = "#/components/schemas/".into();
@@ -136,9 +140,7 @@ impl<'a, S> Api<'a, S> {
         let mut generator = schemars::gen::SchemaGenerator::new(settings);
         let mut tags = HashSet::new();
 
-        let paths = openapi
-            .paths
-            .get_or_insert(openapiv3::v3_1::Paths::default());
+        let paths = openapi.paths.get_or_insert(openapiv3::v3_1::Paths::default());
 
         for endpoint in &self.endpoints {
             // Skip hidden endpoints
@@ -150,8 +152,7 @@ impl<'a, S> Api<'a, S> {
         }
 
         // Add OpenApi routes themselves
-        let openapi_endpoints: [&dyn ApiEndpoint<_>; 3] =
-            [&OpenApiExplorer, &OpenApiJson, &OpenApiYaml];
+        let openapi_endpoints: [&dyn ApiEndpoint<_>; 3] = [&OpenApiExplorer, &OpenApiJson, &OpenApiYaml];
         for endpoint in openapi_endpoints {
             Self::register_endpoint(endpoint, &mut generator, paths, &mut tags);
         }
@@ -161,33 +162,16 @@ impl<'a, S> Api<'a, S> {
         // Add the schemas for which we generated references.
         let schemas = &mut components.schemas;
 
-        generator
-            .into_root_schema_for::<()>()
-            .definitions
-            .into_iter()
-            .for_each(|(key, schema)| {
-                let schema_object = SchemaObject {
-                    json_schema: schema,
-                    external_docs: None,
-                    example: None,
-                };
-                schemas.insert(key, schema_object);
-            });
+        generator.into_root_schema_for::<()>().definitions.into_iter().for_each(|(key, schema)| {
+            let schema_object = SchemaObject { json_schema: schema, external_docs: None, example: None };
+            schemas.insert(key, schema_object);
+        });
 
-        openapi.tags = tags
-            .into_iter()
-            .map(|tag| Tag {
-                name: tag,
-                ..Default::default()
-            })
-            .collect();
+        openapi.tags = tags.into_iter().map(|tag| Tag { name: tag, ..Default::default() }).collect();
         // Sort the tags for stability
         openapi.tags.sort_by(|a, b| a.name.cmp(&b.name));
 
-        openapi.servers = vec![openapiv3::v3_1::Server {
-            url: "/v2".into(),
-            ..Default::default()
-        }];
+        openapi.servers = vec![openapiv3::v3_1::Server { url: "/v2".into(), ..Default::default() }];
 
         openapiv3::versioned::OpenApi::Version31(openapi)
     }
@@ -198,10 +182,7 @@ impl<'a, S> Api<'a, S> {
         paths: &mut Paths,
         tags: &mut HashSet<String>,
     ) {
-        let path = paths
-            .paths
-            .entry(endpoint.path().to_owned())
-            .or_insert(ReferenceOr::Item(PathItem::default()));
+        let path = paths.paths.entry(endpoint.path().to_owned()).or_insert(ReferenceOr::Item(PathItem::default()));
 
         let pathitem = match path {
             openapiv3::v3_1::ReferenceOr::Item(ref mut item) => item,
@@ -223,15 +204,9 @@ impl<'a, S> Api<'a, S> {
         let mut operation = endpoint.operation(generator);
 
         if endpoint.stable() {
-            operation
-                .description
-                .get_or_insert_with(String::new)
-                .insert_str(0, STABLE_BADGE_MARKDOWN);
+            operation.description.get_or_insert_with(String::new).insert_str(0, STABLE_BADGE_MARKDOWN);
         } else {
-            operation
-                .description
-                .get_or_insert_with(String::new)
-                .insert_str(0, UNSTABLE_BADGE_MARKDOWN);
+            operation.description.get_or_insert_with(String::new).insert_str(0, UNSTABLE_BADGE_MARKDOWN);
         }
 
         // Collect tags defined by this operation
@@ -253,12 +228,7 @@ impl OpenApiDocument {
         const OPENAPI_UI: &str = include_str!("../../openapi/elements.html");
         // const OPENAPI_UI: &str = include_str!("../../openapi/swagger.html");
 
-        Self {
-            openapi,
-            json: OnceLock::new(),
-            yaml: OnceLock::new(),
-            ui: OPENAPI_UI,
-        }
+        Self { openapi, json: OnceLock::new(), yaml: OnceLock::new(), ui: OPENAPI_UI }
     }
 
     fn openapi(&self) -> &openapiv3::versioned::OpenApi {
@@ -266,25 +236,11 @@ impl OpenApiDocument {
     }
 
     fn json(&self) -> Bytes {
-        self.json
-            .get_or_init(|| {
-                self.openapi()
-                    .pipe(serde_json::to_string_pretty)
-                    .unwrap()
-                    .pipe(Bytes::from)
-            })
-            .clone()
+        self.json.get_or_init(|| self.openapi().pipe(serde_json::to_string_pretty).unwrap().pipe(Bytes::from)).clone()
     }
 
     fn yaml(&self) -> Bytes {
-        self.yaml
-            .get_or_init(|| {
-                self.openapi()
-                    .pipe(serde_yaml::to_string)
-                    .unwrap()
-                    .pipe(Bytes::from)
-            })
-            .clone()
+        self.yaml.get_or_init(|| self.openapi().pipe(serde_yaml::to_string).unwrap().pipe(Bytes::from)).clone()
     }
 
     fn ui(&self) -> &'static str {
@@ -317,20 +273,12 @@ impl ApiEndpoint<Arc<OpenApiDocument>> for OpenApiJson {
         true
     }
 
-    fn operation(
-        &self,
-        _generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, _generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("OpenAPI")
             .operation_id("openapi.json")
             .description(Self::DOCS)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .content(mime::APPLICATION_JSON.as_ref(), MediaType::default())
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().content(mime::APPLICATION_JSON.as_ref(), MediaType::default()).build())
             .build()
     }
 
@@ -356,20 +304,12 @@ impl ApiEndpoint<Arc<OpenApiDocument>> for OpenApiYaml {
         true
     }
 
-    fn operation(
-        &self,
-        _generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, _generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("OpenAPI")
             .operation_id("openapi.yaml")
             .description(Self::DOCS)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .content(mime::TEXT_PLAIN_UTF_8.as_ref(), MediaType::default())
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().content(mime::TEXT_PLAIN_UTF_8.as_ref(), MediaType::default()).build())
             .build()
     }
 
@@ -395,20 +335,12 @@ impl ApiEndpoint<Arc<OpenApiDocument>> for OpenApiExplorer {
         true
     }
 
-    fn operation(
-        &self,
-        _generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, _generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("OpenAPI")
             .operation_id("OpenAPI Explorer")
             .description(Self::DOCS)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .content(mime::TEXT_HTML_UTF_8.as_ref(), MediaType::default())
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().content(mime::TEXT_HTML_UTF_8.as_ref(), MediaType::default()).build())
             .build()
     }
 
@@ -417,26 +349,16 @@ impl ApiEndpoint<Arc<OpenApiDocument>> for OpenApiExplorer {
     }
 }
 
-async fn openapi_json(
-    State(document): State<Arc<OpenApiDocument>>,
-) -> impl axum::response::IntoResponse {
+async fn openapi_json(State(document): State<Arc<OpenApiDocument>>) -> impl axum::response::IntoResponse {
     (
-        [(
-            axum::http::header::CONTENT_TYPE,
-            axum::http::HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-        )],
+        [(axum::http::header::CONTENT_TYPE, axum::http::HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()))],
         document.json(),
     )
 }
 
-async fn openapi_yaml(
-    State(document): State<Arc<OpenApiDocument>>,
-) -> impl axum::response::IntoResponse {
+async fn openapi_yaml(State(document): State<Arc<OpenApiDocument>>) -> impl axum::response::IntoResponse {
     (
-        [(
-            axum::http::header::CONTENT_TYPE,
-            axum::http::HeaderValue::from_static(mime::TEXT_PLAIN_UTF_8.as_ref()),
-        )],
+        [(axum::http::header::CONTENT_TYPE, axum::http::HeaderValue::from_static(mime::TEXT_PLAIN_UTF_8.as_ref()))],
         document.yaml(),
     )
 }
@@ -445,15 +367,8 @@ async fn openapi_ui(State(document): State<Arc<OpenApiDocument>>) -> Html<&'stat
     Html(document.ui())
 }
 
-fn path_parameter<T: JsonSchema>(
-    name: &str,
-    generator: &mut SchemaGenerator,
-) -> ReferenceOr<Parameter> {
-    let schema_object = SchemaObject {
-        json_schema: generator.subschema_for::<T>(),
-        external_docs: None,
-        example: None,
-    };
+fn path_parameter<T: JsonSchema>(name: &str, generator: &mut SchemaGenerator) -> ReferenceOr<Parameter> {
+    let schema_object = SchemaObject { json_schema: generator.subschema_for::<T>(), external_docs: None, example: None };
 
     let parameter_data = ParameterData {
         name: name.into(),
@@ -467,10 +382,7 @@ fn path_parameter<T: JsonSchema>(
         extensions: Default::default(),
     };
 
-    ReferenceOr::Item(Parameter::Path {
-        parameter_data,
-        style: openapiv3::v3_1::PathStyle::Simple,
-    })
+    ReferenceOr::Item(Parameter::Path { parameter_data, style: openapiv3::v3_1::PathStyle::Simple })
 }
 
 fn query_parameters<T: JsonSchema>(generator: &mut SchemaGenerator) -> Vec<ReferenceOr<Parameter>> {
@@ -517,9 +429,7 @@ pub struct OperationBuilder {
 
 impl OperationBuilder {
     pub fn new() -> Self {
-        Self {
-            inner: Default::default(),
-        }
+        Self { inner: Default::default() }
     }
 
     pub fn build(&mut self) -> Operation {
@@ -546,33 +456,19 @@ impl OperationBuilder {
         self
     }
 
-    pub fn path_parameter<T: JsonSchema>(
-        &mut self,
-        name: &str,
-        generator: &mut SchemaGenerator,
-    ) -> &mut Self {
-        self.inner
-            .parameters
-            .push(path_parameter::<T>(name, generator));
+    pub fn path_parameter<T: JsonSchema>(&mut self, name: &str, generator: &mut SchemaGenerator) -> &mut Self {
+        self.inner.parameters.push(path_parameter::<T>(name, generator));
         self
     }
 
-    pub fn query_parameters<T: JsonSchema>(
-        &mut self,
-        generator: &mut SchemaGenerator,
-    ) -> &mut Self {
-        self.inner
-            .parameters
-            .extend(query_parameters::<T>(generator));
+    pub fn query_parameters<T: JsonSchema>(&mut self, generator: &mut SchemaGenerator) -> &mut Self {
+        self.inner.parameters.extend(query_parameters::<T>(generator));
         self
     }
 
     pub fn response(&mut self, status_code: u16, response: Response) -> &mut Self {
         let responses = self.inner.responses.get_or_insert(Default::default());
-        responses.responses.insert(
-            openapiv3::v3_1::StatusCode::Code(status_code),
-            ReferenceOr::Item(response),
-        );
+        responses.responses.insert(openapiv3::v3_1::StatusCode::Code(status_code), ReferenceOr::Item(response));
 
         self
     }
@@ -590,25 +486,16 @@ pub struct ResponseBuilder {
 
 impl ResponseBuilder {
     pub fn new() -> Self {
-        Self {
-            inner: Default::default(),
-        }
+        Self { inner: Default::default() }
     }
 
     pub fn build(&mut self) -> Response {
         self.inner.clone()
     }
 
-    pub fn header<T: JsonSchema>(
-        &mut self,
-        name: &str,
-        generator: &mut SchemaGenerator,
-    ) -> &mut Self {
-        let schema_object = SchemaObject {
-            json_schema: generator.subschema_for::<T>(),
-            external_docs: None,
-            example: None,
-        };
+    pub fn header<T: JsonSchema>(&mut self, name: &str, generator: &mut SchemaGenerator) -> &mut Self {
+        let schema_object =
+            SchemaObject { json_schema: generator.subschema_for::<T>(), external_docs: None, example: None };
 
         let header = ReferenceOr::Item(Header {
             description: None,
@@ -625,25 +512,15 @@ impl ResponseBuilder {
         self
     }
 
-    pub fn content<T: Into<String>>(
-        &mut self,
-        content_type: T,
-        media_type: MediaType,
-    ) -> &mut Self {
+    pub fn content<T: Into<String>>(&mut self, content_type: T, media_type: MediaType) -> &mut Self {
         self.inner.content.insert(content_type.into(), media_type);
         self
     }
 
     pub fn json_content<T: JsonSchema>(&mut self, generator: &mut SchemaGenerator) -> &mut Self {
-        let schema_object = SchemaObject {
-            json_schema: generator.subschema_for::<T>(),
-            external_docs: None,
-            example: None,
-        };
-        let media_type = MediaType {
-            schema: Some(schema_object),
-            ..Default::default()
-        };
+        let schema_object =
+            SchemaObject { json_schema: generator.subschema_for::<T>(), external_docs: None, example: None };
+        let media_type = MediaType { schema: Some(schema_object), ..Default::default() };
 
         self.content(mime::APPLICATION_JSON.as_ref(), media_type)
     }
@@ -664,34 +541,22 @@ pub struct RequestBodyBuilder {
 
 impl RequestBodyBuilder {
     pub fn new() -> Self {
-        Self {
-            inner: Default::default(),
-        }
+        Self { inner: Default::default() }
     }
 
     pub fn build(&mut self) -> RequestBody {
         self.inner.clone()
     }
 
-    pub fn content<T: Into<String>>(
-        &mut self,
-        content_type: T,
-        media_type: MediaType,
-    ) -> &mut Self {
+    pub fn content<T: Into<String>>(&mut self, content_type: T, media_type: MediaType) -> &mut Self {
         self.inner.content.insert(content_type.into(), media_type);
         self
     }
 
     pub fn json_content<T: JsonSchema>(&mut self, generator: &mut SchemaGenerator) -> &mut Self {
-        let schema_object = SchemaObject {
-            json_schema: generator.subschema_for::<T>(),
-            external_docs: None,
-            example: None,
-        };
-        let media_type = MediaType {
-            schema: Some(schema_object),
-            ..Default::default()
-        };
+        let schema_object =
+            SchemaObject { json_schema: generator.subschema_for::<T>(), external_docs: None, example: None };
+        let media_type = MediaType { schema: Some(schema_object), ..Default::default() };
 
         self.content(mime::APPLICATION_JSON.as_ref(), media_type)
     }

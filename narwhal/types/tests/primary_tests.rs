@@ -5,10 +5,8 @@ use crypto::{PublicKey, Signature};
 use fastcrypto::traits::KeyPair;
 use indexmap::IndexMap;
 use narwhal_types::{Certificate, Header, HeaderV1, Vote, VoteAPI};
-use rand::rngs::OsRng;
-use rand::seq::SliceRandom;
-use std::collections::BTreeSet;
-use std::num::NonZeroUsize;
+use rand::{rngs::OsRng, seq::SliceRandom};
+use std::{collections::BTreeSet, num::NonZeroUsize};
 use test_utils::{latest_protocol_version, AuthorityFixture, CommitteeFixture};
 
 #[tokio::test]
@@ -35,11 +33,7 @@ async fn test_certificate_signers_are_ordered() {
     for authority in &authorities[1..=3] {
         sorted_signers.push(authority.keypair().public().clone());
 
-        let vote = Vote::new_with_signer(
-            &Header::V1(header.clone()),
-            &authority.id(),
-            authority.keypair(),
-        );
+        let vote = Vote::new_with_signer(&Header::V1(header.clone()), &authority.id(), authority.keypair());
         votes.push((vote.author(), vote.signature().clone()));
     }
 
@@ -47,13 +41,8 @@ async fn test_certificate_signers_are_ordered() {
     votes.shuffle(&mut OsRng);
 
     // Create a certificate
-    let certificate = Certificate::new_unverified(
-        &latest_protocol_version(),
-        &committee,
-        Header::V1(header),
-        votes,
-    )
-    .unwrap();
+    let certificate =
+        Certificate::new_unverified(&latest_protocol_version(), &committee, Header::V1(header), votes).unwrap();
 
     let (stake, signers) = certificate.signed_by(&committee);
 

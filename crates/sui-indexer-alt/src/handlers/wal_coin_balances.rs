@@ -22,9 +22,9 @@ use super::sum_coin_balances::SumCoinBalances;
 pub(crate) struct WalCoinBalances;
 
 impl Processor for WalCoinBalances {
-    const NAME: &'static str = "wal_coin_balances";
-
     type Value = StoredObjectUpdate<StoredSumCoinBalance>;
+
+    const NAME: &'static str = "wal_coin_balances";
 
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
         SumCoinBalances.process(checkpoint)
@@ -33,8 +33,8 @@ impl Processor for WalCoinBalances {
 
 #[async_trait::async_trait]
 impl Handler for WalCoinBalances {
-    const MIN_EAGER_ROWS: usize = 100;
     const MAX_PENDING_ROWS: usize = 10000;
+    const MIN_EAGER_ROWS: usize = 100;
 
     async fn commit(values: &[Self::Value], conn: &mut db::Connection<'_>) -> Result<usize> {
         let values: Vec<_> = values
@@ -54,16 +54,12 @@ impl Handler for WalCoinBalances {
             })
             .collect();
 
-        Ok(diesel::insert_into(wal_coin_balances::table)
-            .values(&values)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await?)
+        Ok(diesel::insert_into(wal_coin_balances::table).values(&values).on_conflict_do_nothing().execute(conn).await?)
     }
 
     async fn prune(from: u64, to: u64, conn: &mut db::Connection<'_>) -> Result<usize> {
-        let filter = wal_coin_balances::table
-            .filter(wal_coin_balances::cp_sequence_number.between(from as i64, to as i64 - 1));
+        let filter =
+            wal_coin_balances::table.filter(wal_coin_balances::cp_sequence_number.between(from as i64, to as i64 - 1));
 
         Ok(diesel::delete(filter).execute(conn).await?)
     }

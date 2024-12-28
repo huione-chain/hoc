@@ -128,13 +128,13 @@ task 16, lines 159-162:
 //# view-object 15,0
 Owner: Shared( 14 )
 Version: 14
-Contents: sui::coin::Coin<sui::sui::SUI> {
+Contents: sui::coin::Coin<sui::hc::HC> {
     id: sui::object::UID {
         id: sui::object::ID {
             bytes: fake(15,0),
         },
     },
-    balance: sui::balance::Balance<sui::sui::SUI> {
+    balance: sui::balance::Balance<sui::hc::HC> {
         value: 0u64,
     },
 }

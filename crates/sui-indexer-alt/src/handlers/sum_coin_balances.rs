@@ -16,7 +16,9 @@ use sui_indexer_alt_framework::{
     pipeline::{sequential::Handler, Processor},
 };
 use sui_types::{
-    base_types::ObjectID, effects::TransactionEffectsAPI, full_checkpoint_content::CheckpointData,
+    base_types::ObjectID,
+    effects::TransactionEffectsAPI,
+    full_checkpoint_content::CheckpointData,
     object::Owner,
 };
 
@@ -31,16 +33,12 @@ const MAX_DELETE_CHUNK_ROWS: usize = i16::MAX as usize;
 pub(crate) struct SumCoinBalances;
 
 impl Processor for SumCoinBalances {
-    const NAME: &'static str = "sum_coin_balances";
-
     type Value = StoredObjectUpdate<StoredSumCoinBalance>;
 
+    const NAME: &'static str = "sum_coin_balances";
+
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> anyhow::Result<Vec<Self::Value>> {
-        let CheckpointData {
-            transactions,
-            checkpoint_summary,
-            ..
-        } = checkpoint.as_ref();
+        let CheckpointData { transactions, checkpoint_summary, .. } = checkpoint.as_ref();
 
         let cp_sequence_number = checkpoint_summary.sequence_number;
         let mut values: BTreeMap<ObjectID, Self::Value> = BTreeMap::new();
@@ -79,12 +77,7 @@ impl Processor for SumCoinBalances {
                     }
 
                     Entry::Vacant(entry) => {
-                        entry.insert(StoredObjectUpdate {
-                            object_id,
-                            object_version,
-                            cp_sequence_number,
-                            update: None,
-                        });
+                        entry.insert(StoredObjectUpdate { object_id, object_version, cp_sequence_number, update: None });
                     }
                 }
             }
@@ -103,10 +96,9 @@ impl Processor for SumCoinBalances {
                     Owner::AddressOwner(owner_id) => (StoredCoinOwnerKind::Fastpath, owner_id),
                     // ConsensusV2 objects are treated as address-owned for now in indexers.
                     // This will need to be updated if additional Authenticators are added.
-                    Owner::ConsensusV2 { authenticator, .. } => (
-                        StoredCoinOwnerKind::Consensus,
-                        authenticator.as_single_owner(),
-                    ),
+                    Owner::ConsensusV2 { authenticator, .. } => {
+                        (StoredCoinOwnerKind::Consensus, authenticator.as_single_owner())
+                    }
 
                     Owner::Immutable | Owner::ObjectOwner(_) | Owner::Shared { .. } => continue,
                 };
@@ -176,13 +168,10 @@ impl Handler for SumCoinBalances {
                     .on_conflict(sum_coin_balances::object_id)
                     .do_update()
                     .set((
-                        sum_coin_balances::object_version
-                            .eq(excluded(sum_coin_balances::object_version)),
+                        sum_coin_balances::object_version.eq(excluded(sum_coin_balances::object_version)),
                         sum_coin_balances::owner_id.eq(excluded(sum_coin_balances::owner_id)),
-                        sum_coin_balances::coin_balance
-                            .eq(excluded(sum_coin_balances::coin_balance)),
-                        sum_coin_balances::coin_owner_kind
-                            .eq(excluded(sum_coin_balances::coin_owner_kind)),
+                        sum_coin_balances::coin_balance.eq(excluded(sum_coin_balances::coin_balance)),
+                        sum_coin_balances::coin_owner_kind.eq(excluded(sum_coin_balances::coin_owner_kind)),
                     ))
                     .execute(conn),
             ),

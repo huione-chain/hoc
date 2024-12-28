@@ -1,20 +1,24 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 use prometheus::{
-    default_registry, register_histogram_vec_with_registry, register_histogram_with_registry,
-    register_int_counter_with_registry, register_int_gauge_with_registry, Histogram, HistogramVec,
-    IntCounter, IntGauge, Registry,
+    default_registry,
+    register_histogram_vec_with_registry,
+    register_histogram_with_registry,
+    register_int_counter_with_registry,
+    register_int_gauge_with_registry,
+    Histogram,
+    HistogramVec,
+    IntCounter,
+    IntGauge,
+    Registry,
 };
 
 // buckets defined in seconds
-const LATENCY_SEC_BUCKETS: &[f64] = &[
-    0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0,
-    100.0, 200.0,
-];
+const LATENCY_SEC_BUCKETS: &[f64] =
+    &[0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0, 100.0, 200.0];
 
-const POSITIVE_INT_BUCKETS: &[f64] = &[
-    1., 2., 5., 10., 20., 50., 100., 200., 500., 1000., 2000., 5000., 10000., 20000., 50000.,
-];
+const POSITIVE_INT_BUCKETS: &[f64] =
+    &[1., 2., 5., 10., 20., 50., 100., 200., 500., 1000., 2000., 5000., 10000., 20000., 50000.];
 
 #[derive(Clone, Debug)]
 pub struct ExecutorMetrics {

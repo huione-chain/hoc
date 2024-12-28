@@ -6,8 +6,7 @@ use super::*;
 use crate::NUM_SHUTDOWN_RECEIVERS;
 use prometheus::Registry;
 use test_utils::{create_batch_store, latest_protocol_version, transaction};
-use types::MockWorkerToPrimary;
-use types::PreSubscribedBroadcastSender;
+use types::{MockWorkerToPrimary, PreSubscribedBroadcastSender};
 
 fn create_network_client() -> NetworkClient {
     NetworkClient::new_with_empty_id()
@@ -24,9 +23,7 @@ async fn make_batch() {
 
     // Mock the primary client to always succeed.
     let mut mock_server = MockWorkerToPrimary::new();
-    mock_server
-        .expect_report_own_batch()
-        .returning(|_| Ok(anemo::Response::new(())));
+    mock_server.expect_report_own_batch().returning(|_| Ok(anemo::Response::new(())));
     client.set_worker_to_primary_local_handler(Arc::new(mock_server));
 
     // Spawn a `BatchMaker` instance.
@@ -57,13 +54,7 @@ async fn make_batch() {
 
     // Ensure the batch is as expected.
     let expected_batch = Batch::new(
-        vec![
-            tx.clone(),
-            txs[0].clone(),
-            txs[1].clone(),
-            txs[2].clone(),
-            tx.clone(),
-        ],
+        vec![tx.clone(), txs[0].clone(), txs[1].clone(), txs[2].clone(), tx.clone()],
         &latest_protocol_version(),
     );
     let (batch, resp) = rx_quorum_waiter.recv().await.unwrap();
@@ -93,9 +84,7 @@ async fn batch_timeout() {
 
     // Mock the primary client to always succeed.
     let mut mock_server = MockWorkerToPrimary::new();
-    mock_server
-        .expect_report_own_batch()
-        .returning(|_| Ok(anemo::Response::new(())));
+    mock_server.expect_report_own_batch().returning(|_| Ok(anemo::Response::new(())));
     client.set_worker_to_primary_local_handler(Arc::new(mock_server));
 
     // Spawn a `BatchMaker` instance.

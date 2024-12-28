@@ -14,11 +14,7 @@ impl<'a> Display for Pretty<'a, DevInspectResults> {
             return Ok(());
         }
 
-        writeln!(
-            f,
-            "Dev inspect completed, execution status: {}",
-            response.effects.status()
-        )?;
+        writeln!(f, "Dev inspect completed, execution status: {}", response.effects.status())?;
 
         writeln!(f, "{}", response.effects)?;
         write!(f, "{}", response.events)?;

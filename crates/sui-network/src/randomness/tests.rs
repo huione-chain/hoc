@@ -63,11 +63,7 @@ async fn test_multiple_epochs() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             0,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(0, RandomnessRound(0));
         handle.update_epoch(
@@ -106,11 +102,7 @@ async fn test_multiple_epochs() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             1,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.update_epoch(
             1,
@@ -185,11 +177,7 @@ async fn test_record_own_partial_sigs() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             0,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(0, RandomnessRound(0));
         handle.update_epoch(
@@ -263,11 +251,7 @@ async fn test_receive_full_sig() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             0,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(0, RandomnessRound(0));
         handle.update_epoch(
@@ -343,11 +327,7 @@ async fn test_restart_recovery() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             0,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(0, RandomnessRound(1_000_000));
         handle.update_epoch(
@@ -379,10 +359,7 @@ async fn test_byzantine_peer_handling() {
     let mut authority_info = HashMap::new();
 
     for (authority, stake) in committee.members() {
-        let config = RandomnessConfig {
-            max_ignored_peer_weight_factor: Some(0.3),
-            ..Default::default()
-        };
+        let config = RandomnessConfig { max_ignored_peer_weight_factor: Some(0.3), ..Default::default() };
 
         let (tx, rx) = mpsc::channel(3);
         randomness_rxs.push(rx);
@@ -419,11 +396,7 @@ async fn test_byzantine_peer_handling() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             if i < 2 { 100 + i as u128 } else { 0 },
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(0, RandomnessRound(0));
         handle.update_epoch(
@@ -452,11 +425,7 @@ async fn test_byzantine_peer_handling() {
             nodes.clone(),
             committee.validity_threshold().try_into().unwrap(),
             0,
-            committee
-                .authority_index(authority)
-                .unwrap()
-                .try_into()
-                .unwrap(),
+            committee.authority_index(authority).unwrap().try_into().unwrap(),
         );
         handle.send_partial_signatures(1, RandomnessRound(0));
         handle.update_epoch(
@@ -480,16 +449,8 @@ async fn test_byzantine_peer_handling() {
     }
 }
 
-fn node_from_committee(
-    committee: &Committee,
-    authority: &AuthorityPublicKeyBytes,
-    stake: u64,
-) -> nodes::Node<EncG> {
-    let id = committee
-        .authority_index(authority)
-        .unwrap()
-        .try_into()
-        .unwrap();
+fn node_from_committee(committee: &Committee, authority: &AuthorityPublicKeyBytes, stake: u64) -> nodes::Node<EncG> {
+    let id = committee.authority_index(authority).unwrap().try_into().unwrap();
     let pk = bls12381::G2Element::from_byte_array(
         committee
             .public_key(authority)

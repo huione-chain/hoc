@@ -3,16 +3,23 @@
 
 use std::time::Duration;
 
-use crate::traits::{PrimaryToPrimaryRpc, WorkerRpc};
-use crate::{traits::ReliableNetwork, CancelOnDropHandler, RetryConfig};
+use crate::{
+    traits::{PrimaryToPrimaryRpc, ReliableNetwork, WorkerRpc},
+    CancelOnDropHandler,
+    RetryConfig,
+};
 use anemo::PeerId;
-use anyhow::format_err;
-use anyhow::Result;
+use anyhow::{format_err, Result};
 use async_trait::async_trait;
 use crypto::NetworkPublicKey;
 use types::{
-    FetchCertificatesRequest, FetchCertificatesResponse, PrimaryToPrimaryClient,
-    RequestBatchesRequest, RequestBatchesResponse, WorkerBatchMessage, WorkerToWorkerClient,
+    FetchCertificatesRequest,
+    FetchCertificatesResponse,
+    PrimaryToPrimaryClient,
+    RequestBatchesRequest,
+    RequestBatchesResponse,
+    WorkerBatchMessage,
+    WorkerToWorkerClient,
 };
 
 fn send<F, R, Fut>(
@@ -41,9 +48,7 @@ where
                     backoff::Error::transient(anyhow::anyhow!("RPC error: {e:?}"))
                 })
             } else {
-                Err(backoff::Error::transient(anyhow::anyhow!(
-                    "not connected to peer {peer_id}"
-                )))
+                Err(backoff::Error::transient(anyhow::anyhow!("not connected to peer {peer_id}")))
             }
         }
     };
@@ -69,9 +74,7 @@ impl PrimaryToPrimaryRpc for anemo::Network {
         request: impl anemo::types::request::IntoRequest<FetchCertificatesRequest> + Send,
     ) -> Result<FetchCertificatesResponse> {
         let peer_id = PeerId(peer.0.to_bytes());
-        let peer = self
-            .peer(peer_id)
-            .ok_or_else(|| format_err!("Network has no connection with peer {peer_id}"))?;
+        let peer = self.peer(peer_id).ok_or_else(|| format_err!("Network has no connection with peer {peer_id}"))?;
         let response = PrimaryToPrimaryClient::new(peer)
             .fetch_certificates(request)
             .await
@@ -82,6 +85,7 @@ impl PrimaryToPrimaryRpc for anemo::Network {
 
 impl ReliableNetwork<WorkerBatchMessage> for anemo::Network {
     type Response = ();
+
     fn send(
         &self,
         peer: NetworkPublicKey,
@@ -106,9 +110,7 @@ impl WorkerRpc for anemo::Network {
         request: impl anemo::types::request::IntoRequest<RequestBatchesRequest> + Send,
     ) -> Result<RequestBatchesResponse> {
         let peer_id = PeerId(peer.0.to_bytes());
-        let peer = self
-            .peer(peer_id)
-            .ok_or_else(|| format_err!("Network has no connection with peer {peer_id}"))?;
+        let peer = self.peer(peer_id).ok_or_else(|| format_err!("Network has no connection with peer {peer_id}"))?;
         let response = WorkerToWorkerClient::new(peer)
             .request_batches(request)
             .await

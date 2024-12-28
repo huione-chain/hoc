@@ -3,7 +3,7 @@
 
 #[test_only]
 module sui::kiosk_marketplace_ext {
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui::coin::Coin;
     use sui::kiosk_extension as ext;
     use sui::kiosk::{Self, KioskOwnerCap, Kiosk, PurchaseCap};
@@ -37,7 +37,7 @@ module sui::kiosk_marketplace_ext {
     ///
     /// There can be only one bid per type.
     public fun bid<Market, T: key + store>(
-        kiosk: &mut Kiosk, cap: &KioskOwnerCap, bid: Coin<SUI>
+        kiosk: &mut Kiosk, cap: &KioskOwnerCap, bid: Coin<HC>
     ) {
         assert!(kiosk.has_access(cap), ENotOwner);
         assert!(ext::is_installed<Ext<Market>>(kiosk), ENotInstalled);
@@ -53,7 +53,7 @@ module sui::kiosk_marketplace_ext {
         policy: &TransferPolicy<T>,
         lock: bool
     ): (TransferRequest<T>, TransferRequest<Market>) {
-        let bid: Coin<SUI> = ext::storage_mut(Ext<Market> {}, destination).remove(Bid<T> {});
+        let bid: Coin<HC> = ext::storage_mut(Ext<Market> {}, destination).remove(Bid<T> {});
 
         // form the request while we have all the data (not yet consumed)
         let market_request = policy::new_request(
@@ -91,7 +91,7 @@ module sui::kiosk_marketplace_ext {
     public fun purchase<Market, T: key + store>(
         kiosk: &mut Kiosk,
         item_id: ID,
-        payment: Coin<SUI>,
+        payment: Coin<HC>,
     ): (T, TransferRequest<T>, TransferRequest<Market>) {
         let purchase_cap: PurchaseCap<T> = ext::storage_mut(Ext<Market> {}, kiosk).remove(item_id);
 

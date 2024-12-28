@@ -10,8 +10,7 @@ pub use errors::{SubscriberError, SubscriberResult};
 pub use state::ExecutionIndices;
 use sui_protocol_config::ProtocolConfig;
 
-use crate::metrics::ExecutorMetrics;
-use crate::subscriber::spawn_subscriber;
+use crate::{metrics::ExecutorMetrics, subscriber::spawn_subscriber};
 
 use async_trait::async_trait;
 use config::{AuthorityIdentifier, Committee, WorkerCache};
@@ -101,28 +100,17 @@ pub async fn get_restored_consensus_output<State: ExecutionState>(
 
     let last_executed_sub_dag_index = execution_state.last_executed_sub_dag_index();
 
-    let compressed_sub_dags =
-        consensus_store.read_committed_sub_dags_from(&last_executed_sub_dag_index)?;
+    let compressed_sub_dags = consensus_store.read_committed_sub_dags_from(&last_executed_sub_dag_index)?;
 
     let mut sub_dags = Vec::new();
     for compressed_sub_dag in compressed_sub_dags {
         let certificate_digests: Vec<CertificateDigest> = compressed_sub_dag.certificates();
 
-        let certificates = certificate_store
-            .read_all(certificate_digests)?
-            .into_iter()
-            .flatten()
-            .collect();
+        let certificates = certificate_store.read_all(certificate_digests)?.into_iter().flatten().collect();
 
-        let leader = certificate_store
-            .read(compressed_sub_dag.leader())?
-            .unwrap();
+        let leader = certificate_store.read(compressed_sub_dag.leader())?.unwrap();
 
-        sub_dags.push(CommittedSubDag::from_commit(
-            compressed_sub_dag,
-            certificates,
-            leader,
-        ));
+        sub_dags.push(CommittedSubDag::from_commit(compressed_sub_dag, certificates, leader));
     }
 
     Ok(sub_dags)

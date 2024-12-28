@@ -2,15 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use simulacrum::Simulacrum;
-use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 use sui_storage::blob::Blob;
 use sui_test_transaction_builder::TestTransactionBuilder;
-use sui_types::crypto::get_account_key_pair;
-use sui_types::effects::TransactionEffectsAPI;
-use sui_types::full_checkpoint_content::CheckpointData;
-use sui_types::gas_coin::MIST_PER_SUI;
-use sui_types::utils::to_sender_signed_transaction;
+use sui_types::{
+    crypto::get_account_key_pair,
+    effects::TransactionEffectsAPI,
+    full_checkpoint_content::CheckpointData,
+    gas_coin::MIST_PER_HC,
+    utils::to_sender_signed_transaction,
+};
 use tokio::fs;
 use tracing::info;
 
@@ -39,12 +40,7 @@ pub async fn generate_ingestion(config: Config) {
     info!("Generating synthetic ingestion data. config: {:?}", config);
     let timer = std::time::Instant::now();
     let mut sim = Simulacrum::new();
-    let Config {
-        ingestion_dir,
-        checkpoint_size,
-        num_checkpoints,
-        starting_checkpoint,
-    } = config;
+    let Config { ingestion_dir, checkpoint_size, num_checkpoints, starting_checkpoint } = config;
     sim.set_data_ingestion_path(ingestion_dir.clone());
     // Simulacrum will generate 0.chk as the genesis checkpoint.
     // We do not need it and might even override if starting_checkpoint is 0.
@@ -53,7 +49,7 @@ pub async fn generate_ingestion(config: Config) {
     let gas_price = sim.reference_gas_price();
     let (sender, keypair) = get_account_key_pair();
     let mut gas_object = {
-        let effects = sim.request_gas(sender, MIST_PER_SUI * 1000000).unwrap();
+        let effects = sim.request_gas(sender, MIST_PER_HC * 1000000).unwrap();
         // `request_gas` will create a transaction, which we don't want to include in the benchmark.
         // Put it in a checkpoint and then remove the checkpoint file.
         sim.create_checkpoint();
@@ -65,9 +61,8 @@ pub async fn generate_ingestion(config: Config) {
     let mut tx_count = 0;
     for i in 0..num_checkpoints {
         for _ in 0..checkpoint_size {
-            let tx_data = TestTransactionBuilder::new(sender, gas_object, gas_price)
-                .transfer_sui(Some(1), sender)
-                .build();
+            let tx_data =
+                TestTransactionBuilder::new(sender, gas_object, gas_price).transfer_sui(Some(1), sender).build();
             let tx = to_sender_signed_transaction(tx_data, &keypair);
             let (effects, _) = sim.execute_transaction(tx).unwrap();
             gas_object = effects.gas_object().0;
@@ -79,12 +74,7 @@ pub async fn generate_ingestion(config: Config) {
             info!("Generated {} checkpoints, {} transactions", i + 1, tx_count);
         }
     }
-    info!(
-        "Generated {} transactions in {} checkpoints. Total time: {:?}",
-        tx_count,
-        num_checkpoints,
-        timer.elapsed()
-    );
+    info!("Generated {} transactions in {} checkpoints. Total time: {:?}", tx_count, num_checkpoints, timer.elapsed());
 }
 
 pub async fn read_ingestion_data(path: &PathBuf) -> anyhow::Result<BTreeMap<u64, CheckpointData>> {
@@ -94,10 +84,7 @@ pub async fn read_ingestion_data(path: &PathBuf) -> anyhow::Result<BTreeMap<u64,
         let path = entry.path();
         let bytes = fs::read(path).await?;
         let checkpoint_data: CheckpointData = Blob::from_bytes(&bytes)?;
-        data.insert(
-            checkpoint_data.checkpoint_summary.sequence_number,
-            checkpoint_data,
-        );
+        data.insert(checkpoint_data.checkpoint_summary.sequence_number, checkpoint_data);
     }
     Ok(data)
 }
@@ -146,10 +133,7 @@ mod tests {
             let bytes = tokio::fs::read(&path).await.unwrap();
             let checkpoint_data: CheckpointData = Blob::from_bytes(&bytes).unwrap();
 
-            assert_eq!(
-                checkpoint_data.checkpoint_summary.sequence_number,
-                checkpoint
-            );
+            assert_eq!(checkpoint_data.checkpoint_summary.sequence_number, checkpoint);
             assert_eq!(checkpoint_data.transactions.len(), checkpoint_size as usize);
         }
     }

@@ -12,9 +12,7 @@ pub struct SimpleExecutionState {
 
 impl SimpleExecutionState {
     pub fn new(tx_transaction_confirmation: Sender<Vec<u8>>) -> Self {
-        Self {
-            tx_transaction_confirmation,
-        }
+        Self { tx_transaction_confirmation }
     }
 }
 
@@ -24,11 +22,7 @@ impl ExecutionState for SimpleExecutionState {
         for batches in consensus_output.batches {
             for batch in batches {
                 for transaction in batch.transactions().iter() {
-                    if let Err(err) = self
-                        .tx_transaction_confirmation
-                        .send(transaction.clone())
-                        .await
-                    {
+                    if let Err(err) = self.tx_transaction_confirmation.send(transaction.clone()).await {
                         eprintln!("Failed to send txn in SimpleExecutionState: {}", err);
                     }
                 }

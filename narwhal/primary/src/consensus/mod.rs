@@ -9,13 +9,15 @@ mod metrics;
 mod state;
 mod utils;
 
-pub use crate::consensus::bullshark::Bullshark;
 #[cfg(test)]
 pub use crate::consensus::consensus_utils::{make_certificate_store, NUM_SUB_DAGS_PER_SCHEDULE};
-pub use crate::consensus::leader_schedule::{LeaderSchedule, LeaderSwapTable};
-pub use crate::consensus::metrics::{ChannelMetrics, ConsensusMetrics};
-pub use crate::consensus::state::{Consensus, ConsensusRound, ConsensusState, Dag};
-pub use crate::consensus::utils::gc_round;
+pub use crate::consensus::{
+    bullshark::Bullshark,
+    leader_schedule::{LeaderSchedule, LeaderSwapTable},
+    metrics::{ChannelMetrics, ConsensusMetrics},
+    state::{Consensus, ConsensusRound, ConsensusState, Dag},
+    utils::gc_round,
+};
 pub use consensus_utils::make_consensus_store;
 
 use store::StoreError;

@@ -3,7 +3,8 @@
 
 use crate::{
     rest::openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
-    Result, RpcService,
+    Result,
+    RpcService,
 };
 use axum::{
     extract::{Path, State},
@@ -22,19 +23,11 @@ impl ApiEndpoint<RpcService> for GetLatestCommittee {
         "/system/committee"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("System")
             .operation_id("GetLatestCommittee")
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<ValidatorCommittee>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<ValidatorCommittee>(generator).build())
             .build()
     }
 
@@ -58,20 +51,12 @@ impl ApiEndpoint<RpcService> for GetCommittee {
         "/system/committee/{epoch}"
     }
 
-    fn operation(
-        &self,
-        generator: &mut schemars::gen::SchemaGenerator,
-    ) -> openapiv3::v3_1::Operation {
+    fn operation(&self, generator: &mut schemars::gen::SchemaGenerator) -> openapiv3::v3_1::Operation {
         OperationBuilder::new()
             .tag("System")
             .operation_id("GetCommittee")
             .path_parameter::<EpochId>("epoch", generator)
-            .response(
-                200,
-                ResponseBuilder::new()
-                    .json_content::<ValidatorCommittee>(generator)
-                    .build(),
-            )
+            .response(200, ResponseBuilder::new().json_content::<ValidatorCommittee>(generator).build())
             .response(404, ResponseBuilder::new().build())
             .build()
     }
@@ -81,9 +66,6 @@ impl ApiEndpoint<RpcService> for GetCommittee {
     }
 }
 
-async fn get_committee(
-    Path(epoch): Path<EpochId>,
-    State(state): State<RpcService>,
-) -> Result<Json<ValidatorCommittee>> {
+async fn get_committee(Path(epoch): Path<EpochId>, State(state): State<RpcService>) -> Result<Json<ValidatorCommittee>> {
     state.get_committee(Some(epoch)).map(Json)
 }

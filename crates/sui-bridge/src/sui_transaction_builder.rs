@@ -4,18 +4,20 @@
 use fastcrypto::traits::ToFromBytes;
 use move_core_types::ident_str;
 use std::{collections::HashMap, str::FromStr};
-use sui_types::bridge::{
-    BRIDGE_CREATE_ADD_TOKEN_ON_SUI_MESSAGE_FUNCTION_NAME,
-    BRIDGE_EXECUTE_SYSTEM_MESSAGE_FUNCTION_NAME, BRIDGE_MESSAGE_MODULE_NAME, BRIDGE_MODULE_NAME,
-};
-use sui_types::transaction::CallArg;
 use sui_types::{
     base_types::{ObjectRef, SuiAddress},
+    bridge::{
+        BRIDGE_CREATE_ADD_TOKEN_ON_SUI_MESSAGE_FUNCTION_NAME,
+        BRIDGE_EXECUTE_SYSTEM_MESSAGE_FUNCTION_NAME,
+        BRIDGE_MESSAGE_MODULE_NAME,
+        BRIDGE_MODULE_NAME,
+    },
     programmable_transaction_builder::ProgrammableTransactionBuilder,
-    transaction::{ObjectArg, TransactionData},
+    transaction::{CallArg, ObjectArg, TransactionData},
+    Identifier,
     TypeTag,
+    BRIDGE_PACKAGE_ID,
 };
-use sui_types::{Identifier, BRIDGE_PACKAGE_ID};
 
 use crate::{
     error::{BridgeError, BridgeResult},
@@ -50,45 +52,25 @@ pub fn build_sui_transaction(
             sui_token_type_tags,
             rgp,
         ),
-        BridgeAction::BlocklistCommitteeAction(_) => build_committee_blocklist_approve_transaction(
-            client_address,
-            gas_object_ref,
-            action,
-            bridge_object_arg,
-            rgp,
-        ),
-        BridgeAction::EmergencyAction(_) => build_emergency_op_approve_transaction(
-            client_address,
-            gas_object_ref,
-            action,
-            bridge_object_arg,
-            rgp,
-        ),
-        BridgeAction::LimitUpdateAction(_) => build_limit_update_approve_transaction(
-            client_address,
-            gas_object_ref,
-            action,
-            bridge_object_arg,
-            rgp,
-        ),
-        BridgeAction::AssetPriceUpdateAction(_) => build_asset_price_update_approve_transaction(
-            client_address,
-            gas_object_ref,
-            action,
-            bridge_object_arg,
-            rgp,
-        ),
+        BridgeAction::BlocklistCommitteeAction(_) => {
+            build_committee_blocklist_approve_transaction(client_address, gas_object_ref, action, bridge_object_arg, rgp)
+        }
+        BridgeAction::EmergencyAction(_) => {
+            build_emergency_op_approve_transaction(client_address, gas_object_ref, action, bridge_object_arg, rgp)
+        }
+        BridgeAction::LimitUpdateAction(_) => {
+            build_limit_update_approve_transaction(client_address, gas_object_ref, action, bridge_object_arg, rgp)
+        }
+        BridgeAction::AssetPriceUpdateAction(_) => {
+            build_asset_price_update_approve_transaction(client_address, gas_object_ref, action, bridge_object_arg, rgp)
+        }
         BridgeAction::EvmContractUpgradeAction(_) => {
             // It does not need a Sui tranaction to execute EVM contract upgrade
             unreachable!()
         }
-        BridgeAction::AddTokensOnSuiAction(_) => build_add_tokens_on_sui_transaction(
-            client_address,
-            gas_object_ref,
-            action,
-            bridge_object_arg,
-            rgp,
-        ),
+        BridgeAction::AddTokensOnSuiAction(_) => {
+            build_add_tokens_on_sui_transaction(client_address, gas_object_ref, action, bridge_object_arg, rgp)
+        }
         BridgeAction::AddTokensOnEvmAction(_) => {
             // It does not need a Sui tranaction to add tokens on EVM
             unreachable!()
@@ -108,49 +90,42 @@ fn build_token_bridge_approve_transaction(
     let (bridge_action, sigs) = action.into_inner().into_data_and_sig();
     let mut builder = ProgrammableTransactionBuilder::new();
 
-    let (source_chain, seq_num, sender, target_chain, target, token_type, amount) =
-        match bridge_action {
-            BridgeAction::SuiToEthBridgeAction(a) => {
-                let bridge_event = a.sui_bridge_event;
-                (
-                    bridge_event.sui_chain_id,
-                    bridge_event.nonce,
-                    bridge_event.sui_address.to_vec(),
-                    bridge_event.eth_chain_id,
-                    bridge_event.eth_address.to_fixed_bytes().to_vec(),
-                    bridge_event.token_id,
-                    bridge_event.amount_sui_adjusted,
-                )
-            }
-            BridgeAction::EthToSuiBridgeAction(a) => {
-                let bridge_event = a.eth_bridge_event;
-                (
-                    bridge_event.eth_chain_id,
-                    bridge_event.nonce,
-                    bridge_event.eth_address.to_fixed_bytes().to_vec(),
-                    bridge_event.sui_chain_id,
-                    bridge_event.sui_address.to_vec(),
-                    bridge_event.token_id,
-                    bridge_event.sui_adjusted_amount,
-                )
-            }
-            _ => unreachable!(),
-        };
+    let (source_chain, seq_num, sender, target_chain, target, token_type, amount) = match bridge_action {
+        BridgeAction::SuiToEthBridgeAction(a) => {
+            let bridge_event = a.sui_bridge_event;
+            (
+                bridge_event.sui_chain_id,
+                bridge_event.nonce,
+                bridge_event.sui_address.to_vec(),
+                bridge_event.eth_chain_id,
+                bridge_event.eth_address.to_fixed_bytes().to_vec(),
+                bridge_event.token_id,
+                bridge_event.amount_sui_adjusted,
+            )
+        }
+        BridgeAction::EthToSuiBridgeAction(a) => {
+            let bridge_event = a.eth_bridge_event;
+            (
+                bridge_event.eth_chain_id,
+                bridge_event.nonce,
+                bridge_event.eth_address.to_fixed_bytes().to_vec(),
+                bridge_event.sui_chain_id,
+                bridge_event.sui_address.to_vec(),
+                bridge_event.token_id,
+                bridge_event.sui_adjusted_amount,
+            )
+        }
+        _ => unreachable!(),
+    };
 
     let source_chain = builder.pure(source_chain as u8).unwrap();
     let seq_num = builder.pure(seq_num).unwrap();
     let sender = builder.pure(sender.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize sender: {:?}. Err: {:?}",
-            sender, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize sender: {:?}. Err: {:?}", sender, e))
     })?;
     let target_chain = builder.pure(target_chain as u8).unwrap();
     let target = builder.pure(target.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize target: {:?}. Err: {:?}",
-            target, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize target: {:?}. Err: {:?}", target, e))
     })?;
     let arg_token_type = builder.pure(token_type).unwrap();
     let amount = builder.pure(amount).unwrap();
@@ -160,15 +135,7 @@ fn build_token_bridge_approve_transaction(
         ident_str!("message").to_owned(),
         ident_str!("create_token_bridge_message").to_owned(),
         vec![],
-        vec![
-            source_chain,
-            seq_num,
-            sender,
-            target_chain,
-            target,
-            arg_token_type,
-            amount,
-        ],
+        vec![source_chain, seq_num, sender, target_chain, target, arg_token_type, amount],
     );
 
     // Unwrap: these should not fail
@@ -180,10 +147,7 @@ fn build_token_bridge_approve_transaction(
         sig_bytes.push(sig.as_bytes().to_vec());
     }
     let arg_signatures = builder.pure(sig_bytes.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize signatures: {:?}. Err: {:?}",
-            sig_bytes, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize signatures: {:?}. Err: {:?}", sig_bytes, e))
     })?;
 
     builder.programmable_move_call(
@@ -199,23 +163,14 @@ fn build_token_bridge_approve_transaction(
             BRIDGE_PACKAGE_ID,
             sui_types::bridge::BRIDGE_MODULE_NAME.to_owned(),
             ident_str!("claim_and_transfer_token").to_owned(),
-            vec![sui_token_type_tags
-                .get(&token_type)
-                .ok_or(BridgeError::UnknownTokenId(token_type))?
-                .clone()],
+            vec![sui_token_type_tags.get(&token_type).ok_or(BridgeError::UnknownTokenId(token_type))?.clone()],
             vec![arg_bridge, arg_clock, source_chain, seq_num],
         );
     }
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 fn build_emergency_op_approve_transaction(
@@ -253,10 +208,7 @@ fn build_emergency_op_approve_transaction(
         sig_bytes.push(sig.as_bytes().to_vec());
     }
     let arg_signatures = builder.pure(sig_bytes.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize signatures: {:?}. Err: {:?}",
-            sig_bytes, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize signatures: {:?}. Err: {:?}", sig_bytes, e))
     })?;
 
     builder.programmable_move_call(
@@ -269,13 +221,7 @@ fn build_emergency_op_approve_transaction(
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 fn build_committee_blocklist_approve_transaction(
@@ -290,9 +236,7 @@ fn build_committee_blocklist_approve_transaction(
     let mut builder = ProgrammableTransactionBuilder::new();
 
     let (source_chain, seq_num, blocklist_type, members_to_update) = match bridge_action {
-        BridgeAction::BlocklistCommitteeAction(a) => {
-            (a.chain_id, a.nonce, a.blocklist_type, a.members_to_update)
-        }
+        BridgeAction::BlocklistCommitteeAction(a) => (a.chain_id, a.nonce, a.blocklist_type, a.members_to_update),
         _ => unreachable!(),
     };
 
@@ -300,10 +244,8 @@ fn build_committee_blocklist_approve_transaction(
     let source_chain = builder.pure(source_chain as u8).unwrap();
     let seq_num = builder.pure(seq_num).unwrap();
     let blocklist_type = builder.pure(blocklist_type as u8).unwrap();
-    let members_to_update = members_to_update
-        .into_iter()
-        .map(|m| m.to_eth_address().as_bytes().to_vec())
-        .collect::<Vec<_>>();
+    let members_to_update =
+        members_to_update.into_iter().map(|m| m.to_eth_address().as_bytes().to_vec()).collect::<Vec<_>>();
     let members_to_update = builder.pure(members_to_update).unwrap();
     let arg_bridge = builder.obj(bridge_object_arg).unwrap();
 
@@ -320,10 +262,7 @@ fn build_committee_blocklist_approve_transaction(
         sig_bytes.push(sig.as_bytes().to_vec());
     }
     let arg_signatures = builder.pure(sig_bytes.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize signatures: {:?}. Err: {:?}",
-            sig_bytes, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize signatures: {:?}. Err: {:?}", sig_bytes, e))
     })?;
 
     builder.programmable_move_call(
@@ -336,13 +275,7 @@ fn build_committee_blocklist_approve_transaction(
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 fn build_limit_update_approve_transaction(
@@ -357,9 +290,7 @@ fn build_limit_update_approve_transaction(
     let mut builder = ProgrammableTransactionBuilder::new();
 
     let (receiving_chain_id, seq_num, sending_chain_id, new_usd_limit) = match bridge_action {
-        BridgeAction::LimitUpdateAction(a) => {
-            (a.chain_id, a.nonce, a.sending_chain_id, a.new_usd_limit)
-        }
+        BridgeAction::LimitUpdateAction(a) => (a.chain_id, a.nonce, a.sending_chain_id, a.new_usd_limit),
         _ => unreachable!(),
     };
 
@@ -383,10 +314,7 @@ fn build_limit_update_approve_transaction(
         sig_bytes.push(sig.as_bytes().to_vec());
     }
     let arg_signatures = builder.pure(sig_bytes.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize signatures: {:?}. Err: {:?}",
-            sig_bytes, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize signatures: {:?}. Err: {:?}", sig_bytes, e))
     })?;
 
     builder.programmable_move_call(
@@ -399,13 +327,7 @@ fn build_limit_update_approve_transaction(
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 fn build_asset_price_update_approve_transaction(
@@ -420,9 +342,7 @@ fn build_asset_price_update_approve_transaction(
     let mut builder = ProgrammableTransactionBuilder::new();
 
     let (source_chain, seq_num, token_id, new_usd_price) = match bridge_action {
-        BridgeAction::AssetPriceUpdateAction(a) => {
-            (a.chain_id, a.nonce, a.token_id, a.new_usd_price)
-        }
+        BridgeAction::AssetPriceUpdateAction(a) => (a.chain_id, a.nonce, a.token_id, a.new_usd_price),
         _ => unreachable!(),
     };
 
@@ -446,10 +366,7 @@ fn build_asset_price_update_approve_transaction(
         sig_bytes.push(sig.as_bytes().to_vec());
     }
     let arg_signatures = builder.pure(sig_bytes.clone()).map_err(|e| {
-        BridgeError::BridgeSerializationError(format!(
-            "Failed to serialize signatures: {:?}. Err: {:?}",
-            sig_bytes, e
-        ))
+        BridgeError::BridgeSerializationError(format!("Failed to serialize signatures: {:?}. Err: {:?}", sig_bytes, e))
     })?;
 
     builder.programmable_move_call(
@@ -462,13 +379,7 @@ fn build_asset_price_update_approve_transaction(
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 pub fn build_add_tokens_on_sui_transaction(
@@ -482,22 +393,14 @@ pub fn build_add_tokens_on_sui_transaction(
 
     let mut builder = ProgrammableTransactionBuilder::new();
 
-    let (source_chain, seq_num, native, token_ids, token_type_names, token_prices) =
-        match bridge_action {
-            BridgeAction::AddTokensOnSuiAction(a) => (
-                a.chain_id,
-                a.nonce,
-                a.native,
-                a.token_ids,
-                a.token_type_names,
-                a.token_prices,
-            ),
-            _ => unreachable!(),
-        };
-    let token_type_names = token_type_names
-        .iter()
-        .map(|type_name| type_name.to_canonical_string(false))
-        .collect::<Vec<_>>();
+    let (source_chain, seq_num, native, token_ids, token_type_names, token_prices) = match bridge_action {
+        BridgeAction::AddTokensOnSuiAction(a) => {
+            (a.chain_id, a.nonce, a.native, a.token_ids, a.token_type_names, a.token_prices)
+        }
+        _ => unreachable!(),
+    };
+    let token_type_names =
+        token_type_names.iter().map(|type_name| type_name.to_canonical_string(false)).collect::<Vec<_>>();
     let source_chain = builder.pure(source_chain as u8).unwrap();
     let seq_num = builder.pure(seq_num).unwrap();
     let native_token = builder.pure(native).unwrap();
@@ -510,14 +413,7 @@ pub fn build_add_tokens_on_sui_transaction(
         BRIDGE_MESSAGE_MODULE_NAME.into(),
         BRIDGE_CREATE_ADD_TOKEN_ON_SUI_MESSAGE_FUNCTION_NAME.into(),
         vec![],
-        vec![
-            source_chain,
-            seq_num,
-            native_token,
-            token_ids,
-            token_type_names,
-            token_prices,
-        ],
+        vec![source_chain, seq_num, native_token, token_ids, token_type_names, token_prices],
     );
 
     let bridge_arg = builder.obj(bridge_object_arg).unwrap();
@@ -538,13 +434,7 @@ pub fn build_add_tokens_on_sui_transaction(
 
     let pt = builder.finish();
 
-    Ok(TransactionData::new_programmable(
-        client_address,
-        vec![*gas_object_ref],
-        pt,
-        100_000_000,
-        rgp,
-    ))
+    Ok(TransactionData::new_programmable(client_address, vec![*gas_object_ref], pt, 100_000_000, rgp))
 }
 
 pub fn build_committee_register_transaction(
@@ -559,14 +449,8 @@ pub fn build_committee_register_transaction(
     let mut builder = ProgrammableTransactionBuilder::new();
     let system_state = builder.obj(ObjectArg::SUI_SYSTEM_MUT).unwrap();
     let bridge = builder.obj(bridge_object_arg).unwrap();
-    let bridge_pubkey = builder
-        .input(CallArg::Pure(
-            bcs::to_bytes(&bridge_authority_pub_key_bytes).unwrap(),
-        ))
-        .unwrap();
-    let url = builder
-        .input(CallArg::Pure(bcs::to_bytes(bridge_url.as_bytes()).unwrap()))
-        .unwrap();
+    let bridge_pubkey = builder.input(CallArg::Pure(bcs::to_bytes(&bridge_authority_pub_key_bytes).unwrap())).unwrap();
+    let url = builder.input(CallArg::Pure(bcs::to_bytes(bridge_url.as_bytes()).unwrap())).unwrap();
     builder.programmable_move_call(
         BRIDGE_PACKAGE_ID,
         BRIDGE_MODULE_NAME.into(),
@@ -594,9 +478,7 @@ pub fn build_committee_update_url_transaction(
 ) -> BridgeResult<TransactionData> {
     let mut builder = ProgrammableTransactionBuilder::new();
     let bridge = builder.obj(bridge_object_arg).unwrap();
-    let url = builder
-        .input(CallArg::Pure(bcs::to_bytes(bridge_url.as_bytes()).unwrap()))
-        .unwrap();
+    let url = builder.input(CallArg::Pure(bcs::to_bytes(bridge_url.as_bytes()).unwrap())).unwrap();
     builder.programmable_move_call(
         BRIDGE_PACKAGE_ID,
         BRIDGE_MODULE_NAME.into(),
@@ -616,27 +498,25 @@ pub fn build_committee_update_url_transaction(
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::BridgeAuthorityKeyPair;
-    use crate::e2e_tests::test_utils::TestClusterWrapperBuilder;
-    use crate::metrics::BridgeMetrics;
-    use crate::sui_client::SuiClient;
-    use crate::types::BridgeAction;
-    use crate::types::EmergencyAction;
-    use crate::types::EmergencyActionType;
-    use crate::types::*;
     use crate::{
-        crypto::BridgeAuthorityPublicKeyBytes,
+        crypto::{BridgeAuthorityKeyPair, BridgeAuthorityPublicKeyBytes},
+        e2e_tests::test_utils::TestClusterWrapperBuilder,
+        metrics::BridgeMetrics,
+        sui_client::SuiClient,
         test_utils::{
-            approve_action_with_validator_secrets, bridge_token, get_test_eth_to_sui_bridge_action,
+            approve_action_with_validator_secrets,
+            bridge_token,
+            get_test_eth_to_sui_bridge_action,
             get_test_sui_to_eth_bridge_action,
         },
+        types::{BridgeAction, EmergencyAction, EmergencyActionType, *},
     };
     use ethers::types::Address as EthAddress;
-    use std::collections::HashMap;
-    use std::sync::Arc;
-    use sui_types::bridge::{BridgeChainId, TOKEN_ID_BTC, TOKEN_ID_USDC};
-    use sui_types::crypto::get_key_pair;
-    use sui_types::crypto::ToFromBytes;
+    use std::{collections::HashMap, sync::Arc};
+    use sui_types::{
+        bridge::{BridgeChainId, TOKEN_ID_BTC, TOKEN_ID_USDC},
+        crypto::{get_key_pair, ToFromBytes},
+    };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
     async fn test_build_sui_transaction_for_token_transfer() {
@@ -653,22 +533,16 @@ mod tests {
             .await;
 
         let metrics = Arc::new(BridgeMetrics::new_for_testing());
-        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics)
-            .await
-            .unwrap();
+        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics).await.unwrap();
         let bridge_authority_keys = test_cluster.authority_keys_clone();
 
         // Note: We don't call `sui_client.get_bridge_committee` here because it will err if the committee
         // is not initialized during the construction of `BridgeCommittee`.
-        test_cluster
-            .trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized()
-            .await;
+        test_cluster.trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized().await;
         let context = &mut test_cluster.inner.wallet;
         let sender = context.active_address().unwrap();
         let usdc_amount = 5000000;
-        let bridge_object_arg = sui_client
-            .get_mutable_bridge_object_arg_must_succeed()
-            .await;
+        let bridge_object_arg = sui_client.get_mutable_bridge_object_arg_must_succeed().await;
         let id_token_map = sui_client.get_token_id_map().await.unwrap();
 
         // 1. Test Eth -> Sui Transfer approval
@@ -731,22 +605,16 @@ mod tests {
             .build()
             .await;
         let metrics = Arc::new(BridgeMetrics::new_for_testing());
-        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics)
-            .await
-            .unwrap();
+        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics).await.unwrap();
         let bridge_authority_keys = test_cluster.authority_keys_clone();
 
         // Wait until committee is set up
-        test_cluster
-            .trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized()
-            .await;
+        test_cluster.trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized().await;
         let summary = sui_client.get_bridge_summary().await.unwrap();
         assert!(!summary.is_frozen);
 
         let context = &mut test_cluster.inner.wallet;
-        let bridge_object_arg = sui_client
-            .get_mutable_bridge_object_arg_must_succeed()
-            .await;
+        let bridge_object_arg = sui_client.get_mutable_bridge_object_arg_must_succeed().await;
         let id_token_map = sui_client.get_token_id_map().await.unwrap();
 
         // 1. Pause
@@ -802,15 +670,11 @@ mod tests {
             .build()
             .await;
         let metrics = Arc::new(BridgeMetrics::new_for_testing());
-        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics)
-            .await
-            .unwrap();
+        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics).await.unwrap();
         let bridge_authority_keys = test_cluster.authority_keys_clone();
 
         // Wait until committee is set up
-        test_cluster
-            .trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized()
-            .await;
+        test_cluster.trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized().await;
         let committee = sui_client.get_bridge_summary().await.unwrap().committee;
         let victim = committee.members.first().unwrap().clone().1;
         for member in committee.members {
@@ -818,9 +682,7 @@ mod tests {
         }
 
         let context = &mut test_cluster.inner.wallet;
-        let bridge_object_arg = sui_client
-            .get_mutable_bridge_object_arg_must_succeed()
-            .await;
+        let bridge_object_arg = sui_client.get_mutable_bridge_object_arg_must_succeed().await;
         let id_token_map = sui_client.get_token_id_map().await.unwrap();
 
         // 1. blocklist The victim
@@ -828,10 +690,7 @@ mod tests {
             nonce: 0,
             chain_id: BridgeChainId::SuiCustom,
             blocklist_type: BlocklistType::Blocklist,
-            members_to_update: vec![BridgeAuthorityPublicKeyBytes::from_bytes(
-                &victim.bridge_pubkey_bytes,
-            )
-            .unwrap()],
+            members_to_update: vec![BridgeAuthorityPublicKeyBytes::from_bytes(&victim.bridge_pubkey_bytes).unwrap()],
         });
         // `approve_action_with_validator_secrets` covers transaction building
         approve_action_with_validator_secrets(
@@ -857,10 +716,7 @@ mod tests {
             nonce: 1,
             chain_id: BridgeChainId::SuiCustom,
             blocklist_type: BlocklistType::Unblocklist,
-            members_to_update: vec![BridgeAuthorityPublicKeyBytes::from_bytes(
-                &victim.bridge_pubkey_bytes,
-            )
-            .unwrap()],
+            members_to_update: vec![BridgeAuthorityPublicKeyBytes::from_bytes(&victim.bridge_pubkey_bytes).unwrap()],
         });
         // `approve_action_with_validator_secrets` covers transaction building
         approve_action_with_validator_secrets(
@@ -892,15 +748,11 @@ mod tests {
             .build()
             .await;
         let metrics = Arc::new(BridgeMetrics::new_for_testing());
-        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics)
-            .await
-            .unwrap();
+        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics).await.unwrap();
         let bridge_authority_keys = test_cluster.authority_keys_clone();
 
         // Wait until committee is set up
-        test_cluster
-            .trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized()
-            .await;
+        test_cluster.trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized().await;
         let transfer_limit = sui_client
             .get_bridge_summary()
             .await
@@ -912,9 +764,7 @@ mod tests {
             .collect::<HashMap<_, _>>();
 
         let context = &mut test_cluster.inner.wallet;
-        let bridge_object_arg = sui_client
-            .get_mutable_bridge_object_arg_must_succeed()
-            .await;
+        let bridge_object_arg = sui_client.get_mutable_bridge_object_arg_must_succeed().await;
         let id_token_map = sui_client.get_token_id_map().await.unwrap();
 
         // update limit
@@ -934,12 +784,7 @@ mod tests {
             &id_token_map,
         )
         .await;
-        let new_transfer_limit = sui_client
-            .get_bridge_summary()
-            .await
-            .unwrap()
-            .limiter
-            .transfer_limit;
+        let new_transfer_limit = sui_client.get_bridge_summary().await.unwrap().limiter.transfer_limit;
         for limit in new_transfer_limit {
             if limit.0 == BridgeChainId::EthCustom && limit.1 == BridgeChainId::SuiCustom {
                 assert_eq!(limit.2, 6_666_666 * USD_MULTIPLIER);
@@ -963,23 +808,17 @@ mod tests {
             .build()
             .await;
         let metrics = Arc::new(BridgeMetrics::new_for_testing());
-        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics)
-            .await
-            .unwrap();
+        let sui_client = SuiClient::new(&test_cluster.inner.fullnode_handle.rpc_url, metrics).await.unwrap();
         let bridge_authority_keys = test_cluster.authority_keys_clone();
 
         // Note: We don't call `sui_client.get_bridge_committee` here because it will err if the committee
         // is not initialized during the construction of `BridgeCommittee`.
-        test_cluster
-            .trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized()
-            .await;
+        test_cluster.trigger_reconfiguration_if_not_yet_and_assert_bridge_committee_initialized().await;
         let notional_values = sui_client.get_notional_values().await.unwrap();
         assert_ne!(notional_values[&TOKEN_ID_USDC], 69_000 * USD_MULTIPLIER);
 
         let context = &mut test_cluster.inner.wallet;
-        let bridge_object_arg = sui_client
-            .get_mutable_bridge_object_arg_must_succeed()
-            .await;
+        let bridge_object_arg = sui_client.get_mutable_bridge_object_arg_must_succeed().await;
         let id_token_map = sui_client.get_token_id_map().await.unwrap();
 
         // update price

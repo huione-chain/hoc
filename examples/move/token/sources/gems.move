@@ -31,7 +31,7 @@ module examples::gem {
     use sui::{
         balance::{Self, Balance},
         coin::{Self, Coin, TreasuryCap},
-        sui::SUI,
+        hc::HC,
         token::{Self, Token, ActionRequest},
         tx_context::sender
     };
@@ -57,7 +57,7 @@ module examples::gem {
     public struct GemStore has key {
         id: UID,
         /// Profits from selling Gems.
-        profits: Balance<SUI>,
+        profits: Balance<HC>,
         /// The Treasury Cap for the in-game currency.
         gem_treasury: TreasuryCap<GEM>,
     }
@@ -101,7 +101,7 @@ module examples::gem {
     /// constants...
     public fun buy_gems(
         self: &mut GemStore,
-        payment: Coin<SUI>,
+        payment: Coin<HC>,
         ctx: &mut TxContext,
     ): (Token<GEM>, ActionRequest<GEM>) {
         let amount = coin::value(&payment);

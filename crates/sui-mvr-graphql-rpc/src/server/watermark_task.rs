@@ -1,19 +1,21 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::data::{Db, DbConnection, QueryExecutor};
-use crate::error::Error;
-use crate::metrics::Metrics;
-use crate::types::chain_identifier::ChainIdentifier;
+use crate::{
+    data::{Db, DbConnection, QueryExecutor},
+    error::Error,
+    metrics::Metrics,
+    types::chain_identifier::ChainIdentifier,
+};
 use async_graphql::ServerError;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::scoped_futures::ScopedFutureExt;
-use std::mem;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{mem, sync::Arc, time::Duration};
 use sui_indexer::schema::checkpoints;
-use tokio::sync::{watch, RwLock};
-use tokio::time::Interval;
+use tokio::{
+    sync::{watch, RwLock},
+    time::Interval,
+};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
@@ -50,12 +52,7 @@ pub(crate) struct Watermark {
 
 /// Starts an infinite loop that periodically updates the `checkpoint_viewed_at` high watermark.
 impl WatermarkTask {
-    pub(crate) fn new(
-        db: Db,
-        metrics: Metrics,
-        sleep: Duration,
-        cancel: CancellationToken,
-    ) -> Self {
+    pub(crate) fn new(db: Db, metrics: Metrics, sleep: Duration, cancel: CancellationToken) -> Self {
         let (sender, receiver) = watch::channel(0);
 
         Self {
@@ -154,11 +151,7 @@ impl WatermarkTask {
 impl Watermark {
     pub(crate) async fn new(lock: WatermarkLock) -> Self {
         let w = lock.read().await;
-        Self {
-            checkpoint: w.checkpoint,
-            checkpoint_timestamp_ms: w.checkpoint_timestamp_ms,
-            epoch: w.epoch,
-        }
+        Self { checkpoint: w.checkpoint, checkpoint_timestamp_ms: w.checkpoint_timestamp_ms, epoch: w.epoch }
     }
 
     pub(crate) async fn query(db: &Db) -> Result<Option<Watermark>, Error> {

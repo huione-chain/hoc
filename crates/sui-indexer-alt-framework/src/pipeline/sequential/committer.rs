@@ -80,8 +80,7 @@ pub(super) fn committer<H: Handler + 'static>(
 
         // The committer task will periodically output a log message at a higher log level to
         // demonstrate that the pipeline is making progress.
-        let mut next_loud_watermark_update =
-            watermark.checkpoint_hi_inclusive + LOUD_WATERMARK_UPDATE_INTERVAL;
+        let mut next_loud_watermark_update = watermark.checkpoint_hi_inclusive + LOUD_WATERMARK_UPDATE_INTERVAL;
 
         // Data for checkpoint that haven't been written yet. Note that `pending_rows` includes
         // rows in `batch`.
@@ -385,11 +384,7 @@ pub(super) fn committer<H: Handler + 'static>(
 //
 // - It is at or before the `next_checkpoint` expected by the committer.
 // - It is at least `checkpoint_lag` checkpoints before the last checkpoint in the buffer.
-fn can_process_pending<T>(
-    next_checkpoint: u64,
-    checkpoint_lag: u64,
-    pending: &BTreeMap<u64, T>,
-) -> bool {
+fn can_process_pending<T>(next_checkpoint: u64, checkpoint_lag: u64, pending: &BTreeMap<u64, T>) -> bool {
     let Some((&first, _)) = pending.first_key_value() else {
         return false;
     };

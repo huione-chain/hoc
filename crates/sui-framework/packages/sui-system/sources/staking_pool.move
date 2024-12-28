@@ -4,7 +4,7 @@
 #[allow(unused_const)]
 module sui_system::staking_pool {
     use sui::balance::{Self, Balance};
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui::table::{Self, Table};
     use sui::bag::Bag;
     use sui::bag;
@@ -43,11 +43,11 @@ module sui_system::staking_pool {
         /// The epoch at which this staking pool ceased to be active. `None` = {pre-active, active},
         /// `Some(<epoch_number>)` if in-active, and it was de-activated at epoch `<epoch_number>`.
         deactivation_epoch: Option<u64>,
-        /// The total number of SUI tokens in this pool, including the SUI in the rewards_pool, as well as in all the principal
+        /// The total number of HC tokens in this pool, including the HC in the rewards_pool, as well as in all the principal
         /// in the `StakedSui` object, updated at epoch boundaries.
         sui_balance: u64,
         /// The epoch stake rewards will be added here at the end of each epoch.
-        rewards_pool: Balance<SUI>,
+        rewards_pool: Balance<HC>,
         /// Total number of pool tokens issued by the pool.
         pool_token_balance: u64,
         /// Exchange rate history of previous epochs. Key is the epoch number.
@@ -79,7 +79,7 @@ module sui_system::staking_pool {
         /// The epoch at which the stake becomes active.
         stake_activation_epoch: u64,
         /// The staked SUI tokens.
-        principal: Balance<SUI>,
+        principal: Balance<HC>,
     }
 
     /// An alternative to `StakedSui` that holds the pool token amount instead of the SUI balance.
@@ -100,7 +100,7 @@ module sui_system::staking_pool {
         /// fungible_staked_sui supply
         total_supply: u64,
         /// principal balance. Rewards are withdrawn from the reward pool
-        principal: Balance<SUI>,
+        principal: Balance<HC>,
     }
 
     // === dynamic field keys ===
@@ -131,7 +131,7 @@ module sui_system::staking_pool {
     /// Request to stake to a staking pool. The stake starts counting at the beginning of the next epoch,
     public(package) fun request_add_stake(
         pool: &mut StakingPool,
-        stake: Balance<SUI>,
+        stake: Balance<HC>,
         stake_activation_epoch: u64,
         ctx: &mut TxContext
     ) : StakedSui {
@@ -155,7 +155,7 @@ module sui_system::staking_pool {
         pool: &mut StakingPool,
         staked_sui: StakedSui,
         ctx: &TxContext
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         // stake is inactive
         if (staked_sui.stake_activation_epoch > ctx.epoch()) {
             let principal = unwrap_staked_sui(staked_sui);
@@ -188,7 +188,7 @@ module sui_system::staking_pool {
         pool: &mut StakingPool,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         let FungibleStakedSui { id, pool_id, value } = fungible_staked_sui;
         assert!(pool_id == object::id(pool), EWrongPool);
 
@@ -317,7 +317,7 @@ module sui_system::staking_pool {
     public(package) fun withdraw_from_principal(
         pool: &StakingPool,
         staked_sui: StakedSui,
-    ) : (u64, Balance<SUI>) {
+    ) : (u64, Balance<HC>) {
 
         // Check that the stake information matches the pool.
         assert!(staked_sui.pool_id == object::id(pool), EWrongPool);
@@ -335,7 +335,7 @@ module sui_system::staking_pool {
         )
     }
 
-    fun unwrap_staked_sui(staked_sui: StakedSui): Balance<SUI> {
+    fun unwrap_staked_sui(staked_sui: StakedSui): Balance<HC> {
         let StakedSui {
             id,
             pool_id: _,
@@ -352,7 +352,7 @@ module sui_system::staking_pool {
     // ==== functions called at epoch boundaries ===
 
     /// Called at epoch advancement times to add rewards (in SUI) to the staking pool.
-    public(package) fun deposit_rewards(pool: &mut StakingPool, rewards: Balance<SUI>) {
+    public(package) fun deposit_rewards(pool: &mut StakingPool, rewards: Balance<HC>) {
         pool.sui_balance = pool.sui_balance + rewards.value();
         pool.rewards_pool.join(rewards);
     }
@@ -399,7 +399,7 @@ module sui_system::staking_pool {
         principal_withdraw_amount: u64,
         pool_token_withdraw_amount: u64,
         epoch: u64,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         let exchange_rate = pool_token_exchange_rate_at_epoch(pool, epoch);
         let total_sui_withdraw_amount = get_sui_amount(&exchange_rate, pool_token_withdraw_amount);
         let mut reward_withdraw_amount =

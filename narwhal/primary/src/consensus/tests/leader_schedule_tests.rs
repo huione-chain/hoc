@@ -33,12 +33,7 @@ async fn test_leader_swap_table() {
         scores.add_score(*id, score as u64);
     }
 
-    let table = LeaderSwapTable::new(
-        &committee,
-        2,
-        &scores,
-        protocol_config.consensus_bad_nodes_stake_threshold(),
-    );
+    let table = LeaderSwapTable::new(&committee, 2, &scores, protocol_config.consensus_bad_nodes_stake_threshold());
 
     // Only one bad authority should be calculated since all have equal stake
     assert_eq!(table.bad_nodes.len(), 1);
@@ -57,9 +52,7 @@ async fn test_leader_swap_table() {
 
     // Now we create a larger committee with more score variation - still all the authorities have
     // equal stake.
-    let fixture = CommitteeFixture::builder()
-        .committee_size(NonZeroUsize::new(10).unwrap())
-        .build();
+    let fixture = CommitteeFixture::builder().committee_size(NonZeroUsize::new(10).unwrap()).build();
     let committee = fixture.committee();
 
     // the authority ids
@@ -73,12 +66,7 @@ async fn test_leader_swap_table() {
     }
 
     // We expect the first 3 authorities (f) to be amongst the bad nodes
-    let table = LeaderSwapTable::new(
-        &committee,
-        2,
-        &scores,
-        protocol_config.consensus_bad_nodes_stake_threshold(),
-    );
+    let table = LeaderSwapTable::new(&committee, 2, &scores, protocol_config.consensus_bad_nodes_stake_threshold());
 
     assert_eq!(table.bad_nodes.len(), 3);
     assert!(table.bad_nodes.contains_key(&authority_ids[0]));
@@ -126,12 +114,7 @@ async fn test_leader_schedule() {
     }
 
     // Update the schedule
-    let table = LeaderSwapTable::new(
-        &committee,
-        2,
-        &scores,
-        protocol_config.consensus_bad_nodes_stake_threshold(),
-    );
+    let table = LeaderSwapTable::new(&committee, 2, &scores, protocol_config.consensus_bad_nodes_stake_threshold());
     schedule.update_leader_swap_table(table.clone());
 
     // Now call the leader for round 2 again. It should be swapped with another node
@@ -153,16 +136,9 @@ async fn test_leader_schedule() {
     assert!(leader_certificate.is_none());
 
     // Populate the leader's certificate and try again
-    let (digest, certificate) = mock_certificate(
-        &committee,
-        &latest_protocol_version(),
-        leader_authority.id(),
-        2,
-        BTreeSet::new(),
-    );
-    dag.entry(2)
-        .or_default()
-        .insert(leader_authority.id(), (digest, certificate.clone()));
+    let (digest, certificate) =
+        mock_certificate(&committee, &latest_protocol_version(), leader_authority.id(), 2, BTreeSet::new());
+    dag.entry(2).or_default().insert(leader_authority.id(), (digest, certificate.clone()));
 
     let (leader_authority, leader_certificate_result) = schedule.leader_certificate(2, &dag);
     assert_eq!(leader_authority.id(), swapped_leader);
@@ -191,17 +167,9 @@ async fn test_leader_schedule_from_store() {
         scores.add_score(id, score as u64);
     }
 
-    let sub_dag = CommittedSubDag::new(
-        vec![],
-        Certificate::default(&latest_protocol_version()),
-        0,
-        scores,
-        None,
-    );
+    let sub_dag = CommittedSubDag::new(vec![], Certificate::default(&latest_protocol_version()), 0, scores, None);
 
-    store
-        .write_consensus_state(&HashMap::new(), &sub_dag)
-        .unwrap();
+    store.write_consensus_state(&HashMap::new(), &sub_dag).unwrap();
 
     // WHEN
     let mut protocol_config = ProtocolConfig::get_for_max_version_UNSAFE();

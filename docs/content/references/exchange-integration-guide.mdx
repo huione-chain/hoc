@@ -126,7 +126,7 @@ The response is a JSON object that includes the totalBalance for the address:
 {
   "jsonrpc": "2.0",
   "result": {
-    "coinType": "0x2::sui::SUI",
+    "coinType": "0x2::hc::HC",
     "coinObjectCount": 40,
     "totalBalance": 10000000000,
     "lockedBalance": {}
@@ -259,7 +259,7 @@ Sui supports the following API operations related to staking. You can find the s
 ```move
 public fun request_add_stake(
    self: &mut SuiSystemState,
-   stake: Coin<SUI>,
+   stake: Coin<HC>,
    validator_address: address,
    ctx: &mut TxContext,
 ) {
@@ -279,7 +279,7 @@ public fun request_add_stake(
 ```move
 public fun request_add_stake_mul_coin(
    self: &mut SuiSystemState,
-   delegate_stakes: vector<Coin<SUI>>,
+   delegate_stakes: vector<Coin<HC>>,
    stake_amount: option::Option<u64>,
    validator_address: address,
    ctx: &mut TxContext,
@@ -295,7 +295,7 @@ public fun request_add_stake_mul_coin(
 ```move
 public fun request_add_stake_with_locked_coin(
    self: &mut SuiSystemState,
-   stake: LockedCoin<SUI>,
+   stake: LockedCoin<HC>,
    validator_address: address,
    ctx: &mut TxContext,
 ) {

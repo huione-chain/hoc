@@ -1,18 +1,26 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use jsonrpsee::core::RpcResult;
-use jsonrpsee::proc_macros::rpc;
+use jsonrpsee::{core::RpcResult, proc_macros::rpc};
 
-use sui_json_rpc_types::ProtocolConfigResponse;
 use sui_json_rpc_types::{
-    Checkpoint, CheckpointId, CheckpointPage, SuiEvent, SuiGetPastObjectRequest,
-    SuiObjectDataOptions, SuiObjectResponse, SuiPastObjectResponse, SuiTransactionBlockResponse,
+    Checkpoint,
+    CheckpointId,
+    CheckpointPage,
+    ProtocolConfigResponse,
+    SuiEvent,
+    SuiGetPastObjectRequest,
+    SuiObjectDataOptions,
+    SuiObjectResponse,
+    SuiPastObjectResponse,
+    SuiTransactionBlockResponse,
     SuiTransactionBlockResponseOptions,
 };
 use sui_open_rpc_macros::open_rpc;
-use sui_types::base_types::{ObjectID, SequenceNumber, TransactionDigest};
-use sui_types::sui_serde::BigInt;
+use sui_types::{
+    base_types::{ObjectID, SequenceNumber, TransactionDigest},
+    sui_serde::BigInt,
+};
 
 #[open_rpc(namespace = "sui", tag = "Read API")]
 #[rpc(server, client, namespace = "sui")]

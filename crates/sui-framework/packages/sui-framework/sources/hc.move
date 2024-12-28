@@ -1,9 +1,9 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// Coin<SUI> is the token used to pay for gas in Sui.
+/// Coin<HC> is the token used to pay for gas in HC.
 /// It has 9 decimals, and the smallest unit (10^-9) is called "mist".
-module sui::sui;
+module sui::hc;
 
 use sui::balance::Balance;
 use sui::coin;
@@ -15,30 +15,30 @@ const ENotSystemAddress: u64 = 1;
 #[allow(unused_const)]
 /// The amount of Mist per Sui token based on the fact that mist is
 /// 10^-9 of a Sui token
-const MIST_PER_SUI: u64 = 1_000_000_000;
+const MIST_PER_HC: u64 = 1_000_000_000;
 
 #[allow(unused_const)]
 /// The total supply of Sui denominated in whole Sui tokens (10 Billion)
-const TOTAL_SUPPLY_SUI: u64 = 10_000_000_000;
+const TOTAL_SUPPLY_HC: u64 = 10_000_000_000;
 
 /// The total supply of Sui denominated in Mist (10 Billion * 10^9)
 const TOTAL_SUPPLY_MIST: u64 = 10_000_000_000_000_000_000;
 
 /// Name of the coin
-public struct SUI has drop {}
+public struct HC has drop {}
 
 #[allow(unused_function)]
-/// Register the `SUI` Coin to acquire its `Supply`.
+/// Register the `HC` Coin to acquire its `Supply`.
 /// This should be called only once during genesis creation.
-fun new(ctx: &mut TxContext): Balance<SUI> {
+fun new(ctx: &mut TxContext): Balance<HC> {
     assert!(ctx.sender() == @0x0, ENotSystemAddress);
     assert!(ctx.epoch() == 0, EAlreadyMinted);
 
     let (treasury, metadata) = coin::create_currency(
-        SUI {},
+        HC {},
         9,
-        b"SUI",
-        b"Sui",
+        b"HC",
+        b"Hc",
         // TODO: add appropriate description and logo url
         b"",
         option::none(),
@@ -51,6 +51,6 @@ fun new(ctx: &mut TxContext): Balance<SUI> {
     total_sui
 }
 
-public entry fun transfer(c: coin::Coin<SUI>, recipient: address) {
+public entry fun transfer(c: coin::Coin<HC>, recipient: address) {
     transfer::public_transfer(c, recipient)
 }

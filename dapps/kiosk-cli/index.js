@@ -29,7 +29,7 @@ import {
   formatAddress,
   isValidSuiAddress,
   isValidSuiObjectId,
-  MIST_PER_SUI,
+  MIST_PER_HC,
 } from '@mysten/sui/utils';
 import { bcs } from '@mysten/sui/bcs';
 import { program } from 'commander';
@@ -798,8 +798,8 @@ function formatAmount(amount) {
     return null;
   }
 
-  if (amount <= MIST_PER_SUI) {
-    return Number(amount) / Number(MIST_PER_SUI);
+  if (amount <= MIST_PER_HC) {
+    return Number(amount) / Number(MIST_PER_HC);
   }
 
   let len = amount.toString().length;

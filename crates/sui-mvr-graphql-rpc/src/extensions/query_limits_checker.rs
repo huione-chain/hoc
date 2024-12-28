@@ -1,27 +1,34 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::config::{Limits, ServiceConfig};
-use crate::error::{code, graphql_error, graphql_error_at_pos};
-use crate::metrics::Metrics;
-use async_graphql::extensions::NextParseQuery;
-use async_graphql::extensions::NextRequest;
-use async_graphql::extensions::{Extension, ExtensionContext, ExtensionFactory};
-use async_graphql::parser::types::{
-    DocumentOperations, ExecutableDocument, Field, FragmentDefinition, OperationDefinition,
-    Selection,
+use crate::{
+    config::{Limits, ServiceConfig},
+    error::{code, graphql_error, graphql_error_at_pos},
+    metrics::Metrics,
 };
-use async_graphql::{value, Name, Pos, Positioned, Response, ServerError, ServerResult, Variables};
-use async_graphql_value::Value as GqlValue;
-use async_graphql_value::{ConstValue, Value};
+use async_graphql::{
+    extensions::{Extension, ExtensionContext, ExtensionFactory, NextParseQuery, NextRequest},
+    parser::types::{DocumentOperations, ExecutableDocument, Field, FragmentDefinition, OperationDefinition, Selection},
+    value,
+    Name,
+    Pos,
+    Positioned,
+    Response,
+    ServerError,
+    ServerResult,
+    Variables,
+};
+use async_graphql_value::{ConstValue, Value as GqlValue, Value};
 use async_trait::async_trait;
 use axum::http::HeaderName;
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
-use std::mem;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::{
+    collections::{HashMap, HashSet},
+    mem,
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 use sui_graphql_rpc_headers::LIMITS_HEADER;
 use tracing::{error, info};
 use uuid::Uuid;
@@ -220,10 +227,7 @@ impl<'a> LimitsTraversal<'a> {
 
     /// Look for `executeTransactionBlock` and `dryRunTransactionBlock` nodes among the
     /// query selections, and check their argument sizes are under the service limits.
-    fn traverse_selection_for_tx_payload(
-        &mut self,
-        item: &'a Positioned<Selection>,
-    ) -> ServerResult<()> {
+    fn traverse_selection_for_tx_payload(&mut self, item: &'a Positioned<Selection>) -> ServerResult<()> {
         match &item.node {
             Selection::Field(f) => {
                 let name = &f.node.name.node;
@@ -242,10 +246,8 @@ impl<'a> LimitsTraversal<'a> {
 
             Selection::FragmentSpread(fs) => {
                 let name = &fs.node.fragment_name.node;
-                let def = self
-                    .fragments
-                    .get(name)
-                    .ok_or_else(|| self.reporter.fragment_not_found_error(name, fs.pos))?;
+                let def =
+                    self.fragments.get(name).ok_or_else(|| self.reporter.fragment_not_found_error(name, fs.pos))?;
 
                 for selection in &def.node.selection_set.node.items {
                     self.traverse_selection_for_tx_payload(selection)?;
@@ -294,12 +296,7 @@ impl<'a> LimitsTraversal<'a> {
                     }
                 }
 
-                V::Null
-                | V::Number(_)
-                | V::Boolean(_)
-                | V::Binary(_)
-                | V::Enum(_)
-                | V::Object(_) => {
+                V::Null | V::Number(_) | V::Boolean(_) | V::Binary(_) | V::Enum(_) | V::Object(_) => {
                     // Transaction payloads cannot be any of these types, so this request is
                     // destined to fail. Ignore these values for now, so that it can fail later on
                     // with a more legible error message.
@@ -360,12 +357,7 @@ impl<'a> LimitsTraversal<'a> {
                     }
                 }
 
-                CV::Null
-                | CV::Number(_)
-                | CV::Boolean(_)
-                | CV::Binary(_)
-                | CV::Enum(_)
-                | CV::Object(_) => {
+                CV::Null | CV::Number(_) | CV::Boolean(_) | CV::Binary(_) | CV::Enum(_) | CV::Object(_) => {
                     // As in `check_tx_arg`, these are safe to ignore.
                 }
             }
@@ -420,9 +412,7 @@ impl<'a> LimitsTraversal<'a> {
                         break 'm multiplicity;
                     };
 
-                    multiplicity
-                        .checked_mul(page_size)
-                        .ok_or_else(|| self.output_node_error())?
+                    multiplicity.checked_mul(page_size).ok_or_else(|| self.output_node_error())?
                 };
 
                 let page_size = self.connection_page_size(f)?;
@@ -440,10 +430,8 @@ impl<'a> LimitsTraversal<'a> {
 
             Selection::FragmentSpread(fs) => {
                 let name = &fs.node.fragment_name.node;
-                let def = self
-                    .fragments
-                    .get(name)
-                    .ok_or_else(|| self.reporter.fragment_not_found_error(name, fs.pos))?;
+                let def =
+                    self.fragments.get(name).ok_or_else(|| self.reporter.fragment_not_found_error(name, fs.pos))?;
 
                 for selection in &def.node.selection_set.node.items {
                     self.traverse_selection_for_output(selection, multiplicity, page_size)?;
@@ -470,21 +458,14 @@ impl<'a> LimitsTraversal<'a> {
             (None, None) => self.reporter.limits.default_page_size as u64,
         };
 
-        Ok(Some(
-            page_size.try_into().map_err(|_| self.output_node_error())?,
-        ))
+        Ok(Some(page_size.try_into().map_err(|_| self.output_node_error())?))
     }
 
     /// Checks if the given field corresponds to a connection based on whether it contains a
     /// selection for `edges` or `nodes`. That selection could be immediately in that field's
     /// selection set, or nested within a fragment or inline fragment spread.
     fn is_connection(&self, f: &Positioned<Field>) -> bool {
-        f.node
-            .selection_set
-            .node
-            .items
-            .iter()
-            .any(|s| self.has_connection_fields(s))
+        f.node.selection_set.node.items.iter().any(|s| self.has_connection_fields(s))
     }
 
     /// Look for fields that suggest the container for this selection is a connection. Recurses
@@ -497,13 +478,9 @@ impl<'a> LimitsTraversal<'a> {
                 CONNECTION_FIELDS.contains(&name.as_str())
             }
 
-            Selection::InlineFragment(f) => f
-                .node
-                .selection_set
-                .node
-                .items
-                .iter()
-                .any(|s| self.has_connection_fields(s)),
+            Selection::InlineFragment(f) => {
+                f.node.selection_set.node.items.iter().any(|s| self.has_connection_fields(s))
+            }
 
             Selection::FragmentSpread(fs) => {
                 let name = &fs.node.fragment_name.node;
@@ -511,12 +488,7 @@ impl<'a> LimitsTraversal<'a> {
                     return false;
                 };
 
-                def.node
-                    .selection_set
-                    .node
-                    .items
-                    .iter()
-                    .any(|s| self.has_connection_fields(s))
+                def.node.selection_set.node.items.iter().any(|s| self.has_connection_fields(s))
             }
         }
     }
@@ -545,8 +517,7 @@ impl<'a> LimitsTraversal<'a> {
     /// failed).
     fn tx_payload_size_error(&mut self) -> ServerError {
         self.tx_payload_budget = 0;
-        self.reporter
-            .payload_size_error("Transaction payload too large")
+        self.reporter.payload_size_error("Transaction payload too large")
     }
 
     /// Error returned if output node estimate exceeds limit. Also sets the output budget to zero,
@@ -575,11 +546,7 @@ impl<'a> LimitsTraversal<'a> {
 impl<'a> Reporter<'a> {
     fn new(ctx: &'a ExtensionContext<'a>) -> Self {
         let cfg: &ServiceConfig = ctx.data_unchecked();
-        Self {
-            limits: &cfg.limits,
-            query_id: ctx.data_unchecked(),
-            session_id: ctx.data_unchecked(),
-        }
+        Self { limits: &cfg.limits, query_id: ctx.data_unchecked(), session_id: ctx.data_unchecked() }
     }
 
     /// Error returned if a fragment is referred to but not found in the document.
@@ -595,10 +562,7 @@ impl<'a> Reporter<'a> {
     fn output_node_error(&self) -> ServerError {
         self.graphql_error(
             code::BAD_USER_INPUT,
-            format!(
-                "Estimated output nodes exceeds {}",
-                self.limits.max_output_nodes
-            ),
+            format!("Estimated output nodes exceeds {}", self.limits.max_output_nodes),
         )
     }
 
@@ -651,30 +615,16 @@ impl<'a> Reporter<'a> {
 
 impl Usage {
     fn report(&self, metrics: &Metrics) {
-        metrics
-            .request_metrics
-            .input_nodes
-            .observe(self.input_nodes as f64);
-        metrics
-            .request_metrics
-            .output_nodes
-            .observe(self.output_nodes as f64);
-        metrics
-            .request_metrics
-            .query_depth
-            .observe(self.depth as f64);
-        metrics
-            .request_metrics
-            .query_payload_size
-            .observe(self.query_payload as f64);
+        metrics.request_metrics.input_nodes.observe(self.input_nodes as f64);
+        metrics.request_metrics.output_nodes.observe(self.output_nodes as f64);
+        metrics.request_metrics.query_depth.observe(self.depth as f64);
+        metrics.request_metrics.query_payload_size.observe(self.query_payload as f64);
     }
 }
 
 impl ExtensionFactory for QueryLimitsChecker {
     fn create(&self) -> Arc<dyn Extension> {
-        Arc::new(QueryLimitsCheckerExt {
-            usage: Mutex::new(None),
-        })
+        Arc::new(QueryLimitsCheckerExt { usage: Mutex::new(None) })
     }
 }
 
@@ -706,8 +656,8 @@ impl Extension for QueryLimitsCheckerExt {
         let instant = Instant::now();
 
         // Make sure the request meets a basic size limit before trying to parse it.
-        let max_payload_size = reporter.limits.max_query_payload_size as u64
-            + reporter.limits.max_tx_payload_size as u64;
+        let max_payload_size =
+            reporter.limits.max_query_payload_size as u64 + reporter.limits.max_tx_payload_size as u64;
 
         if payload_size.0 > max_payload_size {
             let message = format!("Overall request too large: {} bytes", payload_size.0);
@@ -730,8 +680,7 @@ impl Extension for QueryLimitsCheckerExt {
             }
         }
 
-        let mut traversal =
-            LimitsTraversal::new(*payload_size, &reporter, &doc.fragments, variables);
+        let mut traversal = LimitsTraversal::new(*payload_size, &reporter, &doc.fragments, variables);
 
         let res = traversal.check_document(&doc);
         let usage = traversal.finish(query.len() as u32);

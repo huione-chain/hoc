@@ -7,11 +7,13 @@ use config::{AuthorityIdentifier, Committee};
 use enum_dispatch::enum_dispatch;
 use fastcrypto::hash::{Digest, Hash, HashFunction};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::sync::Arc;
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    fmt,
+    fmt::{Display, Formatter},
+    sync::Arc,
+};
 use tokio::sync::mpsc;
 use tracing::warn;
 
@@ -80,9 +82,7 @@ impl CommittedSubDag {
         previous_sub_dag: Option<&CommittedSubDag>,
     ) -> Self {
         // Narwhal enforces some invariants on the header.created_at, so we can use it as a timestamp.
-        let previous_sub_dag_ts = previous_sub_dag
-            .map(|s| s.commit_timestamp)
-            .unwrap_or_default();
+        let previous_sub_dag_ts = previous_sub_dag.map(|s| s.commit_timestamp).unwrap_or_default();
         let commit_timestamp = previous_sub_dag_ts.max(*leader.header().created_at());
 
         if previous_sub_dag_ts > *leader.header().created_at() {
@@ -90,20 +90,10 @@ impl CommittedSubDag {
             leader.header().created_at(), previous_sub_dag_ts, commit_timestamp);
         }
 
-        Self {
-            certificates,
-            leader,
-            sub_dag_index,
-            reputation_score,
-            commit_timestamp,
-        }
+        Self { certificates, leader, sub_dag_index, reputation_score, commit_timestamp }
     }
 
-    pub fn from_commit(
-        commit: ConsensusCommit,
-        certificates: Vec<Certificate>,
-        leader: Certificate,
-    ) -> Self {
+    pub fn from_commit(commit: ConsensusCommit, certificates: Vec<Certificate>, leader: Certificate) -> Self {
         Self {
             certificates,
             leader,
@@ -122,17 +112,11 @@ impl CommittedSubDag {
     }
 
     pub fn num_batches(&self) -> usize {
-        self.certificates
-            .iter()
-            .map(|x| x.header().payload().len())
-            .sum()
+        self.certificates.iter().map(|x| x.header().payload().len()).sum()
     }
 
     pub fn is_last(&self, output: &Certificate) -> bool {
-        self.certificates
-            .iter()
-            .last()
-            .map_or_else(|| false, |x| x == output)
+        self.certificates.iter().last().map_or_else(|| false, |x| x == output)
     }
 
     pub fn leader_round(&self) -> Round {
@@ -162,19 +146,17 @@ impl Hash<{ crypto::DIGEST_LENGTH }> for CommittedSubDag {
         }
         hasher.update(self.leader.digest());
         hasher.update(
-            bcs::to_bytes(&self.sub_dag_index).unwrap_or_else(|_| {
-                panic!("Serialization of {} should not fail", self.sub_dag_index)
-            }),
+            bcs::to_bytes(&self.sub_dag_index)
+                .unwrap_or_else(|_| panic!("Serialization of {} should not fail", self.sub_dag_index)),
         );
-        hasher.update(bcs::to_bytes(&self.reputation_score).unwrap_or_else(|_| {
-            panic!(
-                "Serialization of {:?} should not fail",
-                self.reputation_score
-            )
-        }));
-        hasher.update(bcs::to_bytes(&self.commit_timestamp).unwrap_or_else(|_| {
-            panic!("Serialization of {} should not fail", self.commit_timestamp)
-        }));
+        hasher.update(
+            bcs::to_bytes(&self.reputation_score)
+                .unwrap_or_else(|_| panic!("Serialization of {:?} should not fail", self.reputation_score)),
+        );
+        hasher.update(
+            bcs::to_bytes(&self.commit_timestamp)
+                .unwrap_or_else(|_| panic!("Serialization of {} should not fail", self.commit_timestamp)),
+        );
         ConsensusOutputDigest(hasher.finalize().into())
     }
 }
@@ -197,17 +179,12 @@ impl ReputationScores {
     pub fn new(committee: &Committee) -> Self {
         let scores_per_authority = committee.authorities().map(|a| (a.id(), 0_u64)).collect();
 
-        Self {
-            scores_per_authority,
-            ..Default::default()
-        }
+        Self { scores_per_authority, ..Default::default() }
     }
+
     /// Adds the provided `score` to the existing score for the provided `authority`
     pub fn add_score(&mut self, authority: AuthorityIdentifier, score: u64) {
-        self.scores_per_authority
-            .entry(authority)
-            .and_modify(|value| *value += score)
-            .or_insert(score);
+        self.scores_per_authority.entry(authority).and_modify(|value| *value += score).or_insert(score);
     }
 
     pub fn total_authorities(&self) -> u64 {
@@ -220,11 +197,8 @@ impl ReputationScores {
 
     // Returns the authorities in score descending order.
     pub fn authorities_by_score_desc(&self) -> Vec<(AuthorityIdentifier, u64)> {
-        let mut authorities: Vec<_> = self
-            .scores_per_authority
-            .iter()
-            .map(|(authority, score)| (*authority, *score))
-            .collect();
+        let mut authorities: Vec<_> =
+            self.scores_per_authority.iter().map(|(authority, score)| (*authority, *score)).collect();
 
         authorities.sort_by(|a1, a2| {
             match a2.1.cmp(&a1.1) {
@@ -443,11 +417,7 @@ impl From<ConsensusOutputDigest> for Digest<{ crypto::DIGEST_LENGTH }> {
 
 impl fmt::Debug for ConsensusOutputDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-        )
+        write!(f, "{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0))
     }
 }
 
@@ -456,21 +426,17 @@ impl fmt::Display for ConsensusOutputDigest {
         write!(
             f,
             "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-                .get(0..16)
-                .ok_or(fmt::Error)?
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0).get(0..16).ok_or(fmt::Error)?
         )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Certificate, Header, HeaderV1Builder};
-    use crate::{CommittedSubDag, ReputationScores};
+    use crate::{Certificate, CommittedSubDag, Header, HeaderV1Builder, ReputationScores};
     use config::AuthorityIdentifier;
     use indexmap::IndexMap;
-    use std::collections::BTreeSet;
-    use std::num::NonZeroUsize;
+    use std::{collections::BTreeSet, num::NonZeroUsize};
     use test_utils::{latest_protocol_version, CommitteeFixture};
 
     #[test]
@@ -489,13 +455,8 @@ mod tests {
             .build()
             .unwrap();
 
-        let certificate = Certificate::new_unsigned(
-            &latest_protocol_version(),
-            &committee,
-            Header::V1(header),
-            Vec::new(),
-        )
-        .unwrap();
+        let certificate =
+            Certificate::new_unsigned(&latest_protocol_version(), &committee, Header::V1(header), Vec::new()).unwrap();
 
         // AND we initialise the sub dag via the "restore" way
         let sub_dag_round = CommittedSubDag {
@@ -530,22 +491,12 @@ mod tests {
             .build()
             .unwrap();
 
-        let certificate = Certificate::new_unsigned(
-            &latest_protocol_version(),
-            &committee,
-            Header::V1(header),
-            Vec::new(),
-        )
-        .unwrap();
+        let certificate =
+            Certificate::new_unsigned(&latest_protocol_version(), &committee, Header::V1(header), Vec::new()).unwrap();
 
         // AND
-        let sub_dag_round_2 = CommittedSubDag::new(
-            vec![certificate.clone()],
-            certificate,
-            1,
-            ReputationScores::default(),
-            None,
-        );
+        let sub_dag_round_2 =
+            CommittedSubDag::new(vec![certificate.clone()], certificate, 1, ReputationScores::default(), None);
 
         // AND commit timestamp is the leader's timestamp
         assert_eq!(sub_dag_round_2.commit_timestamp, newer_timestamp);
@@ -562,13 +513,8 @@ mod tests {
             .build()
             .unwrap();
 
-        let certificate = Certificate::new_unsigned(
-            &latest_protocol_version(),
-            &committee,
-            Header::V1(header),
-            Vec::new(),
-        )
-        .unwrap();
+        let certificate =
+            Certificate::new_unsigned(&latest_protocol_version(), &committee, Header::V1(header), Vec::new()).unwrap();
 
         // WHEN create the sub dag based on the "previously committed" sub dag.
         let sub_dag_round_4 = CommittedSubDag::new(
@@ -581,17 +527,12 @@ mod tests {
 
         // THEN the latest sub dag should have the highest committed timestamp - basically the
         // same as the previous commit round
-        assert_eq!(
-            sub_dag_round_4.commit_timestamp,
-            sub_dag_round_2.commit_timestamp
-        );
+        assert_eq!(sub_dag_round_4.commit_timestamp, sub_dag_round_2.commit_timestamp);
     }
 
     #[test]
     fn test_authority_sorting_in_reputation_scores() {
-        let fixture = CommitteeFixture::builder()
-            .committee_size(NonZeroUsize::new(10).unwrap())
-            .build();
+        let fixture = CommitteeFixture::builder().committee_size(NonZeroUsize::new(10).unwrap()).build();
         let committee = fixture.committee();
 
         let mut scores = ReputationScores::new(&committee);

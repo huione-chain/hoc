@@ -3,11 +3,11 @@
 
 use axum::{extract::Extension, http::StatusCode, routing::get, Json, Router};
 use mysten_metrics::spawn_logged_monitored_task;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::time::Duration;
-use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
-use tokio::time::sleep;
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    time::Duration,
+};
+use tokio::{net::TcpListener, task::JoinHandle, time::sleep};
 use tracing::{error, info};
 use types::ConditionalBroadcastReceiver;
 
@@ -16,9 +16,7 @@ pub fn start_admin_server(
     network: anemo::Network,
     mut tr_shutdown: ConditionalBroadcastReceiver,
 ) -> Vec<JoinHandle<()>> {
-    let mut router = Router::new()
-        .route("/peers", get(get_peers))
-        .route("/known_peers", get(get_known_peers));
+    let mut router = Router::new().route("/peers", get(get_peers)).route("/known_peers", get(get_known_peers));
 
     router = router.layer(Extension(network));
 
@@ -45,9 +43,7 @@ pub fn start_admin_server(
                                 _ = tr_shutdown.receiver.recv().await;
                             })
                             .await
-                            .unwrap_or_else(|err| {
-                                panic!("Failed to boot admin {}: {err}", socket_address)
-                            });
+                            .unwrap_or_else(|err| panic!("Failed to boot admin {}: {err}", socket_address));
 
                         return;
                     }
@@ -74,27 +70,13 @@ pub fn start_admin_server(
     handles
 }
 
-async fn get_peers(
-    Extension(network): Extension<anemo::Network>,
-) -> (StatusCode, Json<Vec<String>>) {
-    (
-        StatusCode::OK,
-        Json(network.peers().iter().map(|x| x.to_string()).collect()),
-    )
+async fn get_peers(Extension(network): Extension<anemo::Network>) -> (StatusCode, Json<Vec<String>>) {
+    (StatusCode::OK, Json(network.peers().iter().map(|x| x.to_string()).collect()))
 }
 
-async fn get_known_peers(
-    Extension(network): Extension<anemo::Network>,
-) -> (StatusCode, Json<Vec<String>>) {
+async fn get_known_peers(Extension(network): Extension<anemo::Network>) -> (StatusCode, Json<Vec<String>>) {
     (
         StatusCode::OK,
-        Json(
-            network
-                .known_peers()
-                .get_all()
-                .iter()
-                .map(|x| format!("{}: {:?}", x.peer_id, x.address))
-                .collect(),
-        ),
+        Json(network.known_peers().get_all().iter().map(|x| format!("{}: {:?}", x.peer_id, x.address)).collect()),
     )
 }

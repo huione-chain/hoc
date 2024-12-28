@@ -1,26 +1,40 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::path::PathBuf;
-use std::time::Duration;
-use std::{num::NonZeroUsize, path::Path, sync::Arc};
+use std::{
+    num::NonZeroUsize,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 
 use rand::rngs::OsRng;
-use sui_config::genesis::{TokenAllocation, TokenDistributionScheduleBuilder};
-use sui_config::node::AuthorityOverloadConfig;
-use sui_config::ExecutionCacheConfig;
+use sui_config::{
+    genesis::{TokenAllocation, TokenDistributionScheduleBuilder},
+    node::AuthorityOverloadConfig,
+    ExecutionCacheConfig,
+};
 use sui_macros::nondeterministic;
-use sui_types::base_types::{AuthorityName, SuiAddress};
-use sui_types::committee::{Committee, ProtocolVersion};
-use sui_types::crypto::{get_key_pair_from_rng, AccountKeyPair, KeypairTraits, PublicKey};
-use sui_types::object::Object;
-use sui_types::supported_protocol_versions::SupportedProtocolVersions;
-use sui_types::traffic_control::{PolicyConfig, RemoteFirewallConfig};
+use sui_types::{
+    base_types::{AuthorityName, SuiAddress},
+    committee::{Committee, ProtocolVersion},
+    crypto::{get_key_pair_from_rng, AccountKeyPair, KeypairTraits, PublicKey},
+    object::Object,
+    supported_protocol_versions::SupportedProtocolVersions,
+    traffic_control::{PolicyConfig, RemoteFirewallConfig},
+};
 
-use crate::genesis_config::{AccountConfig, ValidatorGenesisConfigBuilder, DEFAULT_GAS_AMOUNT};
-use crate::genesis_config::{GenesisConfig, ValidatorGenesisConfig};
-use crate::network_config::NetworkConfig;
-use crate::node_config_builder::ValidatorConfigBuilder;
+use crate::{
+    genesis_config::{
+        AccountConfig,
+        GenesisConfig,
+        ValidatorGenesisConfig,
+        ValidatorGenesisConfigBuilder,
+        DEFAULT_GAS_AMOUNT,
+    },
+    network_config::NetworkConfig,
+    node_config_builder::ValidatorConfigBuilder,
+};
 
 pub enum CommitteeConfig {
     Size(NonZeroUsize),
@@ -176,9 +190,7 @@ impl<R> ConfigBuilder<R> {
     }
 
     pub fn with_chain_start_timestamp_ms(mut self, chain_start_timestamp_ms: u64) -> Self {
-        self.get_or_init_genesis_config()
-            .parameters
-            .chain_start_timestamp_ms = chain_start_timestamp_ms;
+        self.get_or_init_genesis_config().parameters.chain_start_timestamp_ms = chain_start_timestamp_ms;
         self
     }
 
@@ -188,16 +200,12 @@ impl<R> ConfigBuilder<R> {
     }
 
     pub fn with_epoch_duration(mut self, epoch_duration_ms: u64) -> Self {
-        self.get_or_init_genesis_config()
-            .parameters
-            .epoch_duration_ms = epoch_duration_ms;
+        self.get_or_init_genesis_config().parameters.epoch_duration_ms = epoch_duration_ms;
         self
     }
 
     pub fn with_protocol_version(mut self, protocol_version: ProtocolVersion) -> Self {
-        self.get_or_init_genesis_config()
-            .parameters
-            .protocol_version = protocol_version;
+        self.get_or_init_genesis_config().parameters.protocol_version = protocol_version;
         self
     }
 
@@ -206,10 +214,7 @@ impl<R> ConfigBuilder<R> {
         self
     }
 
-    pub fn with_supported_protocol_version_callback(
-        mut self,
-        func: SupportedProtocolVersionsCallback,
-    ) -> Self {
+    pub fn with_supported_protocol_version_callback(mut self, func: SupportedProtocolVersionsCallback) -> Self {
         self.supported_protocol_versions_config = Some(ProtocolVersionsConfig::PerValidator(func));
         self
     }
@@ -220,24 +225,16 @@ impl<R> ConfigBuilder<R> {
     }
 
     pub fn with_state_accumulator_v2_enabled(mut self, enabled: bool) -> Self {
-        self.state_accumulator_v2_enabled_config =
-            Some(StateAccumulatorV2EnabledConfig::Global(enabled));
+        self.state_accumulator_v2_enabled_config = Some(StateAccumulatorV2EnabledConfig::Global(enabled));
         self
     }
 
-    pub fn with_state_accumulator_v2_enabled_callback(
-        mut self,
-        func: StateAccumulatorV2EnabledCallback,
-    ) -> Self {
-        self.state_accumulator_v2_enabled_config =
-            Some(StateAccumulatorV2EnabledConfig::PerValidator(func));
+    pub fn with_state_accumulator_v2_enabled_callback(mut self, func: StateAccumulatorV2EnabledCallback) -> Self {
+        self.state_accumulator_v2_enabled_config = Some(StateAccumulatorV2EnabledConfig::PerValidator(func));
         self
     }
 
-    pub fn with_state_accumulator_v2_enabled_config(
-        mut self,
-        c: StateAccumulatorV2EnabledConfig,
-    ) -> Self {
+    pub fn with_state_accumulator_v2_enabled_config(mut self, c: StateAccumulatorV2EnabledConfig) -> Self {
         self.state_accumulator_v2_enabled_config = Some(c);
         self
     }
@@ -267,10 +264,7 @@ impl<R> ConfigBuilder<R> {
         self
     }
 
-    pub fn with_submit_delay_step_override_millis(
-        mut self,
-        submit_delay_step_override_millis: u64,
-    ) -> Self {
+    pub fn with_submit_delay_step_override_millis(mut self, submit_delay_step_override_millis: u64) -> Self {
         self.submit_delay_step_override_millis = Some(submit_delay_step_override_millis);
         self
     }
@@ -321,8 +315,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
 
                 keys.into_iter()
                     .map(|authority_key| {
-                        let mut builder = ValidatorGenesisConfigBuilder::new()
-                            .with_protocol_key_pair(authority_key);
+                        let mut builder = ValidatorGenesisConfigBuilder::new().with_protocol_key_pair(authority_key);
                         if let Some(rgp) = self.reference_gas_price {
                             builder = builder.with_gas_price(rgp);
                         }
@@ -351,11 +344,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
             }
             CommitteeConfig::Deterministic((size, keys)) => {
                 // If no keys are provided, generate them.
-                let keys = keys.unwrap_or(
-                    (0..size.get())
-                        .map(|_| get_key_pair_from_rng(&mut rng).1)
-                        .collect(),
-                );
+                let keys = keys.unwrap_or((0..size.get()).map(|_| get_key_pair_from_rng(&mut rng).1).collect());
 
                 let mut configs = vec![];
                 for (i, key) in keys.into_iter().enumerate() {
@@ -373,9 +362,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
             }
         };
 
-        let genesis_config = self
-            .genesis_config
-            .unwrap_or_else(GenesisConfig::for_local_testing);
+        let genesis_config = self.genesis_config.unwrap_or_else(GenesisConfig::for_local_testing);
 
         let (account_keys, allocations) = genesis_config.generate_accounts(&mut rng).unwrap();
 
@@ -411,13 +398,9 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
                 .add_objects(self.additional_objects);
 
             for (i, validator) in validators.iter().enumerate() {
-                let name = validator
-                    .name
-                    .clone()
-                    .unwrap_or(format!("validator-{i}").to_string());
+                let name = validator.name.clone().unwrap_or(format!("validator-{i}").to_string());
                 let validator_info = validator.to_validator_info(name);
-                builder =
-                    builder.add_validator(validator_info.info, validator_info.proof_of_possession);
+                builder = builder.add_validator(validator_info.info, validator_info.proof_of_possession);
             }
 
             builder = builder.with_token_distribution_schedule(token_distribution_schedule);
@@ -442,11 +425,8 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
                     builder = builder.with_max_submit_position(max_submit_position);
                 }
 
-                if let Some(submit_delay_step_override_millis) =
-                    self.submit_delay_step_override_millis
-                {
-                    builder = builder
-                        .with_submit_delay_step_override_millis(submit_delay_step_override_millis);
+                if let Some(submit_delay_step_override_millis) = self.submit_delay_step_override_millis {
+                    builder = builder.with_submit_delay_step_override_millis(submit_delay_step_override_millis);
                 }
 
                 if let Some(jwk_fetch_interval) = self.jwk_fetch_interval {
@@ -454,8 +434,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
                 }
 
                 if let Some(authority_overload_config) = &self.authority_overload_config {
-                    builder =
-                        builder.with_authority_overload_config(authority_overload_config.clone());
+                    builder = builder.with_authority_overload_config(authority_overload_config.clone());
                 }
 
                 if let Some(execution_cache_config) = &self.execution_cache_config {
@@ -468,9 +447,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
 
                 if let Some(spvc) = &self.supported_protocol_versions_config {
                     let supported_versions = match spvc {
-                        ProtocolVersionsConfig::Default => {
-                            SupportedProtocolVersions::SYSTEM_DEFAULT
-                        }
+                        ProtocolVersionsConfig::Default => SupportedProtocolVersions::SYSTEM_DEFAULT,
                         ProtocolVersionsConfig::Global(v) => *v,
                         ProtocolVersionsConfig::PerValidator(func) => {
                             func(idx, Some(validator.key_pair.public().into()))
@@ -483,8 +460,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
                         StateAccumulatorV2EnabledConfig::Global(enabled) => *enabled,
                         StateAccumulatorV2EnabledConfig::PerValidator(func) => func(idx),
                     };
-                    builder =
-                        builder.with_state_accumulator_v2_enabled(state_accumulator_v2_enabled);
+                    builder = builder.with_state_accumulator_v2_enabled(state_accumulator_v2_enabled);
                 }
                 if let Some(num_unpruned_validators) = self.num_unpruned_validators {
                     if idx < num_unpruned_validators {
@@ -494,11 +470,7 @@ impl<R: rand::RngCore + rand::CryptoRng> ConfigBuilder<R> {
                 builder.build(validator, genesis.clone())
             })
             .collect();
-        NetworkConfig {
-            validator_configs,
-            genesis,
-            account_keys,
-        }
+        NetworkConfig { validator_configs, genesis, account_keys }
     }
 }
 
@@ -516,21 +488,13 @@ mod tests {
 
         let mut s = serde_yaml::to_string(&g).unwrap();
         let loaded_genesis: Genesis = serde_yaml::from_str(&s).unwrap();
-        loaded_genesis
-            .genesis()
-            .unwrap()
-            .checkpoint_contents()
-            .digest(); // cache digest before comparing.
+        loaded_genesis.genesis().unwrap().checkpoint_contents().digest(); // cache digest before comparing.
         assert_eq!(g, loaded_genesis);
 
         // If both in-place and file location are provided, prefer the in-place variant
         s.push_str("\ngenesis-file-location: path/to/file");
         let loaded_genesis: Genesis = serde_yaml::from_str(&s).unwrap();
-        loaded_genesis
-            .genesis()
-            .unwrap()
-            .checkpoint_contents()
-            .digest(); // cache digest before comparing.
+        loaded_genesis.genesis().unwrap().checkpoint_contents().digest(); // cache digest before comparing.
         assert_eq!(g, loaded_genesis);
     }
 
@@ -552,16 +516,17 @@ mod tests {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-    use std::sync::Arc;
+    use std::{collections::HashSet, sync::Arc};
     use sui_config::genesis::Genesis;
     use sui_protocol_config::{Chain, ProtocolConfig, ProtocolVersion};
-    use sui_types::epoch_data::EpochData;
-    use sui_types::gas::SuiGasStatus;
-    use sui_types::in_memory_storage::InMemoryStorage;
-    use sui_types::metrics::LimitsMetrics;
-    use sui_types::sui_system_state::SuiSystemStateTrait;
-    use sui_types::transaction::CheckedInputObjects;
+    use sui_types::{
+        epoch_data::EpochData,
+        gas::SuiGasStatus,
+        in_memory_storage::InMemoryStorage,
+        metrics::LimitsMetrics,
+        sui_system_state::SuiSystemStateTrait,
+        transaction::CheckedInputObjects,
+    };
 
     #[test]
     fn roundtrip() {
@@ -589,8 +554,8 @@ mod test {
         let genesis_digest = *genesis_transaction.digest();
 
         let silent = true;
-        let executor = sui_execution::executor(&protocol_config, silent, None)
-            .expect("Creating an executor should not fail here");
+        let executor =
+            sui_execution::executor(&protocol_config, silent, None).expect("Creating an executor should not fail here");
 
         // Use a throwaway metrics registry for genesis transaction execution.
         let registry = prometheus::Registry::new();
@@ -602,22 +567,21 @@ mod test {
         let (kind, signer, _) = transaction_data.execution_parts();
         let input_objects = CheckedInputObjects::new_for_genesis(vec![]);
 
-        let (_inner_temp_store, _, effects, _execution_error) = executor
-            .execute_transaction_to_effects(
-                &InMemoryStorage::new(Vec::new()),
-                &protocol_config,
-                metrics,
-                expensive_checks,
-                &certificate_deny_set,
-                &epoch.epoch_id(),
-                epoch.epoch_start_timestamp(),
-                input_objects,
-                vec![],
-                SuiGasStatus::new_unmetered(),
-                kind,
-                signer,
-                genesis_digest,
-            );
+        let (_inner_temp_store, _, effects, _execution_error) = executor.execute_transaction_to_effects(
+            &InMemoryStorage::new(Vec::new()),
+            &protocol_config,
+            metrics,
+            expensive_checks,
+            &certificate_deny_set,
+            &epoch.epoch_id(),
+            epoch.epoch_start_timestamp(),
+            input_objects,
+            vec![],
+            SuiGasStatus::new_unmetered(),
+            kind,
+            signer,
+            genesis_digest,
+        );
 
         assert_eq!(&effects, genesis.effects());
     }

@@ -5,12 +5,17 @@ use anyhow::bail;
 use fastcrypto::traits::ToFromBytes;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use sui_types::base_types::SuiAddress;
-use sui_types::crypto::{
-    verify_proof_of_possession, AuthorityPublicKey, AuthorityPublicKeyBytes, AuthoritySignature,
-    NetworkPublicKey,
+use sui_types::{
+    base_types::SuiAddress,
+    crypto::{
+        verify_proof_of_possession,
+        AuthorityPublicKey,
+        AuthorityPublicKeyBytes,
+        AuthoritySignature,
+        NetworkPublicKey,
+    },
+    multiaddr::Multiaddr,
 };
-use sui_types::multiaddr::Multiaddr;
 
 const MAX_VALIDATOR_METADATA_LENGTH: usize = 256;
 
@@ -155,11 +160,9 @@ impl GenesisValidatorInfo {
         }
 
         let protocol_pubkey = AuthorityPublicKey::from_bytes(self.info.protocol_key.as_ref())?;
-        if let Err(e) = verify_proof_of_possession(
-            &self.proof_of_possession,
-            &protocol_pubkey,
-            self.info.account_address,
-        ) {
+        if let Err(e) =
+            verify_proof_of_possession(&self.proof_of_possession, &protocol_pubkey, self.info.account_address)
+        {
             bail!("proof of possession is incorrect: {e}");
         }
 
@@ -168,12 +171,7 @@ impl GenesisValidatorInfo {
 }
 
 impl From<GenesisValidatorInfo> for GenesisValidatorMetadata {
-    fn from(
-        GenesisValidatorInfo {
-            info,
-            proof_of_possession,
-        }: GenesisValidatorInfo,
-    ) -> Self {
+    fn from(GenesisValidatorInfo { info, proof_of_possession }: GenesisValidatorInfo) -> Self {
         Self {
             name: info.name,
             description: info.description,

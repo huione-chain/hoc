@@ -1,11 +1,12 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::VecDeque;
-use std::hash::{Hash, Hasher};
-use std::sync::atomic::AtomicU64;
-use std::sync::Arc;
-use std::{cmp::Ordering, hash::DefaultHasher};
+use std::{
+    cmp::Ordering,
+    collections::VecDeque,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::{atomic::AtomicU64, Arc},
+};
 
 use moka::sync::Cache as MokaCache;
 use mysten_common::debug_fatal;
@@ -27,9 +28,7 @@ pub struct CachedVersionMap<V> {
 
 impl<V> Default for CachedVersionMap<V> {
     fn default() -> Self {
-        Self {
-            values: VecDeque::new(),
-        }
+        Self { values: VecDeque::new() }
     }
 }
 
@@ -41,12 +40,7 @@ impl<V> CachedVersionMap<V> {
     pub fn insert(&mut self, version: SequenceNumber, value: V) {
         if !self.values.is_empty() {
             let back = self.values.back().unwrap().0;
-            assert!(
-                back < version,
-                "version must be monotonically increasing ({} < {})",
-                back,
-                version
-            );
+            assert!(back < version, "version must be monotonically increasing ({} < {})", back, version);
         }
         self.values.push_back((version, value));
     }
@@ -184,9 +178,7 @@ where
     pub fn new(cache_size: u64) -> Self {
         Self {
             cache: MokaCache::builder().max_capacity(cache_size).build(),
-            key_generation: (0..KEY_GENERATION_SIZE)
-                .map(|_| AtomicU64::new(0))
-                .collect(),
+            key_generation: (0..KEY_GENERATION_SIZE).map(|_| AtomicU64::new(0)).collect(),
         }
     }
 

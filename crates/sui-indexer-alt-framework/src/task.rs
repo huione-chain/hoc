@@ -44,11 +44,7 @@ pub trait TrySpawnStreamExt: Stream {
 }
 
 impl<S: Stream + Sized + 'static> TrySpawnStreamExt for S {
-    async fn try_for_each_spawned<Fut, F, E>(
-        self,
-        limit: impl Into<Option<usize>>,
-        mut f: F,
-    ) -> Result<(), E>
+    async fn try_for_each_spawned<Fut, F, E>(self, limit: impl Into<Option<usize>>, mut f: F) -> Result<(), E>
     where
         Fut: Future<Output = Result<(), E>> + Send + 'static,
         F: FnMut(Self::Item) -> Fut,
@@ -175,7 +171,8 @@ mod tests {
     use std::{
         sync::{
             atomic::{AtomicUsize, Ordering},
-            Arc, Mutex,
+            Arc,
+            Mutex,
         },
         time::Duration,
     };

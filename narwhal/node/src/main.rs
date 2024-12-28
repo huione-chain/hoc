@@ -1,18 +1,22 @@
 // Copyright (c) 2021, Facebook, Inc. and its affiliates
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-#![warn(
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    rust_2021_compatibility
-)]
+#![warn(future_incompatible, nonstandard_style, rust_2018_idioms, rust_2021_compatibility)]
 mod benchmark_client;
 use benchmark_client::{parse_url, url_to_multiaddr, Client, OperatingMode};
 use clap::{Parser, Subcommand};
 use config::{
-    Committee, CommitteeBuilder, Epoch, Export, Import, Parameters, PrometheusMetricsParameters,
-    WorkerCache, WorkerId, WorkerIndex, WorkerInfo,
+    Committee,
+    CommitteeBuilder,
+    Epoch,
+    Export,
+    Import,
+    Parameters,
+    PrometheusMetricsParameters,
+    WorkerCache,
+    WorkerId,
+    WorkerIndex,
+    WorkerInfo,
 };
 use crypto::{KeyPair, NetworkKeyPair};
 use eyre::{Context, Result};
@@ -20,9 +24,7 @@ use fastcrypto::traits::{EncodeDecodeBase64, KeyPair as _};
 use futures::join;
 use mysten_metrics::start_prometheus_server;
 use narwhal_node as node;
-use narwhal_node::metrics::NarwhalBenchMetrics;
-use narwhal_node::primary_node::PrimaryNode;
-use narwhal_node::worker_node::WorkerNode;
+use narwhal_node::{metrics::NarwhalBenchMetrics, primary_node::PrimaryNode, worker_node::WorkerNode};
 use network::client::NetworkClient;
 use node::{
     execution_state::SimpleExecutionState,
@@ -30,27 +32,26 @@ use node::{
 };
 use prometheus::Registry;
 use rand::{rngs::StdRng, SeedableRng};
-use std::sync::Arc;
 use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use storage::{CertificateStoreCacheMetrics, NodeStorage};
 use sui_keys::keypair_file::{
-    read_authority_keypair_from_file, read_network_keypair_from_file,
-    write_authority_keypair_to_file, write_keypair_to_file,
+    read_authority_keypair_from_file,
+    read_network_keypair_from_file,
+    write_authority_keypair_to_file,
+    write_keypair_to_file,
 };
 use sui_protocol_config::{Chain, ProtocolConfig, ProtocolVersion};
 use sui_types::{
-    crypto::{
-        get_key_pair_from_rng, AuthorityKeyPair, AuthorityPublicKey, NetworkPublicKey, SuiKeyPair,
-    },
+    crypto::{get_key_pair_from_rng, AuthorityKeyPair, AuthorityPublicKey, NetworkPublicKey, SuiKeyPair},
     multiaddr::Multiaddr,
 };
 use telemetry_subscribers::TelemetryGuards;
-use tokio::sync::mpsc::channel;
-use tokio::time::Duration;
+use tokio::{sync::mpsc::channel, time::Duration};
 use url::Url;
 
 // TODO: remove when old benchmark code is removed
@@ -199,12 +200,9 @@ async fn main() -> Result<(), eyre::Report> {
     let _guard = setup_telemetry(tracing_level, network_tracing_level, None);
 
     match &app.command {
-        Commands::BenchmarkGenesis {
-            ips,
-            working_directory,
-            num_workers,
-            base_port,
-        } => benchmark_genesis(ips, working_directory, *num_workers, *base_port)?,
+        Commands::BenchmarkGenesis { ips, working_directory, num_workers, base_port } => {
+            benchmark_genesis(ips, working_directory, *num_workers, *base_port)?
+        }
         Commands::GenerateKeys { filename } => {
             let keypair: AuthorityKeyPair = get_key_pair_from_rng(&mut rand::rngs::OsRng).1;
             write_authority_keypair_to_file(&keypair, filename).unwrap();
@@ -240,33 +238,22 @@ async fn main() -> Result<(), eyre::Report> {
             store,
             subcommand,
         } => {
-            let primary_keypair = read_authority_keypair_from_file(primary_keys)
-                .expect("Failed to load the node's primary keypair");
+            let primary_keypair =
+                read_authority_keypair_from_file(primary_keys).expect("Failed to load the node's primary keypair");
             let primary_network_keypair = read_network_keypair_from_file(primary_network_keys)
                 .expect("Failed to load the node's primary network keypair");
-            let worker_keypair = read_network_keypair_from_file(worker_keys)
-                .expect("Failed to load the node's worker keypair");
+            let worker_keypair =
+                read_network_keypair_from_file(worker_keys).expect("Failed to load the node's worker keypair");
 
-            let mut committee =
-                Committee::import(committee).context("Failed to load the committee information")?;
+            let mut committee = Committee::import(committee).context("Failed to load the committee information")?;
             committee.load();
 
-            let authority_id = committee
-                .authority_by_key(primary_keypair.public())
-                .unwrap()
-                .id();
+            let authority_id = committee.authority_by_key(primary_keypair.public()).unwrap().id();
 
             let (primary_registry, worker_registry) = match subcommand {
                 NodeType::Primary => (Some(primary_metrics_registry(authority_id)), None),
                 NodeType::Worker { id } => (None, Some(worker_metrics_registry(*id, authority_id))),
-                NodeType::Benchmark {
-                    worker_id,
-                    size: _,
-                    rate: _,
-                    duration: _,
-                    nodes: _,
-                    addr: _,
-                } => (
+                NodeType::Benchmark { worker_id, size: _, rate: _, duration: _, nodes: _, addr: _ } => (
                     Some(primary_metrics_registry(authority_id)),
                     Some(worker_metrics_registry(*worker_id, authority_id)),
                 ),
@@ -302,17 +289,10 @@ async fn main() -> Result<(), eyre::Report> {
 }
 
 /// Generate all the genesis files required for benchmarks.
-fn benchmark_genesis(
-    ips: &[String],
-    working_directory: &PathBuf,
-    num_workers: usize,
-    base_port: usize,
-) -> Result<()> {
+fn benchmark_genesis(ips: &[String], working_directory: &PathBuf, num_workers: usize, base_port: usize) -> Result<()> {
     tracing::info!("Generating benchmark genesis files");
-    fs::create_dir_all(working_directory).wrap_err(format!(
-        "Failed to create directory '{}'",
-        working_directory.display()
-    ))?;
+    fs::create_dir_all(working_directory)
+        .wrap_err(format!("Failed to create directory '{}'", working_directory.display()))?;
 
     // Use rng seed so that runs across multiple instances generate the same configs.
     let mut rng = StdRng::seed_from_u64(0);
@@ -353,10 +333,7 @@ fn benchmark_genesis(
 
     // todo: add the option for remote workers and multiple workers
     let mut addresses = BTreeMap::new();
-    for (pk, (network_pk, ip)) in primary_names
-        .iter()
-        .zip(primary_network_names.iter().zip(ips.iter()))
-    {
+    for (pk, (network_pk, ip)) in primary_names.iter().zip(primary_network_names.iter().zip(ips.iter())) {
         addresses.insert(pk.clone(), (network_pk.clone(), ip.clone()));
     }
 
@@ -365,9 +342,7 @@ fn benchmark_genesis(
     committee_path.push(Committee::DEFAULT_FILENAME);
     let mut committee_builder = CommitteeBuilder::new(Epoch::default());
     for (i, (pk, (network_pk, ip))) in addresses.iter().enumerate() {
-        let primary_address: Multiaddr = format!("/ip4/{}/udp/{}", ip, base_port + i)
-            .parse()
-            .unwrap();
+        let primary_address: Multiaddr = format!("/ip4/{}/udp/{}", ip, base_port + i).parse().unwrap();
         let protocol_key = AuthorityPublicKey::decode_base64(pk.as_str().trim())?.clone();
         let network_key = NetworkPublicKey::decode_base64(network_pk.as_str().trim())?.clone();
         committee_builder = committee_builder.add_authority(
@@ -381,9 +356,7 @@ fn benchmark_genesis(
     let committee = committee_builder.build();
     tracing::info!("Generated committee file: {}", committee_path.display());
 
-    committee
-        .export(committee_path.as_path().as_os_str().to_str().unwrap())
-        .expect("Failed to export committee file");
+    committee.export(committee_path.as_path().as_os_str().to_str().unwrap()).expect("Failed to export committee file");
 
     // Generate workers keys
     let mut worker_names = Vec::new();
@@ -406,10 +379,7 @@ fn benchmark_genesis(
     // Generate workers config
     let mut workers_path = working_directory.clone();
     workers_path.push(WorkerCache::DEFAULT_FILENAME);
-    let mut worker_cache = WorkerCache {
-        workers: BTreeMap::new(),
-        epoch: Epoch::default(),
-    };
+    let mut worker_cache = WorkerCache { workers: BTreeMap::new(), epoch: Epoch::default() };
     // 2 ports used per authority so add 2 * num authorities to base port
     let mut worker_base_port = base_port + (2 * primary_names.len());
 
@@ -417,31 +387,21 @@ fn benchmark_genesis(
         let mut workers = BTreeMap::new();
         for j in 0..num_workers {
             let worker_network_key =
-                NetworkPublicKey::decode_base64(worker_names[i * num_workers + j].as_str().trim())?
-                    .clone();
+                NetworkPublicKey::decode_base64(worker_names[i * num_workers + j].as_str().trim())?.clone();
 
             let worker_info = WorkerInfo {
                 name: worker_network_key,
-                transactions: Multiaddr::try_from(format!("/ip4/{ip}/tcp/{worker_base_port}/http"))
-                    .unwrap(),
-                worker_address: Multiaddr::try_from(format!(
-                    "/ip4/{ip}/udp/{}",
-                    worker_base_port + 1
-                ))
-                .unwrap(),
+                transactions: Multiaddr::try_from(format!("/ip4/{ip}/tcp/{worker_base_port}/http")).unwrap(),
+                worker_address: Multiaddr::try_from(format!("/ip4/{ip}/udp/{}", worker_base_port + 1)).unwrap(),
             };
             worker_base_port += 2;
             workers.insert(j as WorkerId, worker_info);
         }
         let protocol_key = AuthorityPublicKey::decode_base64(pk.as_str().trim())?.clone();
-        worker_cache
-            .workers
-            .insert(protocol_key, WorkerIndex(workers));
+        worker_cache.workers.insert(protocol_key, WorkerIndex(workers));
     }
 
-    worker_cache
-        .export(workers_path.as_path().as_os_str().to_str().unwrap())
-        .expect("Failed to export workers file");
+    worker_cache.export(workers_path.as_path().as_os_str().to_str().unwrap()).expect("Failed to export workers file");
 
     // Generate node parameters config
     let mut parameters_path = working_directory.clone();
@@ -459,10 +419,7 @@ fn benchmark_genesis(
     parameters
         .export(parameters_path.as_path().as_os_str().to_str().unwrap())
         .expect("Failed to export parameters file");
-    tracing::info!(
-        "Generated (public) parameters file: {}",
-        parameters_path.display()
-    );
+    tracing::info!("Generated (public) parameters file: {}", parameters_path.display());
 
     Ok(())
 }
@@ -480,11 +437,7 @@ fn setup_telemetry(
         // load special log filter
         .with_log_level(&log_filter);
 
-    let config = if let Some(reg) = prom_registry {
-        config.with_prom_registry(reg)
-    } else {
-        config
-    };
+    let config = if let Some(reg) = prom_registry { config.with_prom_registry(reg) } else { config };
 
     let (guard, _handle) = config.init();
     guard
@@ -529,32 +482,22 @@ async fn run(
     worker_registry: Option<Registry>,
 ) -> Result<(), eyre::Report> {
     // Read the workers and node's keypair from file.
-    let worker_cache =
-        WorkerCache::import(workers).context("Failed to load the worker information")?;
+    let worker_cache = WorkerCache::import(workers).context("Failed to load the worker information")?;
 
     // Load default parameters if none are specified.
     let parameters = match parameters {
-        Some(filename) => {
-            Parameters::import(filename).context("Failed to load the node's parameters")?
-        }
+        Some(filename) => Parameters::import(filename).context("Failed to load the node's parameters")?,
         None => Parameters::default(),
     };
 
     // spin up prometheus server exporter
     let prom_address = parameters.prometheus_metrics.socket_addr.clone();
-    info!(
-        "Starting Prometheus HTTP metrics endpoint at {}",
-        prom_address
-    );
-    let registry_service = start_prometheus_server(
-        prom_address
-            .to_socket_addr()
-            .expect("failed to convert Multiaddr to SocketAddr"),
-    );
+    info!("Starting Prometheus HTTP metrics endpoint at {}", prom_address);
+    let registry_service =
+        start_prometheus_server(prom_address.to_socket_addr().expect("failed to convert Multiaddr to SocketAddr"));
 
     // Make the data store.
-    let certificate_store_cache_metrics =
-        Arc::new(CertificateStoreCacheMetrics::new(registry_service.clone()));
+    let certificate_store_cache_metrics = Arc::new(CertificateStoreCacheMetrics::new(registry_service.clone()));
     let store = NodeStorage::reopen(store_path, Some(certificate_store_cache_metrics.clone()));
 
     let client = NetworkClient::new_from_keypair(&primary_network_keypair);
@@ -605,14 +548,7 @@ async fn run(
 
             (None, Some(worker), None)
         }
-        NodeType::Benchmark {
-            worker_id,
-            size,
-            rate,
-            duration,
-            nodes,
-            addr,
-        } => {
+        NodeType::Benchmark { worker_id, size, rate, duration, nodes, addr } => {
             let primary = PrimaryNode::new(parameters.clone(), registry_service.clone());
 
             primary
@@ -644,8 +580,7 @@ async fn run(
             } else {
                 worker_store_path.push(format!("worker-db-{}", worker_id));
             }
-            let worker_store =
-                NodeStorage::reopen(worker_store_path, Some(certificate_store_cache_metrics));
+            let worker_store = NodeStorage::reopen(worker_store_path, Some(certificate_store_cache_metrics));
 
             worker
                 .start(

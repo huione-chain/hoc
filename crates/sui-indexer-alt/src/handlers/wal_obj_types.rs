@@ -22,9 +22,9 @@ use super::sum_obj_types::SumObjTypes;
 pub(crate) struct WalObjTypes;
 
 impl Processor for WalObjTypes {
-    const NAME: &'static str = "wal_obj_types";
-
     type Value = StoredObjectUpdate<StoredSumObjType>;
+
+    const NAME: &'static str = "wal_obj_types";
 
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
         SumObjTypes.process(checkpoint)
@@ -33,8 +33,8 @@ impl Processor for WalObjTypes {
 
 #[async_trait::async_trait]
 impl Handler for WalObjTypes {
-    const MIN_EAGER_ROWS: usize = 100;
     const MAX_PENDING_ROWS: usize = 10000;
+    const MIN_EAGER_ROWS: usize = 100;
 
     async fn commit(values: &[Self::Value], conn: &mut db::Connection<'_>) -> Result<usize> {
         let values: Vec<_> = values
@@ -55,16 +55,11 @@ impl Handler for WalObjTypes {
             })
             .collect();
 
-        Ok(diesel::insert_into(wal_obj_types::table)
-            .values(&values)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await?)
+        Ok(diesel::insert_into(wal_obj_types::table).values(&values).on_conflict_do_nothing().execute(conn).await?)
     }
 
     async fn prune(from: u64, to: u64, conn: &mut db::Connection<'_>) -> Result<usize> {
-        let filter = wal_obj_types::table
-            .filter(wal_obj_types::cp_sequence_number.between(from as i64, to as i64 - 1));
+        let filter = wal_obj_types::table.filter(wal_obj_types::cp_sequence_number.between(from as i64, to as i64 - 1));
 
         Ok(diesel::delete(filter).execute(conn).await?)
     }

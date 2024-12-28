@@ -9,16 +9,18 @@ use itertools::Itertools;
 use mysten_metrics::RegistryService;
 use mysten_network::multiaddr::Multiaddr;
 use network::client::NetworkClient;
-use node::primary_node::PrimaryNode;
-use node::worker_node::WorkerNode;
-use node::{execution_state::SimpleExecutionState, metrics::worker_metrics_registry};
+use node::{
+    execution_state::SimpleExecutionState,
+    metrics::worker_metrics_registry,
+    primary_node::PrimaryNode,
+    worker_node::WorkerNode,
+};
 use prometheus::{proto::Metric, Registry};
 use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, sync::Arc, time::Duration};
 use storage::NodeStorage;
 use telemetry_subscribers::TelemetryGuards;
-use tokio::sync::RwLockWriteGuard;
 use tokio::{
-    sync::{broadcast::Sender, mpsc::channel, RwLock},
+    sync::{broadcast::Sender, mpsc::channel, RwLock, RwLockWriteGuard},
     task::JoinHandle,
 };
 use tonic::transport::Channel;
@@ -73,13 +75,7 @@ impl Cluster {
             nodes.insert(id, authority);
         }
 
-        Self {
-            fixture,
-            authorities: nodes,
-            committee,
-            worker_cache,
-            parameters: params,
-        }
+        Self { fixture, authorities: nodes, committee, worker_cache, parameters: params }
     }
 
     /// Starts a cluster by the defined number of authorities. The authorities
@@ -115,10 +111,7 @@ impl Cluster {
             if let Some(d) = boot_wait_time {
                 // we don't want to wait after the last node has been boostraped
                 if id < authorities - 1 {
-                    info!(
-                        "#### Will wait for {} seconds before starting the next node ####",
-                        d.as_secs()
-                    );
+                    info!("#### Will wait for {} seconds before starting the next node ####", d.as_secs());
                     tokio::time::sleep(d).await;
                 }
             }
@@ -137,16 +130,8 @@ impl Cluster {
     /// If the `workers_per_authority` is provided then the corresponding number of
     /// workers will be started per authority. Otherwise if not provided, then maximum
     /// number of workers will be started per authority.
-    pub async fn start_node(
-        &mut self,
-        id: usize,
-        preserve_store: bool,
-        workers_per_authority: Option<usize>,
-    ) {
-        let authority = self
-            .authorities
-            .get_mut(&id)
-            .unwrap_or_else(|| panic!("Authority with id {} not found", id));
+    pub async fn start_node(&mut self, id: usize, preserve_store: bool, workers_per_authority: Option<usize>) {
+        let authority = self.authorities.get_mut(&id).unwrap_or_else(|| panic!("Authority with id {} not found", id));
 
         // start the primary
         authority.start_primary(preserve_store).await;
@@ -154,9 +139,7 @@ impl Cluster {
         // start the workers
         if let Some(workers) = workers_per_authority {
             for worker_id in 0..workers {
-                authority
-                    .start_worker(worker_id as WorkerId, preserve_store)
-                    .await;
+                authority.start_worker(worker_id as WorkerId, preserve_store).await;
             }
         } else {
             authority.start_all_workers(preserve_store).await;
@@ -196,10 +179,7 @@ impl Cluster {
     /// authority with the id is not found. The returned authority can be freely
     /// cloned and managed without having the need to fetch again.
     pub fn authority(&self, id: usize) -> AuthorityDetails {
-        self.authorities
-            .get(&id)
-            .unwrap_or_else(|| panic!("Authority with id {} not found", id))
-            .clone()
+        self.authorities.get(&id).unwrap_or_else(|| panic!("Authority with id {} not found", id)).clone()
     }
 
     /// This method asserts the progress of the cluster.
@@ -207,33 +187,26 @@ impl Cluster {
     /// will make the assertion fail.
     /// `commit_threshold`: The acceptable threshold between the minimum and maximum reported
     /// commit value from the nodes.
-    pub async fn assert_progress(
-        &self,
-        expected_nodes: u64,
-        commit_threshold: u64,
-    ) -> HashMap<usize, u64> {
+    pub async fn assert_progress(&self, expected_nodes: u64, commit_threshold: u64) -> HashMap<usize, u64> {
         let r = self.authorities_latest_commit_round().await;
-        let rounds: HashMap<usize, u64> = r
-            .into_iter()
-            .map(|(key, value)| (key, value as u64))
-            .collect();
+        let rounds: HashMap<usize, u64> = r.into_iter().map(|(key, value)| (key, value as u64)).collect();
 
         assert_eq!(
             rounds.len(),
             expected_nodes as usize,
             "Expected to have received commit metrics from {expected_nodes} nodes"
         );
-        assert!(rounds.values().all(|v| v > &1), "All nodes are available so all should have made progress and committed at least after the first round");
+        assert!(
+            rounds.values().all(|v| v > &1),
+            "All nodes are available so all should have made progress and committed at least after the first round"
+        );
 
         if expected_nodes == 0 {
             return HashMap::new();
         }
 
         let (min, max) = rounds.values().minmax().into_option().unwrap();
-        assert!(
-            max - min <= commit_threshold,
-            "Nodes shouldn't be that behind"
-        );
+        assert!(max - min <= commit_threshold, "Nodes shouldn't be that behind");
 
         rounds
     }
@@ -248,10 +221,7 @@ impl Cluster {
 
                 authorities_latest_commit.insert(primary.id, value);
 
-                info!(
-                    "[Node {}] Metric narwhal_primary_last_committed_round -> {value}",
-                    primary.id
-                );
+                info!("[Node {}] Metric narwhal_primary_last_committed_round -> {value}", primary.id);
             }
         }
 
@@ -259,10 +229,7 @@ impl Cluster {
     }
 
     fn parameters() -> Parameters {
-        Parameters {
-            batch_size: 200,
-            ..Parameters::default()
-        }
+        Parameters { batch_size: 200, ..Parameters::default() }
     }
 }
 
@@ -329,17 +296,9 @@ impl PrimaryNodeDetails {
         }
 
         // Make the data store.
-        let store_path = if preserve_store {
-            self.store_path.clone()
-        } else {
-            temp_dir()
-        };
+        let store_path = if preserve_store { self.store_path.clone() } else { temp_dir() };
 
-        info!(
-            "Primary Node {} will use path {:?}",
-            self.id,
-            store_path.clone()
-        );
+        info!("Primary Node {} will use path {:?}", self.id, store_path.clone());
 
         // The channel returning the result for each transaction's execution.
         let (tx_transaction_confirmation, mut rx_transaction_confirmation) = channel(100);
@@ -434,27 +393,15 @@ impl WorkerNodeDetails {
     }
 
     /// Starts the node. When preserve_store is true then the last used
-    async fn start(
-        &mut self,
-        keypair: NetworkKeyPair,
-        client: NetworkClient,
-        preserve_store: bool,
-    ) {
+    async fn start(&mut self, keypair: NetworkKeyPair, client: NetworkClient, preserve_store: bool) {
         if self.is_running().await {
-            panic!(
-                "Worker with id {} is already running, can't start again",
-                self.id
-            );
+            panic!("Worker with id {} is already running, can't start again", self.id);
         }
 
         let registry = worker_metrics_registry(self.id, self.name);
 
         // Make the data store.
-        let store_path = if preserve_store {
-            self.store_path.clone()
-        } else {
-            temp_dir()
-        };
+        let store_path = if preserve_store { self.store_path.clone() } else { temp_dir() };
 
         let worker_store = NodeStorage::reopen(store_path.clone(), None);
 
@@ -554,28 +501,14 @@ impl AuthorityDetails {
             workers.insert(worker_id, worker);
         }
 
-        let internal = AuthorityDetailsInternal {
-            client: None,
-            primary,
-            worker_keypairs,
-            workers,
-        };
+        let internal = AuthorityDetailsInternal { client: None, primary, worker_keypairs, workers };
 
-        Self {
-            id,
-            public_key,
-            name,
-            internal: Arc::new(RwLock::new(internal)),
-        }
+        Self { id, public_key, name, internal: Arc::new(RwLock::new(internal)) }
     }
 
     pub async fn client(&self) -> NetworkClient {
         let internal = self.internal.read().await;
-        internal
-            .client
-            .as_ref()
-            .expect("Requested network client which has not been initialised yet")
-            .clone()
+        internal.client.as_ref().expect("Requested network client which has not been initialised yet").clone()
     }
 
     /// Starts the node's primary and workers. If the num_of_workers is provided
@@ -618,11 +551,7 @@ impl AuthorityDetails {
         let mut internal = self.internal.write().await;
         let client = self.create_client(&mut internal).await;
 
-        let worker_keypairs = internal
-            .worker_keypairs
-            .iter()
-            .map(|kp| kp.copy())
-            .collect::<Vec<NetworkKeyPair>>();
+        let worker_keypairs = internal.worker_keypairs.iter().map(|kp| kp.copy()).collect::<Vec<NetworkKeyPair>>();
 
         for (id, worker) in internal.workers.iter_mut() {
             let keypair = worker_keypairs.get(*id as usize).unwrap().copy();
@@ -639,10 +568,7 @@ impl AuthorityDetails {
         let client = self.create_client(&mut internal).await;
 
         let keypair = internal.worker_keypairs.get(id as usize).unwrap().copy();
-        let worker = internal
-            .workers
-            .get_mut(&id)
-            .unwrap_or_else(|| panic!("Worker with id {} not found ", id));
+        let worker = internal.workers.get_mut(&id).unwrap_or_else(|| panic!("Worker with id {} not found ", id));
 
         worker.start(keypair, client, preserve_store).await;
     }
@@ -650,12 +576,7 @@ impl AuthorityDetails {
     pub async fn stop_worker(&self, id: WorkerId) {
         let internal = self.internal.read().await;
 
-        internal
-            .workers
-            .get(&id)
-            .unwrap_or_else(|| panic!("Worker with id {} not found ", id))
-            .stop()
-            .await;
+        internal.workers.get(&id).unwrap_or_else(|| panic!("Worker with id {} not found ", id)).stop().await;
     }
 
     /// Stops all the nodes (primary & workers).
@@ -704,11 +625,7 @@ impl AuthorityDetails {
     pub async fn worker(&self, id: WorkerId) -> WorkerNodeDetails {
         let internal = self.internal.read().await;
 
-        internal
-            .workers
-            .get(&id)
-            .unwrap_or_else(|| panic!("Worker with id {} not found ", id))
-            .clone()
+        internal.workers.get(&id).unwrap_or_else(|| panic!("Worker with id {} not found ", id)).clone()
     }
 
     /// Helper method to return transaction addresses of
@@ -716,11 +633,7 @@ impl AuthorityDetails {
     /// Important: only the addresses of the running workers will
     /// be returned.
     pub async fn worker_transaction_addresses(&self) -> Vec<Multiaddr> {
-        self.workers()
-            .await
-            .iter()
-            .map(|w| w.transactions_address.clone())
-            .collect()
+        self.workers().await.iter().map(|w| w.transactions_address.clone()).collect()
     }
 
     /// Returns all the running workers
@@ -740,23 +653,11 @@ impl AuthorityDetails {
     /// This method returns a new client to send transactions to the dictated
     /// worker identified by the `worker_id`. If the worker_id is not found then
     /// a panic is raised.
-    pub async fn new_transactions_client(
-        &self,
-        worker_id: &WorkerId,
-    ) -> TransactionsClient<Channel> {
+    pub async fn new_transactions_client(&self, worker_id: &WorkerId) -> TransactionsClient<Channel> {
         let internal = self.internal.read().await;
 
         let config = mysten_network::config::Config::new();
-        let channel = config
-            .connect_lazy(
-                &internal
-                    .workers
-                    .get(worker_id)
-                    .unwrap()
-                    .transactions_address,
-                None,
-            )
-            .unwrap();
+        let channel = config.connect_lazy(&internal.workers.get(worker_id).unwrap().transactions_address, None).unwrap();
 
         TransactionsClient::new(channel)
     }
@@ -782,10 +683,7 @@ impl AuthorityDetails {
     }
 
     // Creates a new network client if there isn't one yet initialised.
-    async fn create_client(
-        &self,
-        internal: &mut RwLockWriteGuard<'_, AuthorityDetailsInternal>,
-    ) -> NetworkClient {
+    async fn create_client(&self, internal: &mut RwLockWriteGuard<'_, AuthorityDetailsInternal>) -> NetworkClient {
         if internal.client.is_none() {
             let client = NetworkClient::new_from_keypair(&internal.primary.network_key_pair);
             internal.client = Some(client);

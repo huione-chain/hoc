@@ -1,8 +1,6 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-use criterion::{
-    criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
-};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput};
 use fastcrypto::hash::Hash;
 use narwhal_types as types;
 use rand::Rng;
@@ -16,19 +14,10 @@ pub fn batch_digest(c: &mut Criterion) {
     static BATCH_SIZES: [usize; 4] = [100, 500, 1000, 5000];
 
     for size in BATCH_SIZES {
-        let tx_gen = || {
-            (0..512)
-                .map(|_| rand::thread_rng().gen())
-                .collect::<Vec<u8>>()
-        };
-        let batch = Batch::new(
-            (0..size).map(|_| tx_gen()).collect::<Vec<_>>(),
-            &latest_protocol_version(),
-        );
+        let tx_gen = || (0..512).map(|_| rand::thread_rng().gen()).collect::<Vec<u8>>();
+        let batch = Batch::new((0..size).map(|_| tx_gen()).collect::<Vec<_>>(), &latest_protocol_version());
         digest_group.throughput(Throughput::Bytes(512 * size as u64));
-        digest_group.bench_with_input(BenchmarkId::new("batch digest", size), &batch, |b, i| {
-            b.iter(|| i.digest())
-        });
+        digest_group.bench_with_input(BenchmarkId::new("batch digest", size), &batch, |b, i| b.iter(|| i.digest()));
     }
 }
 

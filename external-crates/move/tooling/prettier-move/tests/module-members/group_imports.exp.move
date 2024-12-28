@@ -21,7 +21,7 @@ use sui::{
     coin::Coin,
     dynamic_field as df,
     dynamic_object_field as dof,
-    sui::SUI,
+    hc::HC,
     table::{Self, Table},
     table_vec::{Self, TableVec as TV}
 };

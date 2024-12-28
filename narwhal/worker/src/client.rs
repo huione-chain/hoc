@@ -23,9 +23,7 @@ mod static_client_cache {
             Mutex::new(BTreeMap::new());
     }
 
-    pub(super) fn with_clients<T>(
-        f: impl FnOnce(&mut BTreeMap<Multiaddr, Arc<ArcSwap<LocalNarwhalClient>>>) -> T,
-    ) -> T {
+    pub(super) fn with_clients<T>(f: impl FnOnce(&mut BTreeMap<Multiaddr, Arc<ArcSwap<LocalNarwhalClient>>>) -> T) -> T {
         LOCAL_NARWHAL_CLIENTS.with(|clients| {
             let mut clients = clients.lock().unwrap();
             f(&mut clients)
@@ -40,9 +38,7 @@ mod static_client_cache {
     static LOCAL_NARWHAL_CLIENTS: Mutex<BTreeMap<Multiaddr, Arc<ArcSwap<LocalNarwhalClient>>>> =
         Mutex::new(BTreeMap::new());
 
-    pub(super) fn with_clients<T>(
-        f: impl FnOnce(&mut BTreeMap<Multiaddr, Arc<ArcSwap<LocalNarwhalClient>>>) -> T,
-    ) -> T {
+    pub(super) fn with_clients<T>(f: impl FnOnce(&mut BTreeMap<Multiaddr, Arc<ArcSwap<LocalNarwhalClient>>>) -> T) -> T {
         let mut clients = LOCAL_NARWHAL_CLIENTS.lock().unwrap();
         f(&mut clients)
     }
@@ -78,10 +74,7 @@ pub struct LazyNarwhalClient {
 impl LazyNarwhalClient {
     /// Lazily instantiates LocalNarwhalClient keyed by the address of the Narwhal worker.
     pub fn new(addr: Multiaddr) -> Self {
-        Self {
-            client: ArcSwapOption::empty(),
-            addr,
-        }
+        Self { client: ArcSwapOption::empty(), addr }
     }
 
     pub async fn get(&self) -> Arc<ArcSwap<LocalNarwhalClient>> {
@@ -146,29 +139,18 @@ impl LocalNarwhalClient {
     }
 
     /// Submits a transaction to the local Narwhal worker.
-    pub async fn submit_transactions(
-        &self,
-        transactions: Vec<Transaction>,
-    ) -> Result<(), NarwhalError> {
+    pub async fn submit_transactions(&self, transactions: Vec<Transaction>) -> Result<(), NarwhalError> {
         for transaction in &transactions {
             if transaction.len() > MAX_ALLOWED_TRANSACTION_SIZE {
-                return Err(NarwhalError::TransactionTooLarge(
-                    transaction.len(),
-                    MAX_ALLOWED_TRANSACTION_SIZE,
-                ));
+                return Err(NarwhalError::TransactionTooLarge(transaction.len(), MAX_ALLOWED_TRANSACTION_SIZE));
             }
         }
 
         // Send the transaction to the batch maker.
         let (notifier, when_done) = tokio::sync::oneshot::channel();
-        self.tx_batch_maker
-            .send((transactions, notifier))
-            .await
-            .map_err(|_| NarwhalError::ShuttingDown)?;
+        self.tx_batch_maker.send((transactions, notifier)).await.map_err(|_| NarwhalError::ShuttingDown)?;
 
-        let _digest = when_done
-            .await
-            .map_err(|_| NarwhalError::TransactionNotIncludedInHeader)?;
+        let _digest = when_done.await.map_err(|_| NarwhalError::TransactionNotIncludedInHeader)?;
 
         Ok(())
     }
@@ -176,8 +158,6 @@ impl LocalNarwhalClient {
     /// Ensures getter and setter use the same key for the same network address.
     /// This is needed because TxServer serves from 0.0.0.0.
     fn canonicalize_address_key(address: Multiaddr) -> Multiaddr {
-        address
-            .replace(0, |_protocol| Some(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)))
-            .unwrap()
+        address.replace(0, |_protocol| Some(Protocol::Ip4(Ipv4Addr::UNSPECIFIED))).unwrap()
     }
 }

@@ -4,8 +4,12 @@
 use crate::{NodeStorage, StoreResult};
 use config::AuthorityIdentifier;
 use std::collections::HashMap;
-use store::rocks::{open_cf, DBMap, MetricConf, ReadWriteOptions};
-use store::{reopen, Map, TypedStoreError};
+use store::{
+    reopen,
+    rocks::{open_cf, DBMap, MetricConf, ReadWriteOptions},
+    Map,
+    TypedStoreError,
+};
 use tracing::debug;
 use types::{CommittedSubDag, ConsensusCommit, ConsensusCommitV2, Round, SequenceNumber};
 
@@ -23,22 +27,14 @@ impl ConsensusStore {
         last_committed: DBMap<AuthorityIdentifier, Round>,
         committed_sub_dags_map: DBMap<SequenceNumber, ConsensusCommit>,
     ) -> Self {
-        Self {
-            last_committed,
-            committed_sub_dags_by_index_v2: committed_sub_dags_map,
-        }
+        Self { last_committed, committed_sub_dags_by_index_v2: committed_sub_dags_map }
     }
 
     pub fn new_for_tests() -> Self {
-        let rocksdb = open_cf(
-            tempfile::tempdir().unwrap(),
-            None,
-            MetricConf::default(),
-            &[
-                NodeStorage::LAST_COMMITTED_CF,
-                NodeStorage::COMMITTED_SUB_DAG_INDEX_CF,
-            ],
-        )
+        let rocksdb = open_cf(tempfile::tempdir().unwrap(), None, MetricConf::default(), &[
+            NodeStorage::LAST_COMMITTED_CF,
+            NodeStorage::COMMITTED_SUB_DAG_INDEX_CF,
+        ])
         .expect("Cannot open database");
         let (last_committed_map, committed_sub_dag_map) = reopen!(&rocksdb, NodeStorage::LAST_COMMITTED_CF;<AuthorityIdentifier, Round>, NodeStorage::COMMITTED_SUB_DAG_INDEX_CF;<SequenceNumber, ConsensusCommit>);
         Self::new(last_committed_map, committed_sub_dag_map)
@@ -61,10 +57,8 @@ impl ConsensusStore {
 
         let mut write_batch = self.last_committed.batch();
         write_batch.insert_batch(&self.last_committed, last_committed.iter())?;
-        write_batch.insert_batch(
-            &self.committed_sub_dags_by_index_v2,
-            std::iter::once((sub_dag.sub_dag_index, commit)),
-        )?;
+        write_batch
+            .insert_batch(&self.committed_sub_dags_by_index_v2, std::iter::once((sub_dag.sub_dag_index, commit)))?;
         write_batch.write()
     }
 
@@ -86,18 +80,11 @@ impl ConsensusStore {
     /// Returns thet latest subdag committed. If none is committed yet, then
     /// None is returned instead.
     pub fn get_latest_sub_dag(&self) -> Option<ConsensusCommit> {
-        self.committed_sub_dags_by_index_v2
-            .unbounded_iter()
-            .skip_to_last()
-            .next()
-            .map(|(_, sub_dag)| sub_dag)
+        self.committed_sub_dags_by_index_v2.unbounded_iter().skip_to_last().next().map(|(_, sub_dag)| sub_dag)
     }
 
     /// Load all the sub dags committed with sequence number of at least `from`.
-    pub fn read_committed_sub_dags_from(
-        &self,
-        from: &SequenceNumber,
-    ) -> StoreResult<Vec<ConsensusCommit>> {
+    pub fn read_committed_sub_dags_from(&self, from: &SequenceNumber) -> StoreResult<Vec<ConsensusCommit>> {
         Ok(self
             .committed_sub_dags_by_index_v2
             .unbounded_iter()
@@ -107,22 +94,15 @@ impl ConsensusStore {
     }
 
     /// Load consensus commit with a given sequence number.
-    pub fn read_consensus_commit(
-        &self,
-        seq: &SequenceNumber,
-    ) -> StoreResult<Option<ConsensusCommit>> {
+    pub fn read_consensus_commit(&self, seq: &SequenceNumber) -> StoreResult<Option<ConsensusCommit>> {
         self.committed_sub_dags_by_index_v2.get(seq)
     }
 
     /// Reads from storage the latest commit sub dag where its ReputationScores are marked as "final".
     /// If none exists yet then this method will return None.
     pub fn read_latest_commit_with_final_reputation_scores(&self) -> Option<ConsensusCommit> {
-        for commit in self
-            .committed_sub_dags_by_index_v2
-            .unbounded_iter()
-            .skip_to_last()
-            .reverse()
-            .map(|(_, sub_dag)| sub_dag)
+        for commit in
+            self.committed_sub_dags_by_index_v2.unbounded_iter().skip_to_last().reverse().map(|(_, sub_dag)| sub_dag)
         {
             // found a final of schedule score, so we'll return that
             if commit.reputation_score().final_of_schedule {
@@ -163,9 +143,7 @@ mod test {
                 None,
             );
 
-            store
-                .write_consensus_state(&HashMap::new(), &sub_dag)
-                .unwrap();
+            store.write_consensus_state(&HashMap::new(), &sub_dag).unwrap();
         }
 
         // WHEN we try to read the final schedule. The one of sub dag sequence 12 should be returned
@@ -191,15 +169,11 @@ mod test {
                 None,
             );
 
-            store
-                .write_consensus_state(&HashMap::new(), &sub_dag)
-                .unwrap();
+            store.write_consensus_state(&HashMap::new(), &sub_dag).unwrap();
         }
 
         // WHEN we try to read the final schedule. The one of sub dag sequence 20 should be returned
-        let commit = store
-            .read_latest_commit_with_final_reputation_scores()
-            .unwrap();
+        let commit = store.read_latest_commit_with_final_reputation_scores().unwrap();
 
         assert!(commit.reputation_score().final_of_schedule);
         assert_eq!(commit.sub_dag_index(), 20)

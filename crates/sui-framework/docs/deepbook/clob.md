@@ -51,9 +51,9 @@ title: Module `0xdee9::clob`
 <b>use</b> <a href="../sui-framework/clock.md#0x2_clock">0x2::clock</a>;
 <b>use</b> <a href="../sui-framework/coin.md#0x2_coin">0x2::coin</a>;
 <b>use</b> <a href="../sui-framework/event.md#0x2_event">0x2::event</a>;
+<b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
 <b>use</b> <a href="../sui-framework/linked_table.md#0x2_linked_table">0x2::linked_table</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
-<b>use</b> <a href="../sui-framework/sui.md#0x2_sui">0x2::sui</a>;
 <b>use</b> <a href="../sui-framework/table.md#0x2_table">0x2::table</a>;
 <b>use</b> <a href="../sui-framework/tx_context.md#0x2_tx_context">0x2::tx_context</a>;
 <b>use</b> <a href="critbit.md#0xdee9_critbit">0xdee9::critbit</a>;
@@ -510,7 +510,7 @@ Emitted only when a maker order is filled.
 
 </dd>
 <dt>
-<code>creation_fee: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/sui.md#0x2_sui_SUI">sui::SUI</a>&gt;</code>
+<code>creation_fee: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;</code>
 </dt>
 <dd>
 
@@ -913,7 +913,7 @@ Deprecated since v1.0.0, use <code><a href="clob.md#0xdee9_clob_OrderFilledV2">O
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="clob.md#0xdee9_clob_create_pool">create_pool</a>&lt;BaseAsset, QuoteAsset&gt;(_tick_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, _lot_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, _creation_fee: <a href="../sui-framework/coin.md#0x2_coin_Coin">coin::Coin</a>&lt;<a href="../sui-framework/sui.md#0x2_sui_SUI">sui::SUI</a>&gt;, _ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b> <b>fun</b> <a href="clob.md#0xdee9_clob_create_pool">create_pool</a>&lt;BaseAsset, QuoteAsset&gt;(_tick_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, _lot_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, _creation_fee: <a href="../sui-framework/coin.md#0x2_coin_Coin">coin::Coin</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, _ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -925,7 +925,7 @@ Deprecated since v1.0.0, use <code><a href="clob.md#0xdee9_clob_OrderFilledV2">O
 <pre><code><b>public</b> <b>fun</b> <a href="clob.md#0xdee9_clob_create_pool">create_pool</a>&lt;BaseAsset, QuoteAsset&gt;(
     _tick_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     _lot_size: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
-    _creation_fee: Coin&lt;SUI&gt;,
+    _creation_fee: Coin&lt;HC&gt;,
     _ctx: &<b>mut</b> TxContext,
 ) {
     <b>abort</b> <a href="clob.md#0xdee9_clob_DEPRECATED">DEPRECATED</a>

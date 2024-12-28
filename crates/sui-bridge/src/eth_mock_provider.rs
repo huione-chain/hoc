@@ -4,14 +4,13 @@
 //! A mock implementation of Ethereum JSON-RPC client, based on `MockProvider` from `ethers-rs`.
 
 use async_trait::async_trait;
-use ethers::providers::JsonRpcClient;
-use ethers::providers::MockError;
+use ethers::providers::{JsonRpcClient, MockError};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::fmt::Debug;
 use std::{
     borrow::Borrow,
+    collections::HashMap,
+    fmt::Debug,
     sync::{Arc, Mutex},
 };
 
@@ -54,13 +53,8 @@ impl JsonRpcClient for EthMockProvider {
         } else {
             MockParams::Value(serde_json::to_value(params)?.to_string())
         };
-        let element = self
-            .responses
-            .lock()
-            .unwrap()
-            .get(&(method.to_owned(), params))
-            .ok_or(MockError::EmptyResponses)?
-            .clone();
+        let element =
+            self.responses.lock().unwrap().get(&(method.to_owned(), params)).ok_or(MockError::EmptyResponses)?.clone();
         let res: R = serde_json::from_value(element)?;
 
         Ok(res)
@@ -69,9 +63,7 @@ impl JsonRpcClient for EthMockProvider {
 
 impl EthMockProvider {
     pub fn new() -> Self {
-        Self {
-            responses: Arc::new(Mutex::new(HashMap::new())),
-        }
+        Self { responses: Arc::new(Mutex::new(HashMap::new())) }
     }
 
     pub fn add_response<P: Serialize + Send + Sync, T: Serialize + Send + Sync, K: Borrow<T>>(
@@ -86,10 +78,7 @@ impl EthMockProvider {
             MockParams::Value(serde_json::to_value(params)?.to_string())
         };
         let value = serde_json::to_value(data.borrow())?;
-        self.responses
-            .lock()
-            .unwrap()
-            .insert((method.to_owned(), params), value);
+        self.responses.lock().unwrap().insert((method.to_owned(), params), value);
         Ok(())
     }
 }
@@ -104,16 +93,14 @@ mod tests {
     async fn test_basic_responses_match() {
         let mock = EthMockProvider::new();
 
-        mock.add_response("eth_blockNumber", (), U64::from(12))
-            .unwrap();
+        mock.add_response("eth_blockNumber", (), U64::from(12)).unwrap();
         let block: U64 = mock.request("eth_blockNumber", ()).await.unwrap();
 
         assert_eq!(block.as_u64(), 12);
         let block: U64 = mock.request("eth_blockNumber", ()).await.unwrap();
         assert_eq!(block.as_u64(), 12);
 
-        mock.add_response("eth_blockNumber", (), U64::from(13))
-            .unwrap();
+        mock.add_response("eth_blockNumber", (), U64::from(13)).unwrap();
         let block: U64 = mock.request("eth_blockNumber", ()).await.unwrap();
         assert_eq!(block.as_u64(), 13);
 
@@ -121,17 +108,13 @@ mod tests {
         let block: U64 = mock.request("eth_blockNumber", ()).await.unwrap();
         assert_eq!(block.as_u64(), 13);
 
-        let err = mock
-            .request::<_, ()>("eth_blockNumber", "bar")
-            .await
-            .unwrap_err();
+        let err = mock.request::<_, ()>("eth_blockNumber", "bar").await.unwrap_err();
         match err {
             MockError::EmptyResponses => {}
             _ => panic!("expected empty responses"),
         };
 
-        mock.add_response("eth_blockNumber", "bar", U64::from(14))
-            .unwrap();
+        mock.add_response("eth_blockNumber", "bar", U64::from(14)).unwrap();
         let block: U64 = mock.request("eth_blockNumber", "bar").await.unwrap();
         assert_eq!(block.as_u64(), 14);
     }
@@ -141,8 +124,7 @@ mod tests {
         let mock = EthMockProvider::new();
         let provider = ethers::providers::Provider::new(mock.clone());
 
-        mock.add_response("eth_blockNumber", (), U64::from(12))
-            .unwrap();
+        mock.add_response("eth_blockNumber", (), U64::from(12)).unwrap();
         let block = provider.get_block_number().await.unwrap();
         assert_eq!(block.as_u64(), 12);
     }

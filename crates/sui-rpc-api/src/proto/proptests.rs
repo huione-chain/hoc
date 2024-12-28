@@ -40,8 +40,5 @@ protobuf_roundtrip_test!(TransactionEffects, proto::TransactionEffects);
 protobuf_roundtrip_test!(TransactionEvents, proto::TransactionEvents);
 protobuf_roundtrip_test!(Object, proto::Object);
 protobuf_roundtrip_test!(UserSignature, proto::UserSignature);
-protobuf_roundtrip_test!(
-    ValidatorAggregatedSignature,
-    proto::ValidatorAggregatedSignature
-);
+protobuf_roundtrip_test!(ValidatorAggregatedSignature, proto::ValidatorAggregatedSignature);
 protobuf_roundtrip_test!(ExecutionStatus, proto::ExecutionStatus);

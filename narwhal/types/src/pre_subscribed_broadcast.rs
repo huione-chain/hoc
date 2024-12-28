@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::error::SendError;
+use tokio::sync::{broadcast, broadcast::error::SendError};
 
 /// PreSubscribedBroadcastSender is a wrapped Broadcast channel that limits
 /// subscription to initialization time. This is designed to be used for cancellation
@@ -26,9 +25,7 @@ pub struct ConditionalBroadcastReceiver {
 /// until the branch that checks the receiver is randomly selected by the select macro.
 impl ConditionalBroadcastReceiver {
     pub async fn received_signal(&mut self) -> bool {
-        futures::future::poll_immediate(&mut Box::pin(self.receiver.recv()))
-            .await
-            .is_some()
+        futures::future::poll_immediate(&mut Box::pin(self.receiver.recv())).await.is_some()
     }
 }
 
@@ -37,15 +34,10 @@ impl PreSubscribedBroadcastSender {
         let (tx_init, _) = broadcast::channel(1);
         let mut receivers = Vec::new();
         for _i in 0..num_subscribers {
-            receivers.push(ConditionalBroadcastReceiver {
-                receiver: tx_init.subscribe(),
-            });
+            receivers.push(ConditionalBroadcastReceiver { receiver: tx_init.subscribe() });
         }
 
-        PreSubscribedBroadcastSender {
-            sender: tx_init,
-            receivers,
-        }
+        PreSubscribedBroadcastSender { sender: tx_init, receivers }
     }
 
     pub fn try_subscribe(&mut self) -> Option<ConditionalBroadcastReceiver> {

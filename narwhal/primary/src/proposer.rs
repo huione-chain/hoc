@@ -2,28 +2,39 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::consensus::LeaderSchedule;
-use crate::metrics::PrimaryMetrics;
+use crate::{consensus::LeaderSchedule, metrics::PrimaryMetrics};
 use config::{AuthorityIdentifier, Committee, WorkerId};
 use fastcrypto::hash::Hash as _;
-use mysten_metrics::metered_channel::{Receiver, Sender};
-use mysten_metrics::spawn_logged_monitored_task;
-use std::collections::{BTreeMap, VecDeque};
-use std::{cmp::Ordering, sync::Arc};
+use mysten_metrics::{
+    metered_channel::{Receiver, Sender},
+    spawn_logged_monitored_task,
+};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, VecDeque},
+    sync::Arc,
+};
 use storage::ProposerStore;
 use sui_protocol_config::ProtocolConfig;
-use tokio::time::{sleep_until, Instant};
 use tokio::{
     sync::{oneshot, watch},
     task::JoinHandle,
-    time::{sleep, Duration},
+    time::{sleep, sleep_until, Duration, Instant},
 };
 use tracing::{debug, enabled, error, info, trace};
 use types::{
     error::{DagError, DagResult},
-    BatchDigest, Certificate, CertificateAPI, Header, HeaderAPI, Round, TimestampMs,
+    now,
+    BatchDigest,
+    Certificate,
+    CertificateAPI,
+    ConditionalBroadcastReceiver,
+    Header,
+    HeaderAPI,
+    HeaderV1,
+    Round,
+    TimestampMs,
 };
-use types::{now, ConditionalBroadcastReceiver, HeaderV1};
 
 /// Messages sent to the proposer about our own batch digests
 #[derive(Debug)]
@@ -178,10 +189,7 @@ impl Proposer {
         let num_of_included_digests = header.payload().len();
 
         // Send the new header to the `Certifier` that will broadcast and certify it.
-        self.tx_headers
-            .send(header.clone())
-            .await
-            .map_err(|_| DagError::ShuttingDown)?;
+        self.tx_headers.send(header.clone()).await.map_err(|_| DagError::ShuttingDown)?;
 
         Ok((header, num_of_included_digests))
     }
@@ -211,11 +219,7 @@ impl Proposer {
         // Here we check that the timestamp we will include in the header is consistent with the
         // parents, ie our current time is *after* the timestamp in all the included headers. If
         // not we log an error and hope a kind operator fixes the clock.
-        let parent_max_time = parents
-            .iter()
-            .map(|c| *c.header().created_at())
-            .max()
-            .unwrap_or(0);
+        let parent_max_time = parents.iter().map(|c| *c.header().created_at()).max().unwrap_or(0);
         let current_time = now();
         if current_time < parent_max_time {
             let drift_ms = parent_max_time - current_time;
@@ -231,10 +235,7 @@ impl Proposer {
             self.authority_id,
             this_round,
             this_epoch,
-            header_digests
-                .iter()
-                .map(|m| (m.digest, (m.worker_id, m.timestamp)))
-                .collect(),
+            header_digests.iter().map(|m| (m.digest, (m.worker_id, m.timestamp))).collect(),
             parents.iter().map(|x| x.digest()).collect(),
         )
         .await
@@ -255,10 +256,7 @@ impl Proposer {
                 "odd_round_no_support"
             }
         };
-        self.metrics
-            .headers_proposed
-            .with_label_values(&[leader_and_support])
-            .inc();
+        self.metrics.headers_proposed.with_label_values(&[leader_and_support]).inc();
         self.metrics.header_parents.observe(parents.len() as f64);
 
         if enabled!(tracing::Level::TRACE) {
@@ -274,32 +272,28 @@ impl Proposer {
         // Update metrics related to latency
         let mut total_inclusion_secs = 0.0;
         for digest in &header_digests {
-            let batch_inclusion_secs =
-                Duration::from_millis(*header.created_at() - digest.timestamp).as_secs_f64();
+            let batch_inclusion_secs = Duration::from_millis(*header.created_at() - digest.timestamp).as_secs_f64();
             total_inclusion_secs += batch_inclusion_secs;
 
             // NOTE: This log entry is used to compute performance.
             tracing::debug!(
-                    "Batch {:?} from worker {} took {} seconds from creation to be included in a proposed header",
-                    digest.digest,
-                    digest.worker_id,
-                    batch_inclusion_secs
-                );
-            self.metrics
-                .proposer_batch_latency
-                .observe(batch_inclusion_secs);
+                "Batch {:?} from worker {} took {} seconds from creation to be included in a proposed header",
+                digest.digest,
+                digest.worker_id,
+                batch_inclusion_secs
+            );
+            self.metrics.proposer_batch_latency.observe(batch_inclusion_secs);
         }
 
         // NOTE: This log entry is used to compute performance.
-        let (header_creation_secs, avg_inclusion_secs) =
-            if let Some(digest) = header_digests.front() {
-                (
-                    Duration::from_millis(*header.created_at() - digest.timestamp).as_secs_f64(),
-                    total_inclusion_secs / header_digests.len() as f64,
-                )
-            } else {
-                (self.max_header_delay.as_secs_f64(), 0.0)
-            };
+        let (header_creation_secs, avg_inclusion_secs) = if let Some(digest) = header_digests.front() {
+            (
+                Duration::from_millis(*header.created_at() - digest.timestamp).as_secs_f64(),
+                total_inclusion_secs / header_digests.len() as f64,
+            )
+        } else {
+            (self.max_header_delay.as_secs_f64(), 0.0)
+        };
         debug!(
             "Header {:?} was created in {} seconds. Contains {} batches, with average delay {} seconds.",
             header.digest(),
@@ -310,8 +304,7 @@ impl Proposer {
 
         // Register the header by the current round, to remember that we need to commit
         // it, or re-include the batch digests and system messages that it contains.
-        self.proposed_headers
-            .insert(this_round, (header.clone(), header_digests));
+        self.proposed_headers.insert(this_round, (header.clone(), header_digests));
 
         Ok(header)
     }
@@ -320,9 +313,7 @@ impl Proposer {
         // If this node is going to be the leader of the next round, we set a lower max
         // timeout value to increase its chance of being included in the dag. As leaders are elected
         // on even rounds only we apply the reduced max delay only for those ones.
-        if (self.round + 1) % 2 == 0
-            && self.leader_schedule.leader(self.round + 1).id() == self.authority_id
-        {
+        if (self.round + 1) % 2 == 0 && self.leader_schedule.leader(self.round + 1).id() == self.authority_id {
             self.max_header_delay / 2
         } else {
             self.max_header_delay
@@ -423,9 +414,7 @@ impl Proposer {
         let max_delay_timer = sleep_until(timer_start + self.max_header_delay);
         let min_delay_timer = sleep_until(timer_start + self.min_header_delay);
 
-        let header_resend_timeout = self
-            .header_resend_timeout
-            .unwrap_or(DEFAULT_HEADER_RESEND_TIMEOUT);
+        let header_resend_timeout = self.header_resend_timeout.unwrap_or(DEFAULT_HEADER_RESEND_TIMEOUT);
         let mut header_repeat_timer = Box::pin(sleep(header_resend_timeout));
         let mut opt_latest_header = None;
 
@@ -447,9 +436,8 @@ impl Proposer {
             let enough_digests = self.digests.len() >= self.header_num_of_batches_threshold;
             let max_delay_timed_out = max_delay_timer.is_elapsed();
             let min_delay_timed_out = min_delay_timer.is_elapsed();
-            let should_create_header = (max_delay_timed_out
-                || ((enough_digests || min_delay_timed_out) && advance))
-                && enough_parents;
+            let should_create_header =
+                (max_delay_timed_out || ((enough_digests || min_delay_timed_out) && advance)) && enough_parents;
 
             debug!(
                 "Proposer loop starts: round={} enough_parents={} enough_digests={} advance={} max_delay_timed_out={} min_delay_timed_out={} should_create_header={}", 
@@ -499,10 +487,7 @@ impl Proposer {
                         opt_latest_header = Some(header);
                         header_repeat_timer = Box::pin(sleep(header_resend_timeout));
 
-                        self.metrics
-                            .num_of_batch_digests_in_header
-                            .with_label_values(&[reason])
-                            .observe(digests as f64);
+                        self.metrics.num_of_batch_digests_in_header.with_label_values(&[reason]).observe(digests as f64);
                     }
                 }
 
@@ -511,12 +496,8 @@ impl Proposer {
 
                 // Reschedule the timer.
                 let timer_start = Instant::now();
-                max_delay_timer
-                    .as_mut()
-                    .reset(timer_start + self.max_delay());
-                min_delay_timer
-                    .as_mut()
-                    .reset(timer_start + self.min_delay());
+                max_delay_timer.as_mut().reset(timer_start + self.max_delay());
+                min_delay_timer.as_mut().reset(timer_start + self.min_delay());
 
                 // Recheck condition and reset time out flags.
                 continue;
@@ -719,9 +700,7 @@ impl Proposer {
             }
 
             // update metrics
-            self.metrics
-                .num_of_pending_batches_in_proposer
-                .set(self.digests.len() as i64);
+            self.metrics.num_of_pending_batches_in_proposer.set(self.digests.len() as i64);
         }
     }
 }

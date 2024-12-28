@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::backfill::backfill_task::BackfillTask;
-use crate::database::ConnectionPool;
+use crate::{backfill::backfill_task::BackfillTask, database::ConnectionPool};
 use async_trait::async_trait;
 use diesel_async::RunQueryDsl;
 use std::ops::RangeInclusive;

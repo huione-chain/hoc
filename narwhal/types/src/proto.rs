@@ -32,21 +32,18 @@ pub use narwhal::{
     worker_to_primary_server::{MockWorkerToPrimary, WorkerToPrimary, WorkerToPrimaryServer},
     worker_to_worker_client::WorkerToWorkerClient,
     worker_to_worker_server::{MockWorkerToWorker, WorkerToWorker, WorkerToWorkerServer},
-    Empty, Transaction as TransactionProto,
+    Empty,
+    Transaction as TransactionProto,
 };
 
 impl From<Transaction> for TransactionProto {
     fn from(transaction: Transaction) -> Self {
-        TransactionProto {
-            transactions: vec![Bytes::from(transaction)],
-        }
+        TransactionProto { transactions: vec![Bytes::from(transaction)] }
     }
 }
 
 impl From<Vec<Transaction>> for TransactionProto {
     fn from(transactions: Vec<Transaction>) -> Self {
-        TransactionProto {
-            transactions: transactions.into_iter().map(Bytes::from).collect(),
-        }
+        TransactionProto { transactions: transactions.into_iter().map(Bytes::from).collect() }
     }
 }

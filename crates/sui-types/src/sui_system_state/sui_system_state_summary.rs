@@ -2,19 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::{SuiSystemState, SuiSystemStateTrait};
-use crate::base_types::{AuthorityName, ObjectID, SuiAddress};
-use crate::committee::{CommitteeWithNetworkMetadata, NetworkMetadata};
-use crate::crypto::NetworkPublicKey;
-use crate::dynamic_field::get_dynamic_field_from_store;
-use crate::error::SuiError;
-use crate::id::ID;
-use crate::multiaddr::Multiaddr;
-use crate::storage::ObjectStore;
-use crate::sui_serde::BigInt;
-use crate::sui_serde::Readable;
-use crate::sui_system_state::get_validator_from_table;
-use fastcrypto::encoding::Base64;
-use fastcrypto::traits::ToFromBytes;
+use crate::{
+    base_types::{AuthorityName, ObjectID, SuiAddress},
+    committee::{CommitteeWithNetworkMetadata, NetworkMetadata},
+    crypto::NetworkPublicKey,
+    dynamic_field::get_dynamic_field_from_store,
+    error::SuiError,
+    id::ID,
+    multiaddr::Multiaddr,
+    storage::ObjectStore,
+    sui_serde::{BigInt, Readable},
+    sui_system_state::get_validator_from_table,
+};
+use fastcrypto::{encoding::Base64, traits::ToFromBytes};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -194,21 +194,11 @@ impl SuiSystemStateSummary {
                 let name = AuthorityName::from_bytes(&validator.protocol_pubkey_bytes).unwrap();
                 (
                     name,
-                    (
-                        validator.voting_power,
-                        NetworkMetadata {
-                            network_address: Multiaddr::try_from(validator.net_address.clone())
-                                .unwrap(),
-                            narwhal_primary_address: Multiaddr::try_from(
-                                validator.primary_address.clone(),
-                            )
-                            .unwrap(),
-                            network_public_key: NetworkPublicKey::from_bytes(
-                                &validator.network_pubkey_bytes,
-                            )
-                            .ok(),
-                        },
-                    ),
+                    (validator.voting_power, NetworkMetadata {
+                        network_address: Multiaddr::try_from(validator.net_address.clone()).unwrap(),
+                        narwhal_primary_address: Multiaddr::try_from(validator.primary_address.clone()).unwrap(),
+                        network_public_key: NetworkPublicKey::from_bytes(&validator.network_pubkey_bytes).ok(),
+                    }),
                 )
             })
             .collect();
@@ -426,40 +416,30 @@ where
     S: ObjectStore + ?Sized,
 {
     // First try to find in active validator set.
-    let active_validator = system_state_summary
-        .active_validators
-        .iter()
-        .find(|v| v.staking_pool_id == pool_id);
+    let active_validator = system_state_summary.active_validators.iter().find(|v| v.staking_pool_id == pool_id);
     if let Some(active) = active_validator {
         return Ok(active.clone());
     }
     // Then try to find in pending active validator set.
     let pending_active_validators = system_state.get_pending_active_validators(object_store)?;
-    let pending_active = pending_active_validators
-        .iter()
-        .find(|v| v.staking_pool_id == pool_id);
+    let pending_active = pending_active_validators.iter().find(|v| v.staking_pool_id == pool_id);
     if let Some(pending) = pending_active {
         return Ok(pending.clone());
     }
     // After that try to find in inactive pools.
     let inactive_table_id = system_state_summary.inactive_pools_id;
-    if let Ok(inactive) =
-        get_validator_from_table(&object_store, inactive_table_id, &ID::new(pool_id))
-    {
+    if let Ok(inactive) = get_validator_from_table(&object_store, inactive_table_id, &ID::new(pool_id)) {
         return Ok(inactive);
     }
     // Finally look up the candidates pool.
-    let candidate_address: SuiAddress = get_dynamic_field_from_store(
-        &object_store,
-        system_state_summary.staking_pool_mappings_id,
-        &ID::new(pool_id),
-    )
-    .map_err(|err| {
-        SuiError::SuiSystemStateReadError(format!(
-            "Failed to load candidate address from pool mappings: {:?}",
-            err
-        ))
-    })?;
+    let candidate_address: SuiAddress =
+        get_dynamic_field_from_store(&object_store, system_state_summary.staking_pool_mappings_id, &ID::new(pool_id))
+            .map_err(|err| {
+                SuiError::SuiSystemStateReadError(format!(
+                    "Failed to load candidate address from pool mappings: {:?}",
+                    err
+                ))
+            })?;
     let candidate_table_id = system_state_summary.validator_candidates_id;
     get_validator_from_table(&object_store, candidate_table_id, &candidate_address)
 }

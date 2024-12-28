@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::schema::raw_checkpoints;
-use crate::types::IndexedCheckpoint;
+use crate::{schema::raw_checkpoints, types::IndexedCheckpoint};
 use diesel::prelude::*;
 
 #[derive(Queryable, Insertable, Selectable, Debug, Clone, Default)]

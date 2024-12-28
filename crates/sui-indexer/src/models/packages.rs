@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::schema::packages;
-use crate::types::IndexedPackage;
+use crate::{schema::packages, types::IndexedPackage};
 
 use diesel::prelude::*;
 

@@ -7,8 +7,13 @@ use crate::{
 };
 use config::{AuthorityIdentifier, Committee, Epoch, Stake, WorkerCache, WorkerId};
 use crypto::{
-    to_intent_message, AggregateSignature, AggregateSignatureBytes,
-    NarwhalAuthorityAggregateSignature, NarwhalAuthoritySignature, NetworkPublicKey, PublicKey,
+    to_intent_message,
+    AggregateSignature,
+    AggregateSignatureBytes,
+    NarwhalAuthorityAggregateSignature,
+    NarwhalAuthoritySignature,
+    NetworkPublicKey,
+    PublicKey,
     Signature,
 };
 use derive_builder::Builder;
@@ -26,11 +31,8 @@ use roaring::RoaringBitmap;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque},
     fmt,
-};
-use std::{
-    collections::{HashMap, HashSet},
     time::{Duration, SystemTime},
 };
 use sui_protocol_config::ProtocolConfig;
@@ -65,9 +67,7 @@ pub fn now() -> TimestampMs {
 }
 
 /// DEPRECATED. Can't be deleted until tables that use this are removed.
-#[derive(
-    Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, MallocSizeOf,
-)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, MallocSizeOf)]
 pub struct RandomnessRound(pub u64);
 
 // Additional metadata information for an entity.
@@ -100,10 +100,7 @@ pub enum VersionedMetadata {
 
 impl VersionedMetadata {
     pub fn new(_protocol_config: &ProtocolConfig) -> Self {
-        Self::V1(MetadataV1 {
-            created_at: now(),
-            received_at: None,
-        })
+        Self::V1(MetadataV1 { created_at: now(), received_at: None })
     }
 }
 
@@ -227,10 +224,7 @@ impl BatchAPI for BatchV1 {
 
 impl BatchV1 {
     pub fn new(transactions: Vec<Transaction>) -> Self {
-        Self {
-            transactions,
-            metadata: Metadata::default(),
-        }
+        Self { transactions, metadata: Metadata::default() }
     }
 
     pub fn size(&self) -> usize {
@@ -277,10 +271,7 @@ impl BatchAPI for BatchV2 {
 
 impl BatchV2 {
     pub fn new(transactions: Vec<Transaction>, protocol_config: &ProtocolConfig) -> Self {
-        Self {
-            transactions,
-            versioned_metadata: VersionedMetadata::new(protocol_config),
-        }
+        Self { transactions, versioned_metadata: VersionedMetadata::new(protocol_config) }
     }
 
     pub fn size(&self) -> usize {
@@ -289,47 +280,25 @@ impl BatchV2 {
 }
 
 // TODO: Remove once we have removed BatchV1 from the codebase.
-pub fn validate_batch_version(
-    batch: &Batch,
-    protocol_config: &ProtocolConfig,
-) -> anyhow::Result<()> {
+pub fn validate_batch_version(batch: &Batch, protocol_config: &ProtocolConfig) -> anyhow::Result<()> {
     // We will only accept BatchV2 from the network.
     match batch {
-        Batch::V1(_) => {
-            Err(anyhow::anyhow!(format!(
-                    "Received {batch:?} but network is at {:?} and this batch version is no longer supported",
-                    protocol_config.version
-                )))
-        }
-        Batch::V2(_) => {
-            Ok(())
-        }
+        Batch::V1(_) => Err(anyhow::anyhow!(format!(
+            "Received {batch:?} but network is at {:?} and this batch version is no longer supported",
+            protocol_config.version
+        ))),
+        Batch::V2(_) => Ok(()),
     }
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Serialize,
-    Deserialize,
-    Default,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    MallocSizeOf,
-    Arbitrary,
+    Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq, Hash, PartialOrd, Ord, MallocSizeOf, Arbitrary,
 )]
 pub struct BatchDigest(pub [u8; crypto::DIGEST_LENGTH]);
 
 impl fmt::Debug for BatchDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-        )
+        write!(f, "{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0))
     }
 }
 
@@ -338,9 +307,7 @@ impl fmt::Display for BatchDigest {
         write!(
             f,
             "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-                .get(0..16)
-                .ok_or(fmt::Error)?
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0).get(0..16).ok_or(fmt::Error)?
         )
     }
 }
@@ -367,9 +334,7 @@ impl Hash<{ crypto::DIGEST_LENGTH }> for BatchV1 {
     type TypedDigest = BatchDigest;
 
     fn digest(&self) -> Self::TypedDigest {
-        BatchDigest::new(
-            crypto::DefaultHashFunction::digest_iterator(self.transactions.iter()).into(),
-        )
+        BatchDigest::new(crypto::DefaultHashFunction::digest_iterator(self.transactions.iter()).into())
     }
 }
 
@@ -377,9 +342,7 @@ impl Hash<{ crypto::DIGEST_LENGTH }> for BatchV2 {
     type TypedDigest = BatchDigest;
 
     fn digest(&self) -> Self::TypedDigest {
-        BatchDigest::new(
-            crypto::DefaultHashFunction::digest_iterator(self.transactions.iter()).into(),
-        )
+        BatchDigest::new(crypto::DefaultHashFunction::digest_iterator(self.transactions.iter()).into())
     }
 }
 
@@ -436,10 +399,7 @@ impl fmt::Debug for Header {
             self.round(),
             self.author(),
             self.epoch(),
-            self.payload()
-                .keys()
-                .map(|x| Digest::from(*x).size())
-                .sum::<usize>(),
+            self.payload().keys().map(|x| Digest::from(*x).size()).sum::<usize>(),
         )
     }
 }
@@ -497,18 +457,23 @@ impl HeaderAPI for HeaderV1 {
     fn author(&self) -> AuthorityIdentifier {
         self.author
     }
+
     fn round(&self) -> Round {
         self.round
     }
+
     fn epoch(&self) -> Epoch {
         self.epoch
     }
+
     fn created_at(&self) -> &TimestampMs {
         &self.created_at
     }
+
     fn payload(&self) -> &IndexMap<BatchDigest, (WorkerId, TimestampMs)> {
         &self.payload
     }
+
     fn parents(&self) -> &BTreeSet<CertificateDigest> {
         &self.parents
     }
@@ -517,9 +482,11 @@ impl HeaderAPI for HeaderV1 {
     fn update_payload(&mut self, new_payload: IndexMap<BatchDigest, (WorkerId, TimestampMs)>) {
         self.payload = new_payload;
     }
+
     fn update_round(&mut self, new_round: Round) {
         self.round = new_round;
     }
+
     fn clear_parents(&mut self) {
         self.parents.clear();
     }
@@ -542,12 +509,7 @@ impl HeaderV1Builder {
     }
 
     // helper method to set directly values to the payload
-    pub fn with_payload_batch(
-        mut self,
-        batch: Batch,
-        worker_id: WorkerId,
-        created_at: TimestampMs,
-    ) -> Self {
+    pub fn with_payload_batch(mut self, batch: Batch, worker_id: WorkerId, created_at: TimestampMs) -> Self {
         if self.payload.is_none() {
             self.payload = Some(Default::default());
         }
@@ -567,15 +529,7 @@ impl HeaderV1 {
         payload: IndexMap<BatchDigest, (WorkerId, TimestampMs)>,
         parents: BTreeSet<CertificateDigest>,
     ) -> Self {
-        let header = Self {
-            author,
-            round,
-            epoch,
-            created_at: now(),
-            payload,
-            parents,
-            digest: OnceCell::default(),
-        };
+        let header = Self { author, round, epoch, created_at: now(), payload, parents, digest: OnceCell::default() };
         let digest = Hash::digest(&header);
         header.digest.set(digest).unwrap();
         header
@@ -587,34 +541,22 @@ impl HeaderV1 {
 
     pub fn validate(&self, committee: &Committee, worker_cache: &WorkerCache) -> DagResult<()> {
         // Ensure the header is from the correct epoch.
-        ensure!(
-            self.epoch == committee.epoch(),
-            DagError::InvalidEpoch {
-                expected: committee.epoch(),
-                received: self.epoch
-            }
-        );
+        ensure!(self.epoch == committee.epoch(), DagError::InvalidEpoch {
+            expected: committee.epoch(),
+            received: self.epoch
+        });
 
         // Ensure the header digest is well formed.
-        ensure!(
-            Hash::digest(self) == self.digest(),
-            DagError::InvalidHeaderDigest
-        );
+        ensure!(Hash::digest(self) == self.digest(), DagError::InvalidHeaderDigest);
 
         // Ensure the authority has voting rights.
         let voting_rights = committee.stake_by_id(self.author);
-        ensure!(
-            voting_rights > 0,
-            DagError::UnknownAuthority(self.author.to_string())
-        );
+        ensure!(voting_rights > 0, DagError::UnknownAuthority(self.author.to_string()));
 
         // Ensure all worker ids are correct.
         for (worker_id, _) in self.payload.values() {
             worker_cache
-                .worker(
-                    committee.authority(&self.author).unwrap().protocol_key(),
-                    worker_id,
-                )
+                .worker(committee.authority(&self.author).unwrap().protocol_key(), worker_id)
                 .map_err(|_| DagError::HeaderHasBadWorkerIds(self.digest()))?;
         }
 
@@ -623,18 +565,7 @@ impl HeaderV1 {
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Serialize,
-    Deserialize,
-    Default,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    MallocSizeOf,
-    Arbitrary,
+    Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq, Hash, PartialOrd, Ord, MallocSizeOf, Arbitrary,
 )]
 pub struct HeaderDigest([u8; crypto::DIGEST_LENGTH]);
 
@@ -652,11 +583,7 @@ impl AsRef<[u8]> for HeaderDigest {
 
 impl fmt::Debug for HeaderDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-        )
+        write!(f, "{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0))
     }
 }
 
@@ -665,9 +592,7 @@ impl fmt::Display for HeaderDigest {
         write!(
             f,
             "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-                .get(0..16)
-                .ok_or(fmt::Error)?
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0).get(0..16).ok_or(fmt::Error)?
         )
     }
 }
@@ -745,18 +670,23 @@ impl VoteAPI for VoteV1 {
     fn header_digest(&self) -> HeaderDigest {
         self.header_digest
     }
+
     fn round(&self) -> Round {
         self.round
     }
+
     fn epoch(&self) -> Epoch {
         self.epoch
     }
+
     fn origin(&self) -> AuthorityIdentifier {
         self.origin
     }
+
     fn author(&self) -> AuthorityIdentifier {
         self.author
     }
+
     fn signature(&self) -> &<PublicKey as VerifyingKey>::Sig {
         &self.signature
     }
@@ -776,9 +706,7 @@ impl VoteV1 {
             author: *author,
             signature: Signature::default(),
         };
-        let signature = signature_service
-            .request_signature(vote.digest().into())
-            .await;
+        let signature = signature_service.request_signature(vote.digest().into()).await;
         Self { signature, ..vote }
     }
 
@@ -801,9 +729,7 @@ impl VoteV1 {
         Self { signature, ..vote }
     }
 }
-#[derive(
-    Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Copy, Arbitrary,
-)]
+#[derive(Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Copy, Arbitrary)]
 pub struct VoteDigest([u8; crypto::DIGEST_LENGTH]);
 
 impl From<VoteDigest> for Digest<{ crypto::DIGEST_LENGTH }> {
@@ -826,11 +752,7 @@ impl From<VoteDigest> for Digest<{ crypto::INTENT_MESSAGE_LENGTH }> {
 
 impl fmt::Debug for VoteDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-        )
+        write!(f, "{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0))
     }
 }
 
@@ -839,9 +761,7 @@ impl fmt::Display for VoteDigest {
         write!(
             f,
             "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-                .get(0..16)
-                .ok_or(fmt::Error)?
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0).get(0..16).ok_or(fmt::Error)?
         )
     }
 }
@@ -856,15 +776,7 @@ impl Hash<{ crypto::DIGEST_LENGTH }> for VoteV1 {
 
 impl fmt::Debug for Vote {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}: V{}({}, {}, E{})",
-            self.digest(),
-            self.round(),
-            self.author(),
-            self.origin(),
-            self.epoch()
-        )
+        write!(f, "{}: V{}({}, {}, E{})", self.digest(), self.round(), self.author(), self.origin(), self.epoch())
     }
 }
 
@@ -884,15 +796,9 @@ pub enum Certificate {
 impl Certificate {
     pub fn genesis(protocol_config: &ProtocolConfig, committee: &Committee) -> Vec<Self> {
         if protocol_config.narwhal_certificate_v2() {
-            CertificateV2::genesis(committee)
-                .into_iter()
-                .map(Self::V2)
-                .collect()
+            CertificateV2::genesis(committee).into_iter().map(Self::V2).collect()
         } else {
-            CertificateV1::genesis(committee)
-                .into_iter()
-                .map(Self::V1)
-                .collect()
+            CertificateV1::genesis(committee).into_iter().map(Self::V1).collect()
         }
     }
 
@@ -937,11 +843,7 @@ impl Certificate {
         }
     }
 
-    pub fn verify(
-        self,
-        committee: &Committee,
-        worker_cache: &WorkerCache,
-    ) -> DagResult<Certificate> {
+    pub fn verify(self, committee: &Committee, worker_cache: &WorkerCache) -> DagResult<Certificate> {
         match self {
             Certificate::V1(certificate) => certificate.verify(committee, worker_cache),
             Certificate::V2(certificate) => certificate.verify(committee, worker_cache),
@@ -1056,11 +958,7 @@ impl CertificateV1 {
         committee
             .authorities()
             .map(|authority| Self {
-                header: Header::V1(HeaderV1 {
-                    author: authority.id(),
-                    epoch: committee.epoch(),
-                    ..Default::default()
-                }),
+                header: Header::V1(HeaderV1 { author: authority.id(), epoch: committee.epoch(), ..Default::default() }),
                 ..Self::default()
             })
             .collect()
@@ -1112,28 +1010,23 @@ impl CertificateV1 {
             })
             .map(|(index, _)| index as u32);
 
-        let signed_authorities= roaring::RoaringBitmap::from_sorted_iter(filtered_votes)
-            .map_err(|_| DagError::InvalidBitmap("Failed to convert votes into a bitmap of authority keys. Something is likely very wrong...".to_string()))?;
+        let signed_authorities = roaring::RoaringBitmap::from_sorted_iter(filtered_votes).map_err(|_| {
+            DagError::InvalidBitmap(
+                "Failed to convert votes into a bitmap of authority keys. Something is likely very wrong...".to_string(),
+            )
+        })?;
 
         // Ensure that all authorities in the set of votes are known
-        ensure!(
-            votes.is_empty(),
-            DagError::UnknownAuthority(votes.front().unwrap().0.to_string())
-        );
+        ensure!(votes.is_empty(), DagError::UnknownAuthority(votes.front().unwrap().0.to_string()));
 
         // Ensure that the authorities have enough weight
-        ensure!(
-            !check_stake || weight >= committee.quorum_threshold(),
-            DagError::CertificateRequiresQuorum
-        );
+        ensure!(!check_stake || weight >= committee.quorum_threshold(), DagError::CertificateRequiresQuorum);
 
         let aggregated_signature = if sigs.is_empty() {
             AggregateSignature::default()
         } else {
-            AggregateSignature::aggregate::<Signature, Vec<&Signature>>(
-                sigs.iter().map(|(_, sig)| sig).collect(),
-            )
-            .map_err(|_| DagError::InvalidSignature)?
+            AggregateSignature::aggregate::<Signature, Vec<&Signature>>(sigs.iter().map(|(_, sig)| sig).collect())
+                .map_err(|_| DagError::InvalidSignature)?
         };
 
         Ok(Certificate::V1(CertificateV1 {
@@ -1174,19 +1067,12 @@ impl CertificateV1 {
     }
 
     /// Verifies the validity of the certificate.
-    pub fn verify(
-        self,
-        committee: &Committee,
-        worker_cache: &WorkerCache,
-    ) -> DagResult<Certificate> {
+    pub fn verify(self, committee: &Committee, worker_cache: &WorkerCache) -> DagResult<Certificate> {
         // Ensure the header is from the correct epoch.
-        ensure!(
-            self.epoch() == committee.epoch(),
-            DagError::InvalidEpoch {
-                expected: committee.epoch(),
-                received: self.epoch()
-            }
-        );
+        ensure!(self.epoch() == committee.epoch(), DagError::InvalidEpoch {
+            expected: committee.epoch(),
+            received: self.epoch()
+        });
 
         // Genesis certificates are always valid.
         if self.round() == 0 && Self::genesis(committee).contains(&self) {
@@ -1198,10 +1084,7 @@ impl CertificateV1 {
 
         let (weight, pks) = self.signed_by(committee);
 
-        ensure!(
-            weight >= committee.quorum_threshold(),
-            DagError::CertificateRequiresQuorum
-        );
+        ensure!(weight >= committee.quorum_threshold(), DagError::CertificateRequiresQuorum);
 
         // Verify the signatures
         let certificate_digest: Digest<{ crypto::DIGEST_LENGTH }> = Digest::from(self.digest());
@@ -1313,11 +1196,7 @@ impl CertificateV2 {
         committee
             .authorities()
             .map(|authority| Self {
-                header: Header::V1(HeaderV1 {
-                    author: authority.id(),
-                    epoch: committee.epoch(),
-                    ..Default::default()
-                }),
+                header: Header::V1(HeaderV1 { author: authority.id(), epoch: committee.epoch(), ..Default::default() }),
                 signature_verification_state: SignatureVerificationState::Genesis,
                 ..Self::default()
             })
@@ -1370,28 +1249,23 @@ impl CertificateV2 {
             })
             .map(|(index, _)| index as u32);
 
-        let signed_authorities= roaring::RoaringBitmap::from_sorted_iter(filtered_votes)
-            .map_err(|_| DagError::InvalidBitmap("Failed to convert votes into a bitmap of authority keys. Something is likely very wrong...".to_string()))?;
+        let signed_authorities = roaring::RoaringBitmap::from_sorted_iter(filtered_votes).map_err(|_| {
+            DagError::InvalidBitmap(
+                "Failed to convert votes into a bitmap of authority keys. Something is likely very wrong...".to_string(),
+            )
+        })?;
 
         // Ensure that all authorities in the set of votes are known
-        ensure!(
-            votes.is_empty(),
-            DagError::UnknownAuthority(votes.front().unwrap().0.to_string())
-        );
+        ensure!(votes.is_empty(), DagError::UnknownAuthority(votes.front().unwrap().0.to_string()));
 
         // Ensure that the authorities have enough weight
-        ensure!(
-            !check_stake || weight >= committee.quorum_threshold(),
-            DagError::CertificateRequiresQuorum
-        );
+        ensure!(!check_stake || weight >= committee.quorum_threshold(), DagError::CertificateRequiresQuorum);
 
         let aggregated_signature = if sigs.is_empty() {
             AggregateSignature::default()
         } else {
-            AggregateSignature::aggregate::<Signature, Vec<&Signature>>(
-                sigs.iter().map(|(_, sig)| sig).collect(),
-            )
-            .map_err(|_| DagError::InvalidSignature)?
+            AggregateSignature::aggregate::<Signature, Vec<&Signature>>(sigs.iter().map(|(_, sig)| sig).collect())
+                .map_err(|_| DagError::InvalidSignature)?
         };
 
         let aggregate_signature_bytes = AggregateSignatureBytes::from(&aggregated_signature);
@@ -1440,19 +1314,12 @@ impl CertificateV2 {
     }
 
     /// Verifies the validity of the certificate.
-    pub fn verify(
-        self,
-        committee: &Committee,
-        worker_cache: &WorkerCache,
-    ) -> DagResult<Certificate> {
+    pub fn verify(self, committee: &Committee, worker_cache: &WorkerCache) -> DagResult<Certificate> {
         // Ensure the header is from the correct epoch.
-        ensure!(
-            self.epoch() == committee.epoch(),
-            DagError::InvalidEpoch {
-                expected: committee.epoch(),
-                received: self.epoch()
-            }
-        );
+        ensure!(self.epoch() == committee.epoch(), DagError::InvalidEpoch {
+            expected: committee.epoch(),
+            received: self.epoch()
+        });
 
         // Genesis certificates are always valid.
         if self.round() == 0 && Self::genesis(committee).contains(&self) {
@@ -1464,10 +1331,7 @@ impl CertificateV2 {
 
         let (weight, pks) = self.signed_by(committee);
 
-        ensure!(
-            weight >= committee.quorum_threshold(),
-            DagError::CertificateRequiresQuorum
-        );
+        ensure!(weight >= committee.quorum_threshold(), DagError::CertificateRequiresQuorum);
 
         let verified_cert = self.verify_signature(pks)?;
 
@@ -1542,14 +1406,9 @@ pub fn validate_received_certificate_version(
             } else {
                 // CertificateV2 was received from the network so we need to mark
                 // certificate aggregated signature state as unverified.
-                certificate.set_signature_verification_state(
-                    SignatureVerificationState::Unverified(
-                        certificate
-                            .aggregated_signature()
-                            .ok_or(anyhow::anyhow!("Invalid signature"))?
-                            .clone(),
-                    ),
-                );
+                certificate.set_signature_verification_state(SignatureVerificationState::Unverified(
+                    certificate.aggregated_signature().ok_or(anyhow::anyhow!("Invalid signature"))?.clone(),
+                ));
             }
         }
     };
@@ -1557,18 +1416,7 @@ pub fn validate_received_certificate_version(
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Serialize,
-    Deserialize,
-    Default,
-    MallocSizeOf,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Arbitrary,
+    Clone, Copy, Serialize, Deserialize, Default, MallocSizeOf, PartialEq, Eq, Hash, PartialOrd, Ord, Arbitrary,
 )]
 
 pub struct CertificateDigest([u8; crypto::DIGEST_LENGTH]);
@@ -1593,11 +1441,7 @@ impl From<CertificateDigest> for Digest<{ crypto::DIGEST_LENGTH }> {
 
 impl fmt::Debug for CertificateDigest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-        )
+        write!(f, "{}", base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0))
     }
 }
 
@@ -1606,9 +1450,7 @@ impl fmt::Display for CertificateDigest {
         write!(
             f,
             "{}",
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0)
-                .get(0..16)
-                .ok_or(fmt::Error)?
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, self.0).get(0..16).ok_or(fmt::Error)?
         )
     }
 }
@@ -1742,19 +1584,15 @@ impl FetchCertificatesRequest {
         let skip_rounds: BTreeMap<AuthorityIdentifier, BTreeSet<Round>> = self
             .skip_rounds
             .iter()
-            .filter_map(|(k, serialized)| {
-                match RoaringBitmap::deserialize_from(&mut &serialized[..]) {
-                    Ok(bitmap) => {
-                        let rounds: BTreeSet<Round> = bitmap
-                            .into_iter()
-                            .map(|r| self.exclusive_lower_bound + r as Round)
-                            .collect();
-                        Some((*k, rounds))
-                    }
-                    Err(e) => {
-                        warn!("Failed to deserialize RoaringBitmap {e}");
-                        None
-                    }
+            .filter_map(|(k, serialized)| match RoaringBitmap::deserialize_from(&mut &serialized[..]) {
+                Ok(bitmap) => {
+                    let rounds: BTreeSet<Round> =
+                        bitmap.into_iter().map(|r| self.exclusive_lower_bound + r as Round).collect();
+                    Some((*k, rounds))
+                }
+                Err(e) => {
+                    warn!("Failed to deserialize RoaringBitmap {e}");
+                    None
                 }
             })
             .collect();
@@ -1762,11 +1600,7 @@ impl FetchCertificatesRequest {
     }
 
     #[allow(clippy::mutable_key_type)]
-    pub fn set_bounds(
-        mut self,
-        gc_round: Round,
-        skip_rounds: BTreeMap<AuthorityIdentifier, BTreeSet<Round>>,
-    ) -> Self {
+    pub fn set_bounds(mut self, gc_round: Round, skip_rounds: BTreeMap<AuthorityIdentifier, BTreeSet<Round>>) -> Self {
         self.exclusive_lower_bound = gc_round;
         self.skip_rounds = skip_rounds
             .into_iter()
@@ -1883,11 +1717,7 @@ impl VoteInfoAPI for VoteInfoV1 {
 
 impl From<&VoteV1> for VoteInfoV1 {
     fn from(vote: &VoteV1) -> Self {
-        VoteInfoV1 {
-            epoch: vote.epoch(),
-            round: vote.round(),
-            vote_digest: vote.digest(),
-        }
+        VoteInfoV1 { epoch: vote.epoch(), round: vote.round(), vote_digest: vote.digest() }
     }
 }
 
@@ -1916,14 +1746,7 @@ mod tests {
 
         sleep(Duration::from_secs(2)).await;
 
-        assert!(
-            batch
-                .versioned_metadata()
-                .created_at()
-                .elapsed()
-                .as_secs_f64()
-                >= 2.0
-        );
+        assert!(batch.versioned_metadata().created_at().elapsed().as_secs_f64() >= 2.0);
     }
 
     #[test]
@@ -1936,13 +1759,6 @@ mod tests {
             }),
         });
 
-        assert_eq!(
-            batch
-                .versioned_metadata()
-                .created_at()
-                .elapsed()
-                .as_secs_f64(),
-            0.0
-        );
+        assert_eq!(batch.versioned_metadata().created_at().elapsed().as_secs_f64(), 0.0);
     }
 }

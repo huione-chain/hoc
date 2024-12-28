@@ -122,11 +122,11 @@ describe('GraphQL SuiClient compatibility', () => {
 
 	test('getCoinMetadata', async () => {
 		const rpcMetadata = await toolbox.client.getCoinMetadata({
-			coinType: '0x02::sui::SUI',
+			coinType: '0x02::hc::HC',
 		});
 
 		const graphQLMetadata = await graphQLClient!.getCoinMetadata({
-			coinType: '0x02::sui::SUI',
+			coinType: '0x02::hc::HC',
 		});
 
 		expect(graphQLMetadata).toEqual(rpcMetadata);
@@ -134,11 +134,11 @@ describe('GraphQL SuiClient compatibility', () => {
 
 	test('getTotalSupply', async () => {
 		const rpcSupply = await toolbox.client.getTotalSupply({
-			coinType: '0x02::sui::SUI',
+			coinType: '0x02::hc::HC',
 		});
 
 		const graphQLgetTotalSupply = await graphQLClient!.getTotalSupply({
-			coinType: '0x02::sui::SUI',
+			coinType: '0x02::hc::HC',
 		});
 
 		expect(graphQLgetTotalSupply).toEqual(rpcSupply);

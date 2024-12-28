@@ -1,8 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use axum::extract::State;
-use axum::{Extension, Json};
+use axum::{extract::State, Extension, Json};
 use axum_extra::extract::WithRejection;
 use serde_json::json;
 use strum::IntoEnumIterator;
@@ -10,12 +9,25 @@ use strum::IntoEnumIterator;
 use fastcrypto::encoding::Hex;
 use sui_types::base_types::ObjectID;
 
-use crate::errors::{Error, ErrorType};
-use crate::types::{
-    Allow, Case, NetworkIdentifier, NetworkListResponse, NetworkOptionsResponse, NetworkRequest,
-    NetworkStatusResponse, OperationStatus, OperationType, Peer, SyncStatus, Version,
+use crate::{
+    errors::{Error, ErrorType},
+    types::{
+        Allow,
+        Case,
+        NetworkIdentifier,
+        NetworkListResponse,
+        NetworkOptionsResponse,
+        NetworkRequest,
+        NetworkStatusResponse,
+        OperationStatus,
+        OperationType,
+        Peer,
+        SyncStatus,
+        Version,
+    },
+    OnlineServerContext,
+    SuiEnv,
 };
-use crate::{OnlineServerContext, SuiEnv};
 
 /// This module implements the [Rosetta Network API](https://www.rosetta-api.org/docs/NetworkApi.html)
 
@@ -24,10 +36,7 @@ use crate::{OnlineServerContext, SuiEnv};
 /// [Rosetta API Spec](https://www.rosetta-api.org/docs/NetworkApi.html#networklist)
 pub async fn list(Extension(env): Extension<SuiEnv>) -> Result<NetworkListResponse, Error> {
     Ok(NetworkListResponse {
-        network_identifiers: vec![NetworkIdentifier {
-            blockchain: "sui".to_string(),
-            network: env,
-        }],
+        network_identifiers: vec![NetworkIdentifier { blockchain: "sui".to_string(), network: env }],
     })
 }
 
@@ -41,11 +50,7 @@ pub async fn status(
 ) -> Result<NetworkStatusResponse, Error> {
     env.check_network_identifier(&request.network_identifier)?;
 
-    let system_state = context
-        .client
-        .governance_api()
-        .get_latest_sui_system_state()
-        .await?;
+    let system_state = context.client.governance_api().get_latest_sui_system_state().await?;
 
     let peers = system_state
         .active_validators
@@ -61,11 +66,7 @@ pub async fn status(
     let blocks = context.blocks();
     let current_block = blocks.current_block().await?;
     let index = current_block.block.block_identifier.index;
-    let target = context
-        .client
-        .read_api()
-        .get_latest_checkpoint_sequence_number()
-        .await?;
+    let target = context.client.read_api().get_latest_checkpoint_sequence_number().await?;
 
     Ok(NetworkStatusResponse {
         current_block_identifier: current_block.block.block_identifier,

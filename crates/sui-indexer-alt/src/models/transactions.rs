@@ -2,8 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::schema::{
-    kv_transactions, tx_affected_addresses, tx_affected_objects, tx_balance_changes, tx_calls,
-    tx_digests, tx_kinds,
+    kv_transactions,
+    tx_affected_addresses,
+    tx_affected_objects,
+    tx_balance_changes,
+    tx_calls,
+    tx_digests,
+    tx_kinds,
 };
 use diesel::{
     backend::Backend,

@@ -56,9 +56,7 @@ async fn with_permit_unhappy_case() {
     Processor::spawn(rx_inbound, tx_outbound);
     // we fill the inbound channel with stuff
     (0..100).for_each(|i| {
-        tx_inbound
-            .try_send(i)
-            .expect("failed to send to inbound channel");
+        tx_inbound.try_send(i).expect("failed to send to inbound channel");
     });
 
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -67,8 +65,7 @@ async fn with_permit_unhappy_case() {
 
     // we now try to receive all the things we can from the outbound channel
     let mut recvd = vec![];
-    while let Ok(Some(val)) = tokio::time::timeout(Duration::from_secs(1), rx_outbound.recv()).await
-    {
+    while let Ok(Some(val)) = tokio::time::timeout(Duration::from_secs(1), rx_outbound.recv()).await {
         recvd.push(val);
     }
 

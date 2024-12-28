@@ -25,22 +25,16 @@ pub fn order_dag(leader: &Certificate, state: &ConsensusState) -> Vec<Certificat
             continue;
         }
         for parent in x.header().parents() {
-            let (digest, certificate) = match state
-                .dag
-                .get(&(x.round() - 1))
-                .and_then(|x| x.values().find(|(x, _)| x == parent))
-            {
-                Some(x) => x,
-                None => panic!("Parent digest {parent:?} not found for {x:?}!"),
-            };
+            let (digest, certificate) =
+                match state.dag.get(&(x.round() - 1)).and_then(|x| x.values().find(|(x, _)| x == parent)) {
+                    Some(x) => x,
+                    None => panic!("Parent digest {parent:?} not found for {x:?}!"),
+                };
 
             // We skip the certificate if we (1) already processed it or (2) we reached a round that we already
             // committed or will never commit for this authority.
             let mut skip = already_ordered.contains(&digest);
-            skip |= state
-                .last_committed
-                .get(&certificate.origin())
-                .map_or_else(|| false, |r| &certificate.round() <= r);
+            skip |= state.last_committed.get(&certificate.origin()).map_or_else(|| false, |r| &certificate.round() <= r);
             if !skip {
                 buffer.push(certificate);
                 already_ordered.insert(digest);

@@ -9,11 +9,8 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 fn main() -> Result<()> {
-    let out_dir = if env::var("DUMP_GENERATED_GRPC").is_ok() {
-        PathBuf::from("")
-    } else {
-        PathBuf::from(env::var("OUT_DIR")?)
-    };
+    let out_dir =
+        if env::var("DUMP_GENERATED_GRPC").is_ok() { PathBuf::from("") } else { PathBuf::from(env::var("OUT_DIR")?) };
 
     let codec_path = "tonic::codec::ProstCodec";
 
@@ -41,9 +38,7 @@ fn main() -> Result<()> {
         )
         .build();
 
-    tonic_build::manual::Builder::new()
-        .out_dir(&out_dir)
-        .compile(&[service]);
+    tonic_build::manual::Builder::new().out_dir(&out_dir).compile(&[service]);
 
     build_anemo_services(&out_dir);
 
@@ -164,12 +159,10 @@ fn build_anemo_services(out_dir: &Path) {
         )
         .build();
 
-    anemo_build::manual::Builder::new()
-        .out_dir(out_dir)
-        .compile(&[
-            primary_to_primary,
-            primary_to_worker,
-            worker_to_primary,
-            worker_to_worker,
-        ]);
+    anemo_build::manual::Builder::new().out_dir(out_dir).compile(&[
+        primary_to_primary,
+        primary_to_worker,
+        worker_to_primary,
+        worker_to_worker,
+    ]);
 }

@@ -108,13 +108,7 @@ pub(crate) fn pipeline<H: Handler + Send + Sync + 'static>(
 ) -> JoinHandle<()> {
     let (processor_tx, committer_rx) = mpsc::channel(H::FANOUT + PIPELINE_BUFFER);
 
-    let processor = processor(
-        handler,
-        checkpoint_rx,
-        processor_tx,
-        metrics.clone(),
-        cancel.clone(),
-    );
+    let processor = processor(handler, checkpoint_rx, processor_tx, metrics.clone(), cancel.clone());
 
     let committer = committer::<H>(
         config,

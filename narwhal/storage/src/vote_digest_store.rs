@@ -3,9 +3,12 @@
 
 use crate::NodeStorage;
 use config::AuthorityIdentifier;
-use store::reopen;
-use store::rocks::{open_cf, MetricConf, ReadWriteOptions};
-use store::{rocks::DBMap, Map, TypedStoreError};
+use store::{
+    reopen,
+    rocks::{open_cf, DBMap, MetricConf, ReadWriteOptions},
+    Map,
+    TypedStoreError,
+};
 use sui_macros::fail_point;
 use types::{Vote, VoteAPI, VoteInfo};
 
@@ -17,19 +20,12 @@ pub struct VoteDigestStore {
 
 impl VoteDigestStore {
     pub fn new(vote_digest_store: DBMap<AuthorityIdentifier, VoteInfo>) -> VoteDigestStore {
-        Self {
-            store: vote_digest_store,
-        }
+        Self { store: vote_digest_store }
     }
 
     pub fn new_for_tests() -> VoteDigestStore {
-        let rocksdb = open_cf(
-            tempfile::tempdir().unwrap(),
-            None,
-            MetricConf::default(),
-            &[NodeStorage::VOTES_CF],
-        )
-        .expect("Cannot open database");
+        let rocksdb = open_cf(tempfile::tempdir().unwrap(), None, MetricConf::default(), &[NodeStorage::VOTES_CF])
+            .expect("Cannot open database");
         let map = reopen!(&rocksdb, NodeStorage::VOTES_CF;<AuthorityIdentifier, VoteInfo>);
         VoteDigestStore::new(map)
     }
@@ -47,10 +43,7 @@ impl VoteDigestStore {
     }
 
     /// Read the vote info based on the provided corresponding header author key
-    pub fn read(
-        &self,
-        header_author: &AuthorityIdentifier,
-    ) -> Result<Option<VoteInfo>, TypedStoreError> {
+    pub fn read(&self, header_author: &AuthorityIdentifier) -> Result<Option<VoteInfo>, TypedStoreError> {
         self.store.get(header_author)
     }
 }

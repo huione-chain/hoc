@@ -2,20 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use async_trait::async_trait;
-use std::io::Write;
-use std::sync::Arc;
 use std::{
+    io::Write,
     net::SocketAddr,
     path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 
 use futures::future::try_join_all;
-use russh::client::Msg;
-use russh::{client, Channel};
+use russh::{client, client::Msg, Channel};
 use russh_keys::key;
-use tokio::task::JoinHandle;
-use tokio::time::sleep;
+use tokio::{task::JoinHandle, time::sleep};
 
 use crate::{
     client::Instance,
@@ -57,11 +55,7 @@ pub struct CommandContext {
 impl CommandContext {
     /// Create a new ssh command.
     pub fn new() -> Self {
-        Self {
-            background: None,
-            path: None,
-            log_file: None,
-        }
+        Self { background: None, path: None, log_file: None }
     }
 
     /// Set id of the command and indicate that it should run in the background.
@@ -116,12 +110,7 @@ impl SshConnectionManager {
 
     /// Create a new ssh manager from the instances username and private keys.
     pub fn new(username: String, private_key_file: PathBuf) -> Self {
-        Self {
-            username,
-            private_key_file,
-            timeout: None,
-            retries: 0,
-        }
+        Self { username, private_key_file, timeout: None, retries: 0 }
     }
 
     /// Set a timeout duration for the connections.
@@ -168,9 +157,7 @@ impl SshConnectionManager {
         I: IntoIterator<Item = Instance>,
         S: Into<String> + Clone + Send + 'static,
     {
-        let targets = instances
-            .into_iter()
-            .map(|instance| (instance, command.clone()));
+        let targets = instances.into_iter().map(|instance| (instance, command.clone()));
         self.execute_per_instance(targets, context).await
     }
 
@@ -186,11 +173,7 @@ impl SshConnectionManager {
     {
         let handles = self.run_per_instance(instances, context).await;
 
-        try_join_all(handles)
-            .await
-            .unwrap()
-            .into_iter()
-            .collect::<SshResult<_>>()
+        try_join_all(handles).await.unwrap().into_iter().collect::<SshResult<_>>()
     }
 
     async fn run_per_instance<I, S>(
@@ -218,29 +201,15 @@ impl SshConnectionManager {
     }
 
     /// Wait until a command running in the background returns or started.
-    pub async fn wait_for_command<I>(
-        &self,
-        instances: I,
-        command_id: &str,
-        status: CommandStatus,
-    ) -> SshResult<()>
+    pub async fn wait_for_command<I>(&self, instances: I, command_id: &str, status: CommandStatus) -> SshResult<()>
     where
         I: IntoIterator<Item = Instance> + Clone,
     {
         loop {
             sleep(Self::RETRY_DELAY).await;
 
-            let result = self
-                .execute(
-                    instances.clone(),
-                    "(tmux ls || true)",
-                    CommandContext::default(),
-                )
-                .await?;
-            if result
-                .iter()
-                .all(|(stdout, _)| CommandStatus::status(command_id, stdout) == status)
-            {
+            let result = self.execute(instances.clone(), "(tmux ls || true)", CommandContext::default()).await?;
+            if result.iter().all(|(stdout, _)| CommandStatus::status(command_id, stdout) == status) {
                 break;
             }
         }
@@ -255,11 +224,7 @@ impl SshConnectionManager {
         loop {
             sleep(Self::RETRY_DELAY).await;
 
-            if self
-                .execute_per_instance(instances.clone(), CommandContext::default())
-                .await
-                .is_ok()
-            {
+            if self.execute_per_instance(instances.clone(), CommandContext::default()).await.is_ok() {
                 break;
             }
         }
@@ -272,8 +237,7 @@ impl SshConnectionManager {
     {
         let ssh_command = format!("(tmux kill-session -t {command_id} || true)");
         let targets = instances.into_iter().map(|x| (x, ssh_command.clone()));
-        self.execute_per_instance(targets, CommandContext::default())
-            .await?;
+        self.execute_per_instance(targets, CommandContext::default()).await?;
         Ok(())
     }
 }
@@ -284,10 +248,7 @@ struct Session {}
 impl client::Handler for Session {
     type Error = russh::Error;
 
-    async fn check_server_key(
-        self,
-        _server_public_key: &key::PublicKey,
-    ) -> Result<(Self, bool), Self::Error> {
+    async fn check_server_key(self, _server_public_key: &key::PublicKey) -> Result<(Self, bool), Self::Error> {
         Ok((self, true))
     }
 }
@@ -317,10 +278,8 @@ impl SshConnection {
         let key = russh_keys::load_secret_key(private_key_file, None)
             .map_err(|error| SshError::PrivateKeyError { address, error })?;
 
-        let config = client::Config {
-            inactivity_timeout: inactivity_timeout.or(Some(Self::DEFAULT_TIMEOUT)),
-            ..<_>::default()
-        };
+        let config =
+            client::Config { inactivity_timeout: inactivity_timeout.or(Some(Self::DEFAULT_TIMEOUT)), ..<_>::default() };
 
         let mut session = client::connect(Arc::new(config), address, Session {})
             .await
@@ -331,19 +290,12 @@ impl SshConnection {
             .await
             .map_err(|error| SshError::SessionError { address, error })?;
 
-        Ok(Self {
-            session,
-            address,
-            retries: retries.unwrap_or_default(),
-        })
+        Ok(Self { session, address, retries: retries.unwrap_or_default() })
     }
 
     /// Make a useful session error from the lower level error message.
     fn make_session_error(&self, error: russh::Error) -> SshError {
-        SshError::SessionError {
-            address: self.address,
-            error,
-        }
+        SshError::SessionError { address: self.address, error }
     }
 
     /// Execute a ssh command on the remote machine.
@@ -366,15 +318,8 @@ impl SshConnection {
     }
 
     /// Execute an ssh command on the remote machine and return both stdout and stderr.
-    async fn execute_impl(
-        &self,
-        mut channel: Channel<Msg>,
-        command: String,
-    ) -> SshResult<(String, String)> {
-        channel
-            .exec(true, command)
-            .await
-            .map_err(|e| self.make_session_error(e))?;
+    async fn execute_impl(&self, mut channel: Channel<Msg>, command: String) -> SshResult<(String, String)> {
+        channel.exec(true, command).await.map_err(|e| self.make_session_error(e))?;
 
         let mut output = Vec::new();
         let mut exit_code = None;
@@ -387,21 +332,15 @@ impl SshConnection {
             }
         }
 
-        channel
-            .close()
-            .await
-            .map_err(|error| self.make_session_error(error))?;
+        channel.close().await.map_err(|error| self.make_session_error(error))?;
 
         let output_str: String = String::from_utf8_lossy(&output).into();
 
-        ensure!(
-            exit_code.is_some() && exit_code.unwrap() == 0,
-            SshError::NonZeroExitCode {
-                address: self.address,
-                code: exit_code.unwrap(),
-                message: output_str
-            }
-        );
+        ensure!(exit_code.is_some() && exit_code.unwrap() == 0, SshError::NonZeroExitCode {
+            address: self.address,
+            code: exit_code.unwrap(),
+            message: output_str
+        });
 
         Ok((output_str.clone(), output_str))
     }
@@ -411,10 +350,7 @@ impl SshConnection {
     pub async fn download<P: AsRef<Path>>(&self, path: P) -> SshResult<String> {
         let mut error = None;
         for _ in 0..self.retries + 1 {
-            match self
-                .execute(format!("cat {}", path.as_ref().to_str().unwrap()))
-                .await
-            {
+            match self.execute(format!("cat {}", path.as_ref().to_str().unwrap())).await {
                 Ok((file_data, _)) => return Ok(file_data),
                 Err(err) => error = Some(err),
             }

@@ -5,7 +5,7 @@
 /// An example module implementing a fixed commission for the `TransferPolicy`.
 /// Follows the "transfer rules" layout and implements each of the steps.
 module sui::fixed_commission {
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui::coin::Coin;
     use sui::transfer_policy::{
         Self as policy,
@@ -42,7 +42,7 @@ module sui::fixed_commission {
     /// Buyer action: perform required action;
     /// Complete the requirement on `TransferRequest`. In this case - pay the fixed fee.
     public fun pay<T>(
-        policy: &mut TransferPolicy<T>, request: &mut TransferRequest<T>, coin: Coin<SUI>
+        policy: &mut TransferPolicy<T>, request: &mut TransferRequest<T>, coin: Coin<HC>
     ) {
         let paid = request.paid();
         let config: &Commission = policy::get_rule(Rule {}, policy);

@@ -39,15 +39,9 @@ impl Debug for LeaderSwapTable {
         f.write_str(&format!(
             "LeaderSwapTable round:{}, good_nodes:{:?} with stake:{}, bad_nodes:{:?} with stake:{}",
             self.round,
-            self.good_nodes
-                .iter()
-                .map(|a| a.id())
-                .collect::<Vec<AuthorityIdentifier>>(),
+            self.good_nodes.iter().map(|a| a.id()).collect::<Vec<AuthorityIdentifier>>(),
             self.good_nodes.iter().map(|a| a.stake()).sum::<Stake>(),
-            self.bad_nodes
-                .iter()
-                .map(|a| *a.0)
-                .collect::<Vec<AuthorityIdentifier>>(),
+            self.bad_nodes.iter().map(|a| *a.0).collect::<Vec<AuthorityIdentifier>>(),
             self.bad_nodes.iter().map(|a| a.1.stake()).sum::<Stake>(),
         ))
     }
@@ -63,8 +57,14 @@ impl LeaderSwapTable {
         reputation_scores: &ReputationScores,
         bad_nodes_stake_threshold: u64,
     ) -> Self {
-        assert!((0..=33).contains(&bad_nodes_stake_threshold), "The bad_nodes_stake_threshold should be in range [0 - 33], out of bounds parameter detected");
-        assert!(reputation_scores.final_of_schedule, "Only reputation scores that have been calculated on the end of a schedule are accepted");
+        assert!(
+            (0..=33).contains(&bad_nodes_stake_threshold),
+            "The bad_nodes_stake_threshold should be in range [0 - 33], out of bounds parameter detected"
+        );
+        assert!(
+            reputation_scores.final_of_schedule,
+            "Only reputation scores that have been calculated on the end of a schedule are accepted"
+        );
 
         // calculating the good nodes
         let good_nodes = Self::retrieve_first_nodes(
@@ -78,10 +78,7 @@ impl LeaderSwapTable {
         // up to the dictated stake threshold.
         let bad_nodes = Self::retrieve_first_nodes(
             committee,
-            reputation_scores
-                .authorities_by_score_desc()
-                .into_iter()
-                .rev(),
+            reputation_scores.authorities_by_score_desc().into_iter().rev(),
             bad_nodes_stake_threshold,
         )
         .into_iter()
@@ -93,10 +90,7 @@ impl LeaderSwapTable {
                 "Good node on round {}: {} -> {}",
                 round,
                 good_node.hostname(),
-                reputation_scores
-                    .scores_per_authority
-                    .get(&good_node.id())
-                    .unwrap()
+                reputation_scores.scores_per_authority.get(&good_node.id()).unwrap()
             );
         });
 
@@ -105,20 +99,13 @@ impl LeaderSwapTable {
                 "Bad node on round {}: {} -> {}",
                 round,
                 bad_node.hostname(),
-                reputation_scores
-                    .scores_per_authority
-                    .get(&bad_node.id())
-                    .unwrap()
+                reputation_scores.scores_per_authority.get(&bad_node.id()).unwrap()
             );
         });
 
         debug!("Reputation scores on round {round}: {reputation_scores:?}");
 
-        Self {
-            round,
-            good_nodes,
-            bad_nodes,
-        }
+        Self { round, good_nodes, bad_nodes }
     }
 
     /// Checks whether the provided leader is a bad performer and needs to be swapped in the schedule
@@ -135,17 +122,9 @@ impl LeaderSwapTable {
             seed_bytes[32 - 8..].copy_from_slice(&leader_round.to_le_bytes());
             let mut rng = StdRng::from_seed(seed_bytes);
 
-            let good_node = self
-                .good_nodes
-                .choose(&mut rng)
-                .expect("There should be at least one good node available");
+            let good_node = self.good_nodes.choose(&mut rng).expect("There should be at least one good node available");
 
-            trace!(
-                "Swapping bad leader {} -> {} for round {}",
-                leader,
-                good_node.id(),
-                leader_round
-            );
+            trace!("Swapping bad leader {} -> {} for round {}", leader, good_node.id(), leader_round);
 
             return Some(good_node.to_owned());
         }
@@ -191,22 +170,14 @@ pub struct LeaderSchedule {
 
 impl LeaderSchedule {
     pub fn new(committee: Committee, table: LeaderSwapTable) -> Self {
-        Self {
-            committee,
-            leader_swap_table: Arc::new(RwLock::new(table)),
-        }
+        Self { committee, leader_swap_table: Arc::new(RwLock::new(table)) }
     }
 
     /// Restores the LeaderSchedule by using the storage. It will attempt to retrieve the last committed
     /// "final" ReputationScores and use them to create build a LeaderSwapTable to use for the LeaderSchedule.
-    pub fn from_store(
-        committee: Committee,
-        store: Arc<ConsensusStore>,
-        protocol_config: ProtocolConfig,
-    ) -> Self {
-        let table = store
-            .read_latest_commit_with_final_reputation_scores()
-            .map_or(LeaderSwapTable::default(), |commit| {
+    pub fn from_store(committee: Committee, store: Arc<ConsensusStore>, protocol_config: ProtocolConfig) -> Self {
+        let table =
+            store.read_latest_commit_with_final_reputation_scores().map_or(LeaderSwapTable::default(), |commit| {
                 LeaderSwapTable::new(
                     &committee,
                     commit.leader_round(),
@@ -231,11 +202,7 @@ impl LeaderSchedule {
     /// according to the provided LeaderSwapTable. Providing a different table can potentially produce
     /// a different leader for the same round.
     pub fn leader(&self, round: Round) -> Authority {
-        assert_eq!(
-            round % 2,
-            0,
-            "We should never attempt to do a leader election for odd rounds"
-        );
+        assert_eq!(round % 2, 0, "We should never attempt to do a leader election for odd rounds");
 
         // TODO: split the leader election logic for testing from the production code.
         cfg_if::cfg_if! {
@@ -266,11 +233,7 @@ impl LeaderSchedule {
     /// leader of the round is always returned and that's irrespective of whether the certificate exists
     /// as that's deterministically determined. The provided `leader_swap_table` is being used to determine
     /// any overrides that need to be performed to the original schedule.
-    pub fn leader_certificate<'a>(
-        &self,
-        round: Round,
-        dag: &'a Dag,
-    ) -> (Authority, Option<&'a Certificate>) {
+    pub fn leader_certificate<'a>(&self, round: Round, dag: &'a Dag) -> (Authority, Option<&'a Certificate>) {
         // Note: this function is often called with even rounds only. While we do not aim at random selection
         // yet (see issue https://github.com/MystenLabs/sui/issues/5182), repeated calls to this function
         // should still pick from the whole roster of leaders.

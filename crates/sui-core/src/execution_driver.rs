@@ -9,7 +9,8 @@ use std::{
 use mysten_metrics::{monitored_scope, spawn_monitored_task};
 use rand::{
     rngs::{OsRng, StdRng},
-    Rng, SeedableRng,
+    Rng,
+    SeedableRng,
 };
 use sui_macros::fail_point_async;
 use sui_protocol_config::Chain;
@@ -19,8 +20,7 @@ use tokio::{
 };
 use tracing::{error, error_span, info, trace, Instrument};
 
-use crate::authority::AuthorityState;
-use crate::transaction_manager::PendingCertificate;
+use crate::{authority::AuthorityState, transaction_manager::PendingCertificate};
 
 #[cfg(test)]
 #[path = "unit_tests/execution_driver_tests.rs"]
@@ -51,10 +51,7 @@ pub async fn execution_process(
             return;
         };
 
-        state
-            .get_chain_identifier()
-            .map(|chain_id| chain_id.chain())
-            == Some(Chain::Mainnet)
+        state.get_chain_identifier().map(|chain_id| chain_id.chain()) == Some(Chain::Mainnet)
     };
 
     // Loop whenever there is a signal that a new transactions is ready to process.
@@ -115,15 +112,9 @@ pub async fn execution_process(
         let permit = limit.acquire_owned().await.unwrap();
 
         if rng.gen_range(0.0..1.0) < QUEUEING_DELAY_SAMPLING_RATIO {
-            authority
-                .metrics
-                .execution_queueing_latency
-                .report(txn_ready_time.elapsed());
+            authority.metrics.execution_queueing_latency.report(txn_ready_time.elapsed());
             if let Some(latency) = authority.metrics.execution_queueing_latency.latency() {
-                authority
-                    .metrics
-                    .execution_queueing_delay_s
-                    .observe(latency.as_secs_f64());
+                authority.metrics.execution_queueing_delay_s.observe(latency.as_secs_f64());
             }
         }
 

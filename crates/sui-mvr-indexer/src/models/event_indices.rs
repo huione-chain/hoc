@@ -3,8 +3,13 @@
 
 use crate::{
     schema::{
-        event_emit_module, event_emit_package, event_senders, event_struct_instantiation,
-        event_struct_module, event_struct_name, event_struct_package,
+        event_emit_module,
+        event_emit_package,
+        event_senders,
+        event_struct_instantiation,
+        event_struct_module,
+        event_struct_name,
+        event_struct_package,
     },
     types::EventIndex,
 };
@@ -106,11 +111,7 @@ impl EventIndex {
                 module: self.emit_module.clone(),
                 sender: self.sender.to_vec(),
             },
-            StoredEventSenders {
-                tx_sequence_number,
-                event_sequence_number,
-                sender: self.sender.to_vec(),
-            },
+            StoredEventSenders { tx_sequence_number, event_sequence_number, sender: self.sender.to_vec() },
             StoredEventStructPackage {
                 tx_sequence_number,
                 event_sequence_number,

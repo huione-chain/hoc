@@ -16,9 +16,9 @@ use crate::{models::checkpoints::StoredCheckpoint, schema::kv_checkpoints};
 pub(crate) struct KvCheckpoints;
 
 impl Processor for KvCheckpoints {
-    const NAME: &'static str = "kv_checkpoints";
-
     type Value = StoredCheckpoint;
+
+    const NAME: &'static str = "kv_checkpoints";
 
     fn process(&self, checkpoint: &Arc<CheckpointData>) -> Result<Vec<Self::Value>> {
         let sequence_number = checkpoint.checkpoint_summary.sequence_number as i64;
@@ -35,10 +35,6 @@ impl Processor for KvCheckpoints {
 #[async_trait::async_trait]
 impl Handler for KvCheckpoints {
     async fn commit(values: &[Self::Value], conn: &mut db::Connection<'_>) -> Result<usize> {
-        Ok(diesel::insert_into(kv_checkpoints::table)
-            .values(values)
-            .on_conflict_do_nothing()
-            .execute(conn)
-            .await?)
+        Ok(diesel::insert_into(kv_checkpoints::table).values(values).on_conflict_do_nothing().execute(conn).await?)
     }
 }

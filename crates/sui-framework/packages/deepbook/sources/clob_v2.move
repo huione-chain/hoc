@@ -9,7 +9,7 @@ module deepbook::clob_v2 {
     use sui::coin::{Self, Coin, join};
     use sui::event;
     use sui::linked_table::{Self, LinkedTable};
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui::table::{Self, Table, contains, add, borrow_mut};
 
     use deepbook::critbit::{Self, CritbitTree, is_empty, borrow_mut_leaf_by_index, min_leaf, remove_leaf_by_index, max_leaf, next_leaf, previous_leaf, borrow_leaf_by_index, borrow_leaf_by_key, find_leaf, insert_leaf};
@@ -256,7 +256,7 @@ module deepbook::clob_v2 {
         base_custodian: Custodian<BaseAsset>,
         quote_custodian: Custodian<QuoteAsset>,
         // Stores the fee paid to create this pool. These funds are not accessible.
-        creation_fee: Balance<SUI>,
+        creation_fee: Balance<HC>,
         // Deprecated.
         base_asset_trading_fees: Balance<BaseAsset>,
         // Stores the trading fees paid in `QuoteAsset`. These funds are not accessible in the V1 of the Pools, but V2 Pools are accessible.
@@ -343,7 +343,7 @@ module deepbook::clob_v2 {
         maker_rebate_rate: u64,
         tick_size: u64,
         lot_size: u64,
-        creation_fee: Balance<SUI>,
+        creation_fee: Balance<HC>,
         ctx: &mut TxContext,
     ) {
         let (pool, pool_owner_cap) = create_pool_with_return_<BaseAsset, QuoteAsset>(
@@ -362,7 +362,7 @@ module deepbook::clob_v2 {
     public fun create_pool<BaseAsset, QuoteAsset>(
         tick_size: u64,
         lot_size: u64,
-        creation_fee: Coin<SUI>,
+        creation_fee: Coin<HC>,
         ctx: &mut TxContext,
     ) {
         create_customized_pool<BaseAsset, QuoteAsset>(
@@ -383,7 +383,7 @@ module deepbook::clob_v2 {
         lot_size: u64,
         taker_fee_rate: u64,
         maker_rebate_rate: u64,
-        creation_fee: Coin<SUI>,
+        creation_fee: Coin<HC>,
         ctx: &mut TxContext,
     ) {
         create_pool_<BaseAsset, QuoteAsset>(
@@ -402,7 +402,7 @@ module deepbook::clob_v2 {
         maker_rebate_rate: u64,
         tick_size: u64,
         lot_size: u64,
-        creation_fee: Balance<SUI>,
+        creation_fee: Balance<HC>,
         ctx: &mut TxContext,
     ): (Pool<BaseAsset, QuoteAsset>, PoolOwnerCap) {
         assert!(balance::value(&creation_fee) == FEE_AMOUNT_FOR_CREATE_POOL, EInvalidFee);
@@ -454,7 +454,7 @@ module deepbook::clob_v2 {
     public fun create_pool_with_return<BaseAsset, QuoteAsset>(
         tick_size: u64,
         lot_size: u64,
-        creation_fee: Coin<SUI>,
+        creation_fee: Coin<HC>,
         ctx: &mut TxContext,
     ): Pool<BaseAsset, QuoteAsset> {
         create_customized_pool_with_return<BaseAsset, QuoteAsset>(
@@ -476,7 +476,7 @@ module deepbook::clob_v2 {
         lot_size: u64,
         taker_fee_rate: u64,
         maker_rebate_rate: u64,
-        creation_fee: Coin<SUI>,
+        creation_fee: Coin<HC>,
         ctx: &mut TxContext,
     ) : Pool<BaseAsset, QuoteAsset> {
         let (pool, pool_owner_cap) = create_pool_with_return_<BaseAsset, QuoteAsset>(
@@ -499,7 +499,7 @@ module deepbook::clob_v2 {
         lot_size: u64,
         taker_fee_rate: u64,
         maker_rebate_rate: u64,
-        creation_fee: Coin<SUI>,
+        creation_fee: Coin<HC>,
         ctx: &mut TxContext,
     ) : (Pool<BaseAsset, QuoteAsset>, PoolOwnerCap) {
         create_pool_with_return_<BaseAsset, QuoteAsset>(
@@ -2256,7 +2256,7 @@ module deepbook::clob_v2 {
 
         test_scenario::next_tx(scenario, sender);
         {
-            create_pool_<SUI, USD>(
+            create_pool_<HC, USD>(
                 taker_fee_rate,
                 maker_rebate_rate,
                 tick_size,
@@ -2298,7 +2298,7 @@ module deepbook::clob_v2 {
 
         test_scenario::next_tx(scenario, sender);
         {
-            let (pool, pool_owner_cap) = create_pool_with_return_<SUI, USD>(
+            let (pool, pool_owner_cap) = create_pool_with_return_<HC, USD>(
                 taker_fee_rate,
                 maker_rebate_rate,
                 tick_size,
@@ -2672,13 +2672,13 @@ module deepbook::clob_v2 {
         };
         test_scenario::next_tx(&mut test, alice);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, alice);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(1000 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(1000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
             custodian::deposit(
@@ -2686,7 +2686,7 @@ module deepbook::clob_v2 {
                 mint_for_testing<USD>(10000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 5 * FLOAT_SCALING,
@@ -2734,13 +2734,13 @@ module deepbook::clob_v2 {
         };
         test_scenario::next_tx(&mut test, alice);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, alice);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(1000 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(1000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
             custodian::deposit(
@@ -2748,7 +2748,7 @@ module deepbook::clob_v2 {
                 mint_for_testing<USD>(10000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 5 * FLOAT_SCALING,
@@ -2761,7 +2761,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -2774,7 +2774,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -2787,7 +2787,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 10 * FLOAT_SCALING,
@@ -2809,7 +2809,7 @@ module deepbook::clob_v2 {
                 7400 * 100000000,
                 2600 * 100000000
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
             test_scenario::return_shared(pool);
             test_scenario::return_shared(clock);
             test_scenario::return_to_address<AccountCap>(alice, account_cap);
@@ -2817,17 +2817,17 @@ module deepbook::clob_v2 {
 
         test_scenario::next_tx(&mut test, bob);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, bob);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(900 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(900 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
-            place_limit_order<SUI, USD>(
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_BOB,
                 4 * FLOAT_SCALING,
@@ -2875,13 +2875,13 @@ module deepbook::clob_v2 {
         };
         test_scenario::next_tx(&mut test, alice);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, alice);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(1000 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(1000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
             custodian::deposit(
@@ -2889,7 +2889,7 @@ module deepbook::clob_v2 {
                 mint_for_testing<USD>(10000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 5 * FLOAT_SCALING,
@@ -2902,7 +2902,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -2915,7 +2915,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -2928,7 +2928,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 10 * FLOAT_SCALING,
@@ -2950,7 +2950,7 @@ module deepbook::clob_v2 {
                 7400 * 100000000,
                 2600 * 100000000
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
             test_scenario::return_shared(pool);
             test_scenario::return_shared(clock);
             test_scenario::return_to_address<AccountCap>(alice, account_cap);
@@ -2958,17 +2958,17 @@ module deepbook::clob_v2 {
 
         test_scenario::next_tx(&mut test, bob);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, bob);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(900 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(900 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
-            place_limit_order<SUI, USD>(
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_BOB,
                 4 * FLOAT_SCALING,
@@ -2981,7 +2981,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
             test_scenario::return_shared(pool);
             test_scenario::return_shared(clock);
             test_scenario::return_to_address<AccountCap>(bob, account_cap);
@@ -3015,13 +3015,13 @@ module deepbook::clob_v2 {
         };
         test_scenario::next_tx(&mut test, alice);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, alice);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(1000 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(1000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
             custodian::deposit(
@@ -3029,7 +3029,7 @@ module deepbook::clob_v2 {
                 mint_for_testing<USD>(10000 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 5 * FLOAT_SCALING,
@@ -3042,7 +3042,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -3055,7 +3055,7 @@ module deepbook::clob_v2 {
                 &account_cap,
                 test_scenario::ctx(&mut test)
             );
-            place_limit_order<SUI, USD>(
+            place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -3069,7 +3069,7 @@ module deepbook::clob_v2 {
                 test_scenario::ctx(&mut test)
             );
 
-            let (base_filled, quote_filled, maker_injected, maker_order_id) = place_limit_order<SUI, USD>(
+            let (base_filled, quote_filled, maker_injected, maker_order_id) = place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 10 * FLOAT_SCALING,
@@ -3096,7 +3096,7 @@ module deepbook::clob_v2 {
                 7400 * 100000000,
                 2600 * 100000000
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 0, 1000 * 100000000);
             test_scenario::return_shared(pool);
             test_scenario::return_shared(clock);
             test_scenario::return_to_address<AccountCap>(alice, account_cap);
@@ -3104,18 +3104,18 @@ module deepbook::clob_v2 {
 
         test_scenario::next_tx(&mut test, bob);
         {
-            let mut pool = test_scenario::take_shared<Pool<SUI, USD>>(&test);
+            let mut pool = test_scenario::take_shared<Pool<HC, USD>>(&test);
             let clock = test_scenario::take_shared<Clock>(&test);
             let account_cap = test_scenario::take_from_address<AccountCap>(&test, bob);
             let account_cap_user = account_owner(&account_cap);
             custodian::deposit(
                 &mut pool.base_custodian,
-                mint_for_testing<SUI>(900 * 100000000, test_scenario::ctx(&mut test)),
+                mint_for_testing<HC>(900 * 100000000, test_scenario::ctx(&mut test)),
                 account_cap_user
             );
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 900 * 100000000, 0);
 
-            let (base_filled, quote_filled, maker_injected, _) = place_limit_order<SUI, USD>(
+            let (base_filled, quote_filled, maker_injected, _) = place_limit_order<HC, USD>(
                 &mut pool,
                 CLIENT_ID_ALICE,
                 4 * FLOAT_SCALING,
@@ -3132,7 +3132,7 @@ module deepbook::clob_v2 {
             assert!(quote_filled == 2600 * 100000000);
             assert!(!maker_injected);
 
-            custodian::assert_user_balance<SUI>(&pool.base_custodian, account_cap_user, 300 * 100000000, 0);
+            custodian::assert_user_balance<HC>(&pool.base_custodian, account_cap_user, 300 * 100000000, 0);
             {
                 let (_, _, bids, _) = get_pool_stat(&pool);
                 check_empty_tick_level(bids, 4 * FLOAT_SCALING);
@@ -3156,7 +3156,7 @@ module deepbook::clob_v2 {
         // create pool which is already exist fail
         test_scenario::next_tx(&mut test, owner);
         {
-            create_pool_<SUI, SUI>(
+            create_pool_<HC, HC>(
                 REFERENCE_TAKER_FEE_RATE,
                 REFERENCE_MAKER_REBATE_RATE,
                 1 * FLOAT_SCALING,
@@ -3180,7 +3180,7 @@ module deepbook::clob_v2 {
         // create pool which is already exist fail
         test_scenario::next_tx(&mut test, owner);
         {
-            create_pool_<SUI, SUI>(
+            create_pool_<HC, HC>(
                 REFERENCE_TAKER_FEE_RATE,
                 REFERENCE_MAKER_REBATE_RATE,
                 100_000,

@@ -1,13 +1,9 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use criterion::{
-    criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput,
-};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, Throughput};
 use fastcrypto::hash::Hash;
-use narwhal_primary::consensus::{
-    Bullshark, ConsensusMetrics, ConsensusState, LeaderSchedule, LeaderSwapTable,
-};
+use narwhal_primary::consensus::{Bullshark, ConsensusMetrics, ConsensusState, LeaderSchedule, LeaderSwapTable};
 use prometheus::Registry;
 use std::{collections::BTreeSet, sync::Arc};
 use storage::NodeStorage;
@@ -34,13 +30,8 @@ pub fn process_certificates(c: &mut Criterion) {
             .iter()
             .map(|x| x.digest())
             .collect::<BTreeSet<_>>();
-        let (certificates, _next_parents) = make_optimal_certificates(
-            &committee,
-            &latest_protocol_version(),
-            1..=rounds,
-            &genesis,
-            &keys,
-        );
+        let (certificates, _next_parents) =
+            make_optimal_certificates(&committee, &latest_protocol_version(), 1..=rounds, &genesis, &keys);
 
         let store_path = temp_dir();
         let store = NodeStorage::reopen(&store_path, None);
@@ -48,10 +39,7 @@ pub fn process_certificates(c: &mut Criterion) {
 
         let mut state = ConsensusState::new(metrics.clone(), gc_depth);
 
-        let data_size: usize = certificates
-            .iter()
-            .map(|cert| bcs::to_bytes(&cert).unwrap().len())
-            .sum();
+        let data_size: usize = certificates.iter().map(|cert| bcs::to_bytes(&cert).unwrap().len()).sum();
         consensus_group.throughput(Throughput::Bytes(data_size as u64));
 
         let mut ordering_engine = Bullshark {
@@ -64,17 +52,13 @@ pub fn process_certificates(c: &mut Criterion) {
             num_sub_dags_per_schedule: 100,
             leader_schedule: LeaderSchedule::new(committee.clone(), LeaderSwapTable::default()),
         };
-        consensus_group.bench_with_input(
-            BenchmarkId::new("batched", certificates.len()),
-            &certificates,
-            |b, i| {
-                b.iter(|| {
-                    for cert in i {
-                        let _ = ordering_engine.process_certificate(&mut state, cert.clone());
-                    }
-                })
-            },
-        );
+        consensus_group.bench_with_input(BenchmarkId::new("batched", certificates.len()), &certificates, |b, i| {
+            b.iter(|| {
+                for cert in i {
+                    let _ = ordering_engine.process_certificate(&mut state, cert.clone());
+                }
+            })
+        });
     }
 }
 

@@ -11,7 +11,8 @@ use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, QueryableByName},
     row::NamedRow,
-    ExpressionMethods, QueryDsl,
+    ExpressionMethods,
+    QueryDsl,
 };
 use serde::{Deserialize, Serialize};
 use sui_indexer::{models::transactions::StoredTransaction, schema::transactions};
@@ -98,17 +99,11 @@ impl Target<Cursor> for StoredTransaction {
 
 impl RawPaginated<Cursor> for StoredTransaction {
     fn filter_ge(cursor: &Cursor, query: RawQuery) -> RawQuery {
-        filter!(
-            query,
-            format!("tx_sequence_number >= {}", cursor.tx_sequence_number)
-        )
+        filter!(query, format!("tx_sequence_number >= {}", cursor.tx_sequence_number))
     }
 
     fn filter_le(cursor: &Cursor, query: RawQuery) -> RawQuery {
-        filter!(
-            query,
-            format!("tx_sequence_number <= {}", cursor.tx_sequence_number)
-        )
+        filter!(query, format!("tx_sequence_number <= {}", cursor.tx_sequence_number))
     }
 
     fn order(asc: bool, query: RawQuery) -> RawQuery {
@@ -132,17 +127,11 @@ impl Target<Cursor> for TxLookup {
 
 impl RawPaginated<Cursor> for TxLookup {
     fn filter_ge(cursor: &Cursor, query: RawQuery) -> RawQuery {
-        filter!(
-            query,
-            format!("tx_sequence_number >= {}", cursor.tx_sequence_number)
-        )
+        filter!(query, format!("tx_sequence_number >= {}", cursor.tx_sequence_number))
     }
 
     fn filter_le(cursor: &Cursor, query: RawQuery) -> RawQuery {
-        filter!(
-            query,
-            format!("tx_sequence_number <= {}", cursor.tx_sequence_number)
-        )
+        filter!(query, format!("tx_sequence_number <= {}", cursor.tx_sequence_number))
     }
 
     fn order(asc: bool, query: RawQuery) -> RawQuery {
@@ -165,8 +154,7 @@ where
     i64: FromSql<diesel::sql_types::BigInt, DB>,
 {
     fn build<'a>(row: &impl NamedRow<'a, DB>) -> deserialize::Result<Self> {
-        let tx_sequence_number =
-            NamedRow::get::<diesel::sql_types::BigInt, _>(row, "tx_sequence_number")?;
+        let tx_sequence_number = NamedRow::get::<diesel::sql_types::BigInt, _>(row, "tx_sequence_number")?;
 
         Ok(Self { tx_sequence_number })
     }

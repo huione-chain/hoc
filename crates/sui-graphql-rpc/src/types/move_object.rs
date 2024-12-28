@@ -1,34 +1,33 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use super::balance::{self, Balance};
-use super::base64::Base64;
-use super::big_int::BigInt;
-use super::coin::CoinDowncastError;
-use super::coin_metadata::{CoinMetadata, CoinMetadataDowncastError};
-use super::cursor::Page;
-use super::display::DisplayEntry;
-use super::dynamic_field::{DynamicField, DynamicFieldName};
-use super::move_type::MoveType;
-use super::move_value::MoveValue;
-use super::object::{self, ObjectFilter, ObjectImpl, ObjectLookup, ObjectOwner, ObjectStatus};
-use super::owner::OwnerImpl;
-use super::stake::StakedSuiDowncastError;
-use super::sui_address::SuiAddress;
-use super::suins_registration::{DomainFormat, SuinsRegistration, SuinsRegistrationDowncastError};
-use super::transaction_block::{self, TransactionBlock, TransactionBlockFilter};
-use super::type_filter::ExactTypeFilter;
-use super::uint53::UInt53;
-use super::{coin::Coin, object::Object};
-use crate::connection::ScanConnection;
-use crate::data::Db;
-use crate::error::Error;
-use crate::types::stake::StakedSui;
-use async_graphql::connection::Connection;
-use async_graphql::*;
+use super::{
+    balance::{self, Balance},
+    base64::Base64,
+    big_int::BigInt,
+    coin::{Coin, CoinDowncastError},
+    coin_metadata::{CoinMetadata, CoinMetadataDowncastError},
+    cursor::Page,
+    display::DisplayEntry,
+    dynamic_field::{DynamicField, DynamicFieldName},
+    move_type::MoveType,
+    move_value::MoveValue,
+    object::{self, Object, ObjectFilter, ObjectImpl, ObjectLookup, ObjectOwner, ObjectStatus},
+    owner::OwnerImpl,
+    stake::StakedSuiDowncastError,
+    sui_address::SuiAddress,
+    suins_registration::{DomainFormat, SuinsRegistration, SuinsRegistrationDowncastError},
+    transaction_block::{self, TransactionBlock, TransactionBlockFilter},
+    type_filter::ExactTypeFilter,
+    uint53::UInt53,
+};
+use crate::{connection::ScanConnection, data::Db, error::Error, types::stake::StakedSui};
+use async_graphql::{connection::Connection, *};
 use sui_json_rpc::name_service::NameServiceConfig;
-use sui_types::object::{Data, MoveObject as NativeMoveObject};
-use sui_types::TypeTag;
+use sui_types::{
+    object::{Data, MoveObject as NativeMoveObject},
+    TypeTag,
+};
 
 #[derive(Clone)]
 pub(crate) struct MoveObject {
@@ -135,18 +134,12 @@ impl MoveObject {
         before: Option<object::Cursor>,
         filter: Option<ObjectFilter>,
     ) -> Result<Connection<String, MoveObject>> {
-        OwnerImpl::from(&self.super_)
-            .objects(ctx, first, after, last, before, filter)
-            .await
+        OwnerImpl::from(&self.super_).objects(ctx, first, after, last, before, filter).await
     }
 
     /// Total balance of all coins with marker type owned by this object. If type is not supplied,
-    /// it defaults to `0x2::sui::SUI`.
-    pub(crate) async fn balance(
-        &self,
-        ctx: &Context<'_>,
-        type_: Option<ExactTypeFilter>,
-    ) -> Result<Option<Balance>> {
+    /// it defaults to `0x2::hc::HC`.
+    pub(crate) async fn balance(&self, ctx: &Context<'_>, type_: Option<ExactTypeFilter>) -> Result<Option<Balance>> {
         OwnerImpl::from(&self.super_).balance(ctx, type_).await
     }
 
@@ -159,14 +152,12 @@ impl MoveObject {
         last: Option<u64>,
         before: Option<balance::Cursor>,
     ) -> Result<Connection<String, Balance>> {
-        OwnerImpl::from(&self.super_)
-            .balances(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(&self.super_).balances(ctx, first, after, last, before).await
     }
 
     /// The coin objects for this object.
     ///
-    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::sui::SUI`.
+    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::hc::HC`.
     pub(crate) async fn coins(
         &self,
         ctx: &Context<'_>,
@@ -176,9 +167,7 @@ impl MoveObject {
         before: Option<object::Cursor>,
         type_: Option<ExactTypeFilter>,
     ) -> Result<Connection<String, Coin>> {
-        OwnerImpl::from(&self.super_)
-            .coins(ctx, first, after, last, before, type_)
-            .await
+        OwnerImpl::from(&self.super_).coins(ctx, first, after, last, before, type_).await
     }
 
     /// The `0x3::staking_pool::StakedSui` objects owned by this object.
@@ -190,9 +179,7 @@ impl MoveObject {
         last: Option<u64>,
         before: Option<object::Cursor>,
     ) -> Result<Connection<String, StakedSui>> {
-        OwnerImpl::from(&self.super_)
-            .staked_suis(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(&self.super_).staked_suis(ctx, first, after, last, before).await
     }
 
     /// The domain explicitly configured as the default domain pointing to this object.
@@ -201,9 +188,7 @@ impl MoveObject {
         ctx: &Context<'_>,
         format: Option<DomainFormat>,
     ) -> Result<Option<String>> {
-        OwnerImpl::from(&self.super_)
-            .default_suins_name(ctx, format)
-            .await
+        OwnerImpl::from(&self.super_).default_suins_name(ctx, format).await
     }
 
     /// The SuinsRegistration NFTs owned by this object. These grant the owner the capability to
@@ -216,9 +201,7 @@ impl MoveObject {
         last: Option<u64>,
         before: Option<object::Cursor>,
     ) -> Result<Connection<String, SuinsRegistration>> {
-        OwnerImpl::from(&self.super_)
-            .suins_registrations(ctx, first, after, last, before)
-            .await
+        OwnerImpl::from(&self.super_).suins_registrations(ctx, first, after, last, before).await
     }
 
     pub(crate) async fn version(&self) -> UInt53 {
@@ -247,13 +230,8 @@ impl MoveObject {
     }
 
     /// The transaction block that created this version of the object.
-    pub(crate) async fn previous_transaction_block(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Option<TransactionBlock>> {
-        ObjectImpl(&self.super_)
-            .previous_transaction_block(ctx)
-            .await
+    pub(crate) async fn previous_transaction_block(&self, ctx: &Context<'_>) -> Result<Option<TransactionBlock>> {
+        ObjectImpl(&self.super_).previous_transaction_block(ctx).await
     }
 
     /// The amount of SUI we would rebate if this object gets deleted or mutated. This number is
@@ -292,9 +270,7 @@ impl MoveObject {
         filter: Option<TransactionBlockFilter>,
         scan_limit: Option<u64>,
     ) -> Result<ScanConnection<String, TransactionBlock>> {
-        ObjectImpl(&self.super_)
-            .received_transaction_blocks(ctx, first, after, last, before, filter, scan_limit)
-            .await
+        ObjectImpl(&self.super_).received_transaction_blocks(ctx, first, after, last, before, filter, scan_limit).await
     }
 
     /// The Base64-encoded BCS serialization of the object's content.
@@ -329,14 +305,8 @@ impl MoveObject {
     ///
     /// Dynamic fields on wrapped objects can be accessed by using the same API under the Owner
     /// type.
-    pub(crate) async fn dynamic_field(
-        &self,
-        ctx: &Context<'_>,
-        name: DynamicFieldName,
-    ) -> Result<Option<DynamicField>> {
-        OwnerImpl::from(&self.super_)
-            .dynamic_field(ctx, name, Some(self.root_version()))
-            .await
+    pub(crate) async fn dynamic_field(&self, ctx: &Context<'_>, name: DynamicFieldName) -> Result<Option<DynamicField>> {
+        OwnerImpl::from(&self.super_).dynamic_field(ctx, name, Some(self.root_version())).await
     }
 
     /// Access a dynamic object field on an object using its name. Names are arbitrary Move values
@@ -351,9 +321,7 @@ impl MoveObject {
         ctx: &Context<'_>,
         name: DynamicFieldName,
     ) -> Result<Option<DynamicField>> {
-        OwnerImpl::from(&self.super_)
-            .dynamic_object_field(ctx, name, Some(self.root_version()))
-            .await
+        OwnerImpl::from(&self.super_).dynamic_object_field(ctx, name, Some(self.root_version())).await
     }
 
     /// The dynamic fields and dynamic object fields on an object.
@@ -368,9 +336,7 @@ impl MoveObject {
         last: Option<u64>,
         before: Option<object::Cursor>,
     ) -> Result<Connection<String, DynamicField>> {
-        OwnerImpl::from(&self.super_)
-            .dynamic_fields(ctx, first, after, last, before, Some(self.root_version()))
-            .await
+        OwnerImpl::from(&self.super_).dynamic_fields(ctx, first, after, last, before, Some(self.root_version())).await
     }
 
     /// Attempts to convert the Move object into a `0x2::coin::Coin`.
@@ -378,9 +344,7 @@ impl MoveObject {
         match Coin::try_from(self) {
             Ok(coin) => Ok(Some(coin)),
             Err(CoinDowncastError::NotACoin) => Ok(None),
-            Err(CoinDowncastError::Bcs(e)) => {
-                Err(Error::Internal(format!("Failed to deserialize Coin: {e}"))).extend()
-            }
+            Err(CoinDowncastError::Bcs(e)) => Err(Error::Internal(format!("Failed to deserialize Coin: {e}"))).extend(),
         }
     }
 
@@ -389,10 +353,9 @@ impl MoveObject {
         match StakedSui::try_from(self) {
             Ok(coin) => Ok(Some(coin)),
             Err(StakedSuiDowncastError::NotAStakedSui) => Ok(None),
-            Err(StakedSuiDowncastError::Bcs(e)) => Err(Error::Internal(format!(
-                "Failed to deserialize StakedSui: {e}"
-            )))
-            .extend(),
+            Err(StakedSuiDowncastError::Bcs(e)) => {
+                Err(Error::Internal(format!("Failed to deserialize StakedSui: {e}"))).extend()
+            }
         }
     }
 
@@ -401,10 +364,9 @@ impl MoveObject {
         match CoinMetadata::try_from(self) {
             Ok(metadata) => Ok(Some(metadata)),
             Err(CoinMetadataDowncastError::NotCoinMetadata) => Ok(None),
-            Err(CoinMetadataDowncastError::Bcs(e)) => Err(Error::Internal(format!(
-                "Failed to deserialize CoinMetadata: {e}"
-            )))
-            .extend(),
+            Err(CoinMetadataDowncastError::Bcs(e)) => {
+                Err(Error::Internal(format!("Failed to deserialize CoinMetadata: {e}"))).extend()
+            }
         }
     }
 
@@ -416,10 +378,9 @@ impl MoveObject {
         match SuinsRegistration::try_from(self, &tag) {
             Ok(registration) => Ok(Some(registration)),
             Err(SuinsRegistrationDowncastError::NotASuinsRegistration) => Ok(None),
-            Err(SuinsRegistrationDowncastError::Bcs(e)) => Err(Error::Internal(format!(
-                "Failed to deserialize SuinsRegistration: {e}",
-            )))
-            .extend(),
+            Err(SuinsRegistrationDowncastError::Bcs(e)) => {
+                Err(Error::Internal(format!("Failed to deserialize SuinsRegistration: {e}",))).extend()
+            }
         }
     }
 }
@@ -438,11 +399,7 @@ impl MoveObjectImpl<'_> {
 }
 
 impl MoveObject {
-    pub(crate) async fn query(
-        ctx: &Context<'_>,
-        address: SuiAddress,
-        key: ObjectLookup,
-    ) -> Result<Option<Self>, Error> {
+    pub(crate) async fn query(ctx: &Context<'_>, address: SuiAddress, key: ObjectLookup) -> Result<Option<Self>, Error> {
         let Some(object) = Object::query(ctx, address, key).await? else {
             return Ok(None);
         };
@@ -469,11 +426,8 @@ impl MoveObject {
     ) -> Result<Connection<String, MoveObject>, Error> {
         Object::paginate_subtype(db, page, filter, checkpoint_viewed_at, |object| {
             let address = object.address;
-            MoveObject::try_from(&object).map_err(|_| {
-                Error::Internal(format!(
-                    "Expected {address} to be a Move object, but it's not."
-                ))
-            })
+            MoveObject::try_from(&object)
+                .map_err(|_| Error::Internal(format!("Expected {address} to be a Move object, but it's not.")))
         })
         .await
     }
@@ -495,10 +449,7 @@ impl TryFrom<&Object> for MoveObject {
         };
 
         if let Data::Move(move_object) = &native.data {
-            Ok(Self {
-                super_: object.clone(),
-                native: move_object.clone(),
-            })
+            Ok(Self { super_: object.clone(), native: move_object.clone() })
         } else {
             Err(MoveObjectDowncastError::NotAMoveObject)
         }

@@ -2,16 +2,13 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::batch_maker::MAX_PARALLEL_BATCH;
-use crate::metrics::WorkerMetrics;
+use crate::{batch_maker::MAX_PARALLEL_BATCH, metrics::WorkerMetrics};
 use config::{Authority, Committee, Stake, WorkerCache, WorkerId};
 use fastcrypto::hash::Hash;
 use futures::stream::{futures_unordered::FuturesUnordered, StreamExt as _};
-use mysten_metrics::metered_channel::Receiver;
-use mysten_metrics::{monitored_future, spawn_logged_monitored_task};
+use mysten_metrics::{metered_channel::Receiver, monitored_future, spawn_logged_monitored_task};
 use network::{CancelOnDropHandler, ReliableNetwork};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tokio::{task::JoinHandle, time::timeout};
 use tracing::{trace, warn};
 use types::{Batch, ConditionalBroadcastReceiver, WorkerBatchMessage};
@@ -55,28 +52,16 @@ impl QuorumWaiter {
     ) -> JoinHandle<()> {
         spawn_logged_monitored_task!(
             async move {
-                Self {
-                    authority,
-                    id,
-                    committee,
-                    worker_cache,
-                    rx_shutdown,
-                    rx_quorum_waiter,
-                    network,
-                    metrics,
-                }
-                .run()
-                .await;
+                Self { authority, id, committee, worker_cache, rx_shutdown, rx_quorum_waiter, network, metrics }
+                    .run()
+                    .await;
             },
             "QuorumWaiterTask"
         )
     }
 
     /// Helper function. It waits for a future to complete and then delivers a value.
-    async fn waiter(
-        wait_for: CancelOnDropHandler<anemo::Result<anemo::Response<()>>>,
-        deliver: Stake,
-    ) -> Stake {
+    async fn waiter(wait_for: CancelOnDropHandler<anemo::Result<anemo::Response<()>>>, deliver: Stake) -> Stake {
         let _ = wait_for.await;
         deliver
     }

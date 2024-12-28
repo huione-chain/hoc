@@ -1,26 +1,27 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-use crate::metrics::new_registry;
-use crate::{try_join_all, FuturesUnordered, NodeError};
+use crate::{metrics::new_registry, try_join_all, FuturesUnordered, NodeError};
 use anemo::PeerId;
 use config::{AuthorityIdentifier, Committee, Parameters, WorkerCache};
 use crypto::{KeyPair, NetworkKeyPair, PublicKey};
 use executor::{get_restored_consensus_output, ExecutionState, Executor, SubscriberResult};
 use fastcrypto::traits::{KeyPair as _, VerifyingKey};
-use mysten_metrics::metered_channel;
-use mysten_metrics::{RegistryID, RegistryService};
+use mysten_metrics::{metered_channel, RegistryID, RegistryService};
 use network::client::NetworkClient;
-use primary::consensus::{
-    Bullshark, ChannelMetrics, Consensus, ConsensusMetrics, ConsensusRound, LeaderSchedule,
+use primary::{
+    consensus::{Bullshark, ChannelMetrics, Consensus, ConsensusMetrics, ConsensusRound, LeaderSchedule},
+    Primary,
+    PrimaryChannelMetrics,
+    NUM_SHUTDOWN_RECEIVERS,
 };
-use primary::{Primary, PrimaryChannelMetrics, NUM_SHUTDOWN_RECEIVERS};
 use prometheus::{IntGauge, Registry};
-use std::sync::Arc;
-use std::time::Instant;
+use std::{sync::Arc, time::Instant};
 use storage::NodeStorage;
 use sui_protocol_config::ProtocolConfig;
-use tokio::sync::{watch, RwLock};
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::{watch, RwLock},
+    task::JoinHandle,
+};
 use tracing::{info, instrument};
 use types::{Certificate, ConditionalBroadcastReceiver, PreSubscribedBroadcastSender, Round};
 
@@ -128,9 +129,7 @@ impl PrimaryNodeInner {
         }
 
         if let Some(tx_shutdown) = self.tx_shutdown.as_ref() {
-            tx_shutdown
-                .send()
-                .expect("Couldn't send the shutdown signal to downstream components");
+            tx_shutdown.send().expect("Couldn't send the shutdown signal to downstream components");
             self.tx_shutdown = None
         }
 
@@ -139,10 +138,7 @@ impl PrimaryNodeInner {
 
         self.swap_registry(None);
 
-        info!(
-            "Narwhal primary shutdown is complete - took {} seconds",
-            now.elapsed().as_secs_f64()
-        );
+        info!("Narwhal primary shutdown is complete - took {} seconds", now.elapsed().as_secs_f64());
     }
 
     // Helper method useful to wait on the execution of the primary node
@@ -201,19 +197,14 @@ impl PrimaryNodeInner {
     {
         // These gauge is porcelain: do not modify it without also modifying `primary::metrics::PrimaryChannelMetrics::replace_registered_new_certificates_metric`
         // This hack avoids a cyclic dependency in the initialization of consensus and primary
-        let new_certificates_counter = IntGauge::new(
-            PrimaryChannelMetrics::NAME_NEW_CERTS,
-            PrimaryChannelMetrics::DESC_NEW_CERTS,
-        )
-        .unwrap();
+        let new_certificates_counter =
+            IntGauge::new(PrimaryChannelMetrics::NAME_NEW_CERTS, PrimaryChannelMetrics::DESC_NEW_CERTS).unwrap();
         let (tx_new_certificates, rx_new_certificates) =
             metered_channel::channel(primary::CHANNEL_CAPACITY, &new_certificates_counter);
 
-        let committed_certificates_counter = IntGauge::new(
-            PrimaryChannelMetrics::NAME_COMMITTED_CERTS,
-            PrimaryChannelMetrics::DESC_COMMITTED_CERTS,
-        )
-        .unwrap();
+        let committed_certificates_counter =
+            IntGauge::new(PrimaryChannelMetrics::NAME_COMMITTED_CERTS, PrimaryChannelMetrics::DESC_COMMITTED_CERTS)
+                .unwrap();
         let (tx_committed_certificates, rx_committed_certificates) =
             metered_channel::channel(primary::CHANNEL_CAPACITY, &committed_certificates_counter);
 
@@ -226,8 +217,7 @@ impl PrimaryNodeInner {
             .unwrap_or_else(|| panic!("Our node with key {:?} should be in committee", name));
 
         let mut handles = Vec::new();
-        let (tx_consensus_round_updates, rx_consensus_round_updates) =
-            watch::channel(ConsensusRound::new(0, 0));
+        let (tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(0, 0));
 
         let (consensus_handles, leader_schedule) = Self::spawn_consensus(
             authority.id(),
@@ -313,19 +303,12 @@ impl PrimaryNodeInner {
 
         let num_sub_dags = restored_consensus_output.len() as u64;
         if num_sub_dags > 0 {
-            info!(
-                "Consensus output on its way to the executor was restored for {num_sub_dags} sub-dags",
-            );
+            info!("Consensus output on its way to the executor was restored for {num_sub_dags} sub-dags",);
         }
-        consensus_metrics
-            .recovered_consensus_output
-            .inc_by(num_sub_dags);
+        consensus_metrics.recovered_consensus_output.inc_by(num_sub_dags);
 
-        let leader_schedule = LeaderSchedule::from_store(
-            committee.clone(),
-            store.consensus_store.clone(),
-            protocol_config.clone(),
-        );
+        let leader_schedule =
+            LeaderSchedule::from_store(committee.clone(), store.consensus_store.clone(), protocol_config.clone());
 
         // Spawn the consensus core who only sequences transactions.
         let ordering_engine = Bullshark::new(
@@ -365,10 +348,7 @@ impl PrimaryNodeInner {
             restored_consensus_output,
         )?;
 
-        let handles = executor_handles
-            .into_iter()
-            .chain(std::iter::once(consensus_handles))
-            .collect();
+        let handles = executor_handles.into_iter().chain(std::iter::once(consensus_handles)).collect();
 
         Ok((handles, leader_schedule))
     }
@@ -391,9 +371,7 @@ impl PrimaryNode {
             own_peer_id: None,
         };
 
-        Self {
-            internal: Arc::new(RwLock::new(inner)),
-        }
+        Self { internal: Arc::new(RwLock::new(inner)) }
     }
 
     pub async fn start<State>(
@@ -420,16 +398,7 @@ impl PrimaryNode {
         let mut guard = self.internal.write().await;
         guard.client = Some(client.clone());
         guard
-            .start(
-                keypair,
-                network_keypair,
-                committee,
-                protocol_config,
-                worker_cache,
-                client,
-                store,
-                execution_state,
-            )
+            .start(keypair, network_keypair, committee, protocol_config, worker_cache, client, store, execution_state)
             .await
     }
 

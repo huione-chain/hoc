@@ -1,25 +1,36 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::balance::Balance;
-use crate::base_types::{ObjectID, SuiAddress};
-use crate::collection_types::{Bag, Table, TableVec, VecMap, VecSet};
-use crate::committee::{CommitteeWithNetworkMetadata, NetworkMetadata};
-use crate::crypto::{verify_proof_of_possession, AuthorityPublicKey, AuthoritySignature};
-use crate::crypto::{AuthorityPublicKeyBytes, NetworkPublicKey};
-use crate::error::SuiError;
-use crate::id::ID;
-use crate::multiaddr::Multiaddr;
-use crate::storage::ObjectStore;
-use crate::sui_system_state::epoch_start_sui_system_state::EpochStartSystemState;
+use crate::{
+    balance::Balance,
+    base_types::{ObjectID, SuiAddress},
+    collection_types::{Bag, Table, TableVec, VecMap, VecSet},
+    committee::{CommitteeWithNetworkMetadata, NetworkMetadata},
+    crypto::{
+        verify_proof_of_possession,
+        AuthorityPublicKey,
+        AuthorityPublicKeyBytes,
+        AuthoritySignature,
+        NetworkPublicKey,
+    },
+    error::SuiError,
+    id::ID,
+    multiaddr::Multiaddr,
+    storage::ObjectStore,
+    sui_system_state::epoch_start_sui_system_state::EpochStartSystemState,
+};
 use anyhow::Result;
 use fastcrypto::traits::ToFromBytes;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 
-use super::epoch_start_sui_system_state::EpochStartValidatorInfoV1;
-use super::sui_system_state_summary::{SuiSystemStateSummary, SuiValidatorSummary};
-use super::{get_validators_from_table_vec, AdvanceEpochParams, SuiSystemStateTrait};
+use super::{
+    epoch_start_sui_system_state::EpochStartValidatorInfoV1,
+    get_validators_from_table_vec,
+    sui_system_state_summary::{SuiSystemStateSummary, SuiValidatorSummary},
+    AdvanceEpochParams,
+    SuiSystemStateTrait,
+};
 
 const E_METADATA_INVALID_POP: u64 = 0;
 const E_METADATA_INVALID_PUBKEY: u64 = 1;
@@ -129,8 +140,7 @@ impl ValidatorMetadataV1 {
         // Verify proof of possession for the protocol key
         let pop = AuthoritySignature::from_bytes(self.proof_of_possession_bytes.as_ref())
             .map_err(|_| E_METADATA_INVALID_POP)?;
-        verify_proof_of_possession(&pop, &protocol_pubkey, self.sui_address)
-            .map_err(|_| E_METADATA_INVALID_POP)?;
+        verify_proof_of_possession(&pop, &protocol_pubkey, self.sui_address).map_err(|_| E_METADATA_INVALID_POP)?;
 
         let network_pubkey = NetworkPublicKey::from_bytes(self.network_pubkey_bytes.as_ref())
             .map_err(|_| E_METADATA_INVALID_NET_PUBKEY)?;
@@ -140,53 +150,37 @@ impl ValidatorMetadataV1 {
             return Err(E_METADATA_INVALID_WORKER_PUBKEY);
         }
 
-        let net_address = Multiaddr::try_from(self.net_address.clone())
-            .map_err(|_| E_METADATA_INVALID_NET_ADDR)?;
+        let net_address = Multiaddr::try_from(self.net_address.clone()).map_err(|_| E_METADATA_INVALID_NET_ADDR)?;
 
         // Ensure p2p, primary, and worker addresses are both Multiaddr's and valid anemo addresses
-        let p2p_address = Multiaddr::try_from(self.p2p_address.clone())
-            .map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
-        p2p_address
-            .to_anemo_address()
-            .map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
+        let p2p_address = Multiaddr::try_from(self.p2p_address.clone()).map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
+        p2p_address.to_anemo_address().map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
 
-        let primary_address = Multiaddr::try_from(self.primary_address.clone())
-            .map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
-        primary_address
-            .to_anemo_address()
-            .map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
+        let primary_address =
+            Multiaddr::try_from(self.primary_address.clone()).map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
+        primary_address.to_anemo_address().map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
 
-        let worker_address = Multiaddr::try_from(self.worker_address.clone())
-            .map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
-        worker_address
-            .to_anemo_address()
-            .map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
+        let worker_address =
+            Multiaddr::try_from(self.worker_address.clone()).map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
+        worker_address.to_anemo_address().map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
 
         let next_epoch_protocol_pubkey = match self.next_epoch_protocol_pubkey_bytes.clone() {
             None => Ok::<Option<AuthorityPublicKey>, u64>(None),
-            Some(bytes) => Ok(Some(
-                AuthorityPublicKey::from_bytes(bytes.as_ref())
-                    .map_err(|_| E_METADATA_INVALID_PUBKEY)?,
-            )),
+            Some(bytes) => {
+                Ok(Some(AuthorityPublicKey::from_bytes(bytes.as_ref()).map_err(|_| E_METADATA_INVALID_PUBKEY)?))
+            }
         }?;
 
         let next_epoch_pop = match self.next_epoch_proof_of_possession.clone() {
             None => Ok::<Option<AuthoritySignature>, u64>(None),
-            Some(bytes) => Ok(Some(
-                AuthoritySignature::from_bytes(bytes.as_ref())
-                    .map_err(|_| E_METADATA_INVALID_POP)?,
-            )),
+            Some(bytes) => Ok(Some(AuthoritySignature::from_bytes(bytes.as_ref()).map_err(|_| E_METADATA_INVALID_POP)?)),
         }?;
         // Verify proof of possession for the next epoch protocol key
         if let Some(ref next_epoch_protocol_pubkey) = next_epoch_protocol_pubkey {
             match next_epoch_pop {
                 Some(next_epoch_pop) => {
-                    verify_proof_of_possession(
-                        &next_epoch_pop,
-                        next_epoch_protocol_pubkey,
-                        self.sui_address,
-                    )
-                    .map_err(|_| E_METADATA_INVALID_POP)?;
+                    verify_proof_of_possession(&next_epoch_pop, next_epoch_protocol_pubkey, self.sui_address)
+                        .map_err(|_| E_METADATA_INVALID_POP)?;
                 }
                 None => {
                     return Err(E_METADATA_INVALID_POP);
@@ -196,41 +190,31 @@ impl ValidatorMetadataV1 {
 
         let next_epoch_network_pubkey = match self.next_epoch_network_pubkey_bytes.clone() {
             None => Ok::<Option<NetworkPublicKey>, u64>(None),
-            Some(bytes) => Ok(Some(
-                NetworkPublicKey::from_bytes(bytes.as_ref())
-                    .map_err(|_| E_METADATA_INVALID_NET_PUBKEY)?,
-            )),
+            Some(bytes) => {
+                Ok(Some(NetworkPublicKey::from_bytes(bytes.as_ref()).map_err(|_| E_METADATA_INVALID_NET_PUBKEY)?))
+            }
         }?;
 
-        let next_epoch_worker_pubkey: Option<NetworkPublicKey> =
-            match self.next_epoch_worker_pubkey_bytes.clone() {
-                None => Ok::<Option<NetworkPublicKey>, u64>(None),
-                Some(bytes) => Ok(Some(
-                    NetworkPublicKey::from_bytes(bytes.as_ref())
-                        .map_err(|_| E_METADATA_INVALID_WORKER_PUBKEY)?,
-                )),
-            }?;
-        if next_epoch_network_pubkey.is_some()
-            && next_epoch_network_pubkey == next_epoch_worker_pubkey
-        {
+        let next_epoch_worker_pubkey: Option<NetworkPublicKey> = match self.next_epoch_worker_pubkey_bytes.clone() {
+            None => Ok::<Option<NetworkPublicKey>, u64>(None),
+            Some(bytes) => {
+                Ok(Some(NetworkPublicKey::from_bytes(bytes.as_ref()).map_err(|_| E_METADATA_INVALID_WORKER_PUBKEY)?))
+            }
+        }?;
+        if next_epoch_network_pubkey.is_some() && next_epoch_network_pubkey == next_epoch_worker_pubkey {
             return Err(E_METADATA_INVALID_WORKER_PUBKEY);
         }
 
         let next_epoch_net_address = match self.next_epoch_net_address.clone() {
             None => Ok::<Option<Multiaddr>, u64>(None),
-            Some(address) => Ok(Some(
-                Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_NET_ADDR)?,
-            )),
+            Some(address) => Ok(Some(Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_NET_ADDR)?)),
         }?;
 
         let next_epoch_p2p_address = match self.next_epoch_p2p_address.clone() {
             None => Ok::<Option<Multiaddr>, u64>(None),
             Some(address) => {
-                let address =
-                    Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
-                address
-                    .to_anemo_address()
-                    .map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
+                let address = Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
+                address.to_anemo_address().map_err(|_| E_METADATA_INVALID_P2P_ADDR)?;
 
                 Ok(Some(address))
             }
@@ -239,11 +223,8 @@ impl ValidatorMetadataV1 {
         let next_epoch_primary_address = match self.next_epoch_primary_address.clone() {
             None => Ok::<Option<Multiaddr>, u64>(None),
             Some(address) => {
-                let address =
-                    Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
-                address
-                    .to_anemo_address()
-                    .map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
+                let address = Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
+                address.to_anemo_address().map_err(|_| E_METADATA_INVALID_PRIMARY_ADDR)?;
 
                 Ok(Some(address))
             }
@@ -252,11 +233,8 @@ impl ValidatorMetadataV1 {
         let next_epoch_worker_address = match self.next_epoch_worker_address.clone() {
             None => Ok::<Option<Multiaddr>, u64>(None),
             Some(address) => {
-                let address =
-                    Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
-                address
-                    .to_anemo_address()
-                    .map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
+                let address = Multiaddr::try_from(address).map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
+                address.to_anemo_address().map_err(|_| E_METADATA_INVALID_WORKER_ADDR)?;
 
                 Ok(Some(address))
             }
@@ -308,11 +286,8 @@ pub struct ValidatorV1 {
 
 impl ValidatorV1 {
     pub fn verified_metadata(&self) -> &VerifiedValidatorMetadataV1 {
-        self.verified_metadata.get_or_init(|| {
-            self.metadata
-                .verify()
-                .expect("Validity of metadata should be verified on-chain")
-        })
+        self.verified_metadata
+            .get_or_init(|| self.metadata.verify().expect("Validity of metadata should be verified on-chain"))
     }
 
     pub fn into_sui_validator_summary(self) -> SuiValidatorSummary {
@@ -354,11 +329,7 @@ impl ValidatorV1 {
                     sui_balance: staking_pool_sui_balance,
                     rewards_pool,
                     pool_token_balance,
-                    exchange_rates:
-                        Table {
-                            id: exchange_rates_id,
-                            size: exchange_rates_size,
-                        },
+                    exchange_rates: Table { id: exchange_rates_id, size: exchange_rates_size },
                     pending_stake,
                     pending_total_sui_withdraw,
                     pending_pool_token_withdraw,
@@ -527,11 +498,9 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
     fn advance_epoch_safe_mode(&mut self, params: &AdvanceEpochParams) {
         self.epoch = params.epoch;
         self.safe_mode = true;
-        self.safe_mode_storage_rewards
-            .deposit_for_safe_mode(params.storage_charge);
+        self.safe_mode_storage_rewards.deposit_for_safe_mode(params.storage_charge);
         self.safe_mode_storage_rebates += params.storage_rebate;
-        self.safe_mode_computation_rewards
-            .deposit_for_safe_mode(params.computation_charge);
+        self.safe_mode_computation_rewards.deposit_for_safe_mode(params.computation_charge);
         self.safe_mode_non_refundable_storage_fee += params.non_refundable_storage_fee;
         self.epoch_start_timestamp_ms = params.epoch_start_timestamp_ms;
         self.protocol_version = params.next_protocol_version.as_u64();
@@ -547,14 +516,11 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                 let name = verified_metadata.sui_pubkey_bytes();
                 (
                     name,
-                    (
-                        validator.voting_power,
-                        NetworkMetadata {
-                            network_address: verified_metadata.net_address.clone(),
-                            narwhal_primary_address: verified_metadata.primary_address.clone(),
-                            network_public_key: Some(verified_metadata.network_pubkey.clone()),
-                        },
-                    ),
+                    (validator.voting_power, NetworkMetadata {
+                        network_address: verified_metadata.net_address.clone(),
+                        narwhal_primary_address: verified_metadata.primary_address.clone(),
+                        network_public_key: Some(verified_metadata.network_pubkey.clone()),
+                    }),
                 )
             })
             .collect();
@@ -567,12 +533,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
     ) -> Result<Vec<SuiValidatorSummary>, SuiError> {
         let table_id = self.validators.pending_active_validators.contents.id;
         let table_size = self.validators.pending_active_validators.contents.size;
-        let validators: Vec<ValidatorV1> =
-            get_validators_from_table_vec(object_store, table_id, table_size)?;
-        Ok(validators
-            .into_iter()
-            .map(|v| v.into_sui_validator_summary())
-            .collect())
+        let validators: Vec<ValidatorV1> = get_validators_from_table_vec(object_store, table_id, table_size)?;
+        Ok(validators.into_iter().map(|v| v.into_sui_validator_summary()).collect())
     }
 
     fn into_epoch_start_state(self) -> EpochStartSystemState {
@@ -619,32 +581,13 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                     active_validators,
                     pending_active_validators:
                         TableVec {
-                            contents:
-                                Table {
-                                    id: pending_active_validators_id,
-                                    size: pending_active_validators_size,
-                                },
+                            contents: Table { id: pending_active_validators_id, size: pending_active_validators_size },
                         },
                     pending_removals,
-                    staking_pool_mappings:
-                        Table {
-                            id: staking_pool_mappings_id,
-                            size: staking_pool_mappings_size,
-                        },
-                    inactive_validators:
-                        Table {
-                            id: inactive_pools_id,
-                            size: inactive_pools_size,
-                        },
-                    validator_candidates:
-                        Table {
-                            id: validator_candidates_id,
-                            size: validator_candidates_size,
-                        },
-                    at_risk_validators:
-                        VecMap {
-                            contents: at_risk_validators,
-                        },
+                    staking_pool_mappings: Table { id: staking_pool_mappings_id, size: staking_pool_mappings_size },
+                    inactive_validators: Table { id: inactive_pools_id, size: inactive_pools_size },
+                    validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
+                    at_risk_validators: VecMap { contents: at_risk_validators },
                     extra_fields: _,
                 },
             storage_fund,
@@ -660,10 +603,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                     extra_fields: _,
                 },
             reference_gas_price,
-            validator_report_records:
-                VecMap {
-                    contents: validator_report_records,
-                },
+            validator_report_records: VecMap { contents: validator_report_records },
             stake_subsidy:
                 StakeSubsidyV1 {
                     balance: stake_subsidy_balance,
@@ -685,9 +625,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             epoch,
             protocol_version,
             system_state_version,
-            storage_fund_total_object_storage_rebates: storage_fund
-                .total_object_storage_rebates
-                .value(),
+            storage_fund_total_object_storage_rebates: storage_fund.total_object_storage_rebates.value(),
             storage_fund_non_refundable_balance: storage_fund.non_refundable_balance.value(),
             reference_gas_price,
             safe_mode,
@@ -702,10 +640,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             stake_subsidy_balance: stake_subsidy_balance.value(),
             stake_subsidy_current_distribution_amount,
             total_stake,
-            active_validators: active_validators
-                .into_iter()
-                .map(|v| v.into_sui_validator_summary())
-                .collect(),
+            active_validators: active_validators.into_iter().map(|v| v.into_sui_validator_summary()).collect(),
             pending_active_validators_id,
             pending_active_validators_size,
             pending_removals,
@@ -715,14 +650,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             inactive_pools_size,
             validator_candidates_id,
             validator_candidates_size,
-            at_risk_validators: at_risk_validators
-                .into_iter()
-                .map(|e| (e.key, e.value))
-                .collect(),
-            validator_report_records: validator_report_records
-                .into_iter()
-                .map(|e| (e.key, e.value.contents))
-                .collect(),
+            at_risk_validators: at_risk_validators.into_iter().map(|e| (e.key, e.value)).collect(),
+            validator_report_records: validator_report_records.into_iter().map(|e| (e.key, e.value.contents)).collect(),
             max_validator_count,
             min_validator_joining_stake,
             validator_low_stake_threshold,

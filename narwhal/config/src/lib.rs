@@ -1,12 +1,7 @@
 // Copyright (c) 2021, Facebook, Inc. and its affiliates
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-#![warn(
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    rust_2021_compatibility
-)]
+#![warn(future_incompatible, nonstandard_style, rust_2018_idioms, rust_2021_compatibility)]
 #![allow(clippy::mutable_key_type)]
 
 use crypto::{NetworkPublicKey, PublicKey};
@@ -87,10 +82,7 @@ pub trait Import: DeserializeOwned {
             let data = fs::read(path)?;
             Ok(serde_json::from_slice(data.as_slice())?)
         };
-        reader().map_err(|e| ConfigError::ImportError {
-            file: path.to_string(),
-            message: e.to_string(),
-        })
+        reader().map_err(|e| ConfigError::ImportError { file: path.to_string(), message: e.to_string() })
     }
 }
 
@@ -99,21 +91,14 @@ impl<D: DeserializeOwned> Import for D {}
 pub trait Export: Serialize {
     fn export(&self, path: &str) -> Result<(), ConfigError> {
         let writer = || -> Result<(), std::io::Error> {
-            let file = OpenOptions::new()
-                .create(true)
-                .truncate(true)
-                .write(true)
-                .open(path)?;
+            let file = OpenOptions::new().create(true).truncate(true).write(true).open(path)?;
             let mut writer = BufWriter::new(file);
             let data = serde_json::to_string_pretty(self).unwrap();
             writer.write_all(data.as_ref())?;
             writer.write_all(b"\n")?;
             Ok(())
         };
-        writer().map_err(|e| ConfigError::ExportError {
-            file: path.to_string(),
-            message: e.to_string(),
-        })
+        writer().map_err(|e| ConfigError::ExportError { file: path.to_string(), message: e.to_string() })
     }
 }
 
@@ -141,27 +126,18 @@ pub struct Parameters {
 
     /// The maximum delay that the primary should wait between generating two headers, even if
     /// other conditions are not satisfied besides having enough parent stakes.
-    #[serde(
-        with = "duration_format",
-        default = "Parameters::default_max_header_delay"
-    )]
+    #[serde(with = "duration_format", default = "Parameters::default_max_header_delay")]
     pub max_header_delay: Duration,
     /// When the delay from last header reaches `min_header_delay`, a new header can be proposed
     /// even if batches have not reached `header_num_of_batches_threshold`.
-    #[serde(
-        with = "duration_format",
-        default = "Parameters::default_min_header_delay"
-    )]
+    #[serde(with = "duration_format", default = "Parameters::default_min_header_delay")]
     pub min_header_delay: Duration,
 
     /// The depth of the garbage collection (Denominated in number of rounds).
     #[serde(default = "Parameters::default_gc_depth")]
     pub gc_depth: u64,
     /// The delay after which the synchronizer retries to send sync requests. Denominated in ms.
-    #[serde(
-        with = "duration_format",
-        default = "Parameters::default_sync_retry_delay"
-    )]
+    #[serde(with = "duration_format", default = "Parameters::default_sync_retry_delay")]
     pub sync_retry_delay: Duration,
     /// Determine with how many nodes to sync when re-trying to send sync-request. These nodes
     /// are picked at random from the committee.
@@ -173,10 +149,7 @@ pub struct Parameters {
     pub batch_size: usize,
     /// The delay after which the workers seal a batch of transactions, even if `max_batch_size`
     /// is not reached.
-    #[serde(
-        with = "duration_format",
-        default = "Parameters::default_max_batch_delay"
-    )]
+    #[serde(with = "duration_format", default = "Parameters::default_max_batch_delay")]
     pub max_batch_delay: Duration,
     /// The maximum number of concurrent requests for messages accepted from an un-trusted entity
     #[serde(default = "Parameters::default_max_concurrent_requests")]
@@ -259,8 +232,7 @@ impl NetworkAdminServerParameters {
         let mut params = self.clone();
         let default = Self::default();
         params.primary_network_admin_server_port = default.primary_network_admin_server_port;
-        params.worker_network_admin_server_base_port =
-            default.worker_network_admin_server_base_port;
+        params.worker_network_admin_server_base_port = default.worker_network_admin_server_base_port;
         params
     }
 }
@@ -285,31 +257,24 @@ pub struct AnemoParameters {
 impl AnemoParameters {
     // By default, at most 10 certificates can be sent concurrently to a peer.
     pub fn send_certificate_rate_limit(&self) -> u32 {
-        self.send_certificate_rate_limit
-            .unwrap_or(NonZeroU32::new(20).unwrap())
-            .get()
+        self.send_certificate_rate_limit.unwrap_or(NonZeroU32::new(20).unwrap()).get()
     }
 
     // By default, at most 100 batches can be broadcasted concurrently.
     pub fn report_batch_rate_limit(&self) -> u32 {
-        self.report_batch_rate_limit
-            .unwrap_or(NonZeroU32::new(200).unwrap())
-            .get()
+        self.report_batch_rate_limit.unwrap_or(NonZeroU32::new(200).unwrap()).get()
     }
 
     // As of 11/02/2023, when one worker is actively fetching, each peer receives
     // 20~30 requests per second.
     pub fn request_batches_rate_limit(&self) -> u32 {
-        self.request_batches_rate_limit
-            .unwrap_or(NonZeroU32::new(100).unwrap())
-            .get()
+        self.request_batches_rate_limit.unwrap_or(NonZeroU32::new(100).unwrap()).get()
     }
 
     pub fn excessive_message_size(&self) -> usize {
         const EXCESSIVE_MESSAGE_SIZE: usize = 8 << 20;
 
-        self.excessive_message_size
-            .unwrap_or(EXCESSIVE_MESSAGE_SIZE)
+        self.excessive_message_size.unwrap_or(EXCESSIVE_MESSAGE_SIZE)
     }
 }
 
@@ -322,11 +287,7 @@ pub struct PrometheusMetricsParameters {
 impl Default for PrometheusMetricsParameters {
     fn default() -> Self {
         let host = "127.0.0.1";
-        Self {
-            socket_addr: format!("/ip4/{}/tcp/{}/http", host, get_available_port(host))
-                .parse()
-                .unwrap(),
-        }
+        Self { socket_addr: format!("/ip4/{}/tcp/{}/http", host, get_available_port(host)).parse().unwrap() }
     }
 }
 
@@ -370,49 +331,24 @@ impl Parameters {
     }
 
     pub fn tracing(&self) {
-        info!(
-            "Header number of batches threshold set to {}",
-            self.header_num_of_batches_threshold
-        );
-        info!(
-            "Header max number of batches set to {}",
-            self.max_header_num_of_batches
-        );
-        info!(
-            "Max header delay set to {} ms",
-            self.max_header_delay.as_millis()
-        );
-        info!(
-            "Min header delay set to {} ms",
-            self.min_header_delay.as_millis()
-        );
+        info!("Header number of batches threshold set to {}", self.header_num_of_batches_threshold);
+        info!("Header max number of batches set to {}", self.max_header_num_of_batches);
+        info!("Max header delay set to {} ms", self.max_header_delay.as_millis());
+        info!("Min header delay set to {} ms", self.min_header_delay.as_millis());
         info!("Garbage collection depth set to {} rounds", self.gc_depth);
-        info!(
-            "Sync retry delay set to {} ms",
-            self.sync_retry_delay.as_millis()
-        );
+        info!("Sync retry delay set to {} ms", self.sync_retry_delay.as_millis());
         info!("Sync retry nodes set to {} nodes", self.sync_retry_nodes);
         info!("Batch size set to {} B", self.batch_size);
-        info!(
-            "Max batch delay set to {} ms",
-            self.max_batch_delay.as_millis()
-        );
-        info!(
-            "Max concurrent requests set to {}",
-            self.max_concurrent_requests
-        );
-        info!(
-            "Prometheus metrics server will run on {}",
-            self.prometheus_metrics.socket_addr
-        );
+        info!("Max batch delay set to {} ms", self.max_batch_delay.as_millis());
+        info!("Max concurrent requests set to {}", self.max_concurrent_requests);
+        info!("Prometheus metrics server will run on {}", self.prometheus_metrics.socket_addr);
         info!(
             "Primary network admin server will run on 127.0.0.1:{}",
             self.network_admin_server.primary_network_admin_server_port
         );
         info!(
             "Worker network admin server will run starting on base port 127.0.0.1:{}",
-            self.network_admin_server
-                .worker_network_admin_server_base_port
+            self.network_admin_server.worker_network_admin_server_base_port
         );
     }
 }
@@ -443,10 +379,7 @@ impl std::fmt::Display for WorkerIndex {
         write!(
             f,
             "WorkerIndex {:?}",
-            self.0
-                .iter()
-                .map(|(key, value)| { format!("{}:{:?}", key, value) })
-                .collect::<Vec<_>>()
+            self.0.iter().map(|(key, value)| { format!("{}:{:?}", key, value) }).collect::<Vec<_>>()
         )
     }
 }
@@ -484,9 +417,7 @@ impl WorkerCache {
         self.workers
             .iter()
             .find_map(|v| match_opt::match_opt!(v, (name, authority) if name == to => authority))
-            .ok_or_else(|| {
-                ConfigError::NotInWorkerCache(ToString::to_string(&(*to).encode_base64()))
-            })?
+            .ok_or_else(|| ConfigError::NotInWorkerCache(ToString::to_string(&(*to).encode_base64())))?
             .0
             .iter()
             .find(|(worker_id, _)| worker_id == &id)
@@ -499,9 +430,7 @@ impl WorkerCache {
         let res = self
             .workers
             .iter()
-            .find_map(
-                |v| match_opt::match_opt!(v, (name, authority) if name == myself => authority),
-            )
+            .find_map(|v| match_opt::match_opt!(v, (name, authority) if name == myself => authority))
             .ok_or_else(|| ConfigError::NotInWorkerCache((*myself).encode_base64()))?
             .0
             .values()
@@ -512,22 +441,12 @@ impl WorkerCache {
 
     /// Returns the addresses of all known workers.
     pub fn all_workers(&self) -> Vec<(NetworkPublicKey, Multiaddr)> {
-        self.workers
-            .iter()
-            .flat_map(|(_, w)| {
-                w.0.values()
-                    .map(|w| (w.name.clone(), w.worker_address.clone()))
-            })
-            .collect()
+        self.workers.iter().flat_map(|(_, w)| w.0.values().map(|w| (w.name.clone(), w.worker_address.clone()))).collect()
     }
 
     /// Returns the addresses of all workers with a specific id except the ones of the authority
     /// specified by `myself`.
-    pub fn others_workers_by_id(
-        &self,
-        myself: &PublicKey,
-        id: &WorkerId,
-    ) -> Vec<(PublicKey, WorkerInfo)> {
+    pub fn others_workers_by_id(&self, myself: &PublicKey, id: &WorkerId) -> Vec<(PublicKey, WorkerInfo)> {
         self.workers
             .iter()
             .filter(|(name, _)| *name != myself )

@@ -5,7 +5,7 @@ module sui_system::sui_system_state_inner {
     use sui::balance::{Self, Balance};
     use sui::coin::Coin;
     use sui_system::staking_pool::{StakedSui, FungibleStakedSui};
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui_system::validator::{Self, Validator};
     use sui_system::validator_set::{Self, ValidatorSet};
     use sui_system::validator_cap::{UnverifiedValidatorOperationCap, ValidatorOperationCap};
@@ -130,8 +130,8 @@ module sui_system::sui_system_state_inner {
         /// when advance_epoch_safe_mode is executed. They will eventually be processed once we
         /// are out of safe mode.
         safe_mode: bool,
-        safe_mode_storage_rewards: Balance<SUI>,
-        safe_mode_computation_rewards: Balance<SUI>,
+        safe_mode_storage_rewards: Balance<HC>,
+        safe_mode_computation_rewards: Balance<HC>,
         safe_mode_storage_rebates: u64,
         safe_mode_non_refundable_storage_fee: u64,
 
@@ -178,8 +178,8 @@ module sui_system::sui_system_state_inner {
         /// when advance_epoch_safe_mode is executed. They will eventually be processed once we
         /// are out of safe mode.
         safe_mode: bool,
-        safe_mode_storage_rewards: Balance<SUI>,
-        safe_mode_computation_rewards: Balance<SUI>,
+        safe_mode_storage_rewards: Balance<HC>,
+        safe_mode_computation_rewards: Balance<HC>,
         safe_mode_storage_rebates: u64,
         safe_mode_non_refundable_storage_fee: u64,
 
@@ -225,7 +225,7 @@ module sui_system::sui_system_state_inner {
     /// This function will be called only once in genesis.
     public(package) fun create(
         validators: vector<Validator>,
-        initial_storage_fund: Balance<SUI>,
+        initial_storage_fund: Balance<HC>,
         protocol_version: u64,
         epoch_start_timestamp_ms: u64,
         parameters: SystemParameters,
@@ -486,7 +486,7 @@ module sui_system::sui_system_state_inner {
     /// Add stake to a validator's staking pool.
     public(package) fun request_add_stake(
         self: &mut SuiSystemStateInnerV2,
-        stake: Coin<SUI>,
+        stake: Coin<HC>,
         validator_address: address,
         ctx: &mut TxContext,
     ) : StakedSui {
@@ -500,7 +500,7 @@ module sui_system::sui_system_state_inner {
     /// Add stake to a validator's staking pool using multiple coins.
     public(package) fun request_add_stake_mul_coin(
         self: &mut SuiSystemStateInnerV2,
-        stakes: vector<Coin<SUI>>,
+        stakes: vector<Coin<HC>>,
         stake_amount: option::Option<u64>,
         validator_address: address,
         ctx: &mut TxContext,
@@ -514,7 +514,7 @@ module sui_system::sui_system_state_inner {
         self: &mut SuiSystemStateInnerV2,
         staked_sui: StakedSui,
         ctx: &TxContext,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         self.validators.request_withdraw_stake(staked_sui, ctx)
     }
 
@@ -530,7 +530,7 @@ module sui_system::sui_system_state_inner {
         self: &mut SuiSystemStateInnerV2,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         self.validators.redeem_fungible_staked_sui(fungible_staked_sui, ctx)
     }
 
@@ -823,8 +823,8 @@ module sui_system::sui_system_state_inner {
         self: &mut SuiSystemStateInnerV2,
         new_epoch: u64,
         next_protocol_version: u64,
-        mut storage_reward: Balance<SUI>,
-        mut computation_reward: Balance<SUI>,
+        mut storage_reward: Balance<HC>,
+        mut computation_reward: Balance<HC>,
         mut storage_rebate_amount: u64,
         mut non_refundable_storage_fee_amount: u64,
         storage_fund_reinvest_rate: u64, // share of storage fund's rewards that's reinvested
@@ -832,7 +832,7 @@ module sui_system::sui_system_state_inner {
         reward_slashing_rate: u64, // how much rewards are slashed to punish a validator, in bps.
         epoch_start_timestamp_ms: u64, // Timestamp of the epoch start
         ctx: &mut TxContext,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         let prev_epoch_start_timestamp = self.epoch_start_timestamp_ms;
         self.epoch_start_timestamp_ms = epoch_start_timestamp_ms;
 
@@ -1070,8 +1070,8 @@ module sui_system::sui_system_state_inner {
     }
 
     #[allow(lint(self_transfer))]
-    /// Extract required Balance from vector of Coin<SUI>, transfer the remainder back to sender.
-    fun extract_coin_balance(mut coins: vector<Coin<SUI>>, amount: option::Option<u64>, ctx: &mut TxContext): Balance<SUI> {
+    /// Extract required Balance from vector of Coin<HC>, transfer the remainder back to sender.
+    fun extract_coin_balance(mut coins: vector<Coin<HC>>, amount: option::Option<u64>, ctx: &mut TxContext): Balance<HC> {
         let mut merged_coin = coins.pop_back();
         merged_coin.join_vec(coins);
 

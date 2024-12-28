@@ -1,9 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use sui_rpc_api::rest::info;
-use sui_rpc_api::rest::openapi;
-use sui_rpc_api::rest::ENDPOINTS;
+use sui_rpc_api::rest::{info, openapi, ENDPOINTS};
 
 #[test]
 fn openapi_spec() {
@@ -55,8 +53,6 @@ async fn openapi_explorer() {
 
     let router = openapi::OpenApiDocument::new(openapi).into_router();
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
     axum::serve(listener, router).await.unwrap();
 }

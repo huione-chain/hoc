@@ -2,8 +2,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 use super::*;
-use crate::consensus::LeaderSwapTable;
-use crate::NUM_SHUTDOWN_RECEIVERS;
+use crate::{consensus::LeaderSwapTable, NUM_SHUTDOWN_RECEIVERS};
 use indexmap::IndexMap;
 use prometheus::Registry;
 use test_utils::{fixture_payload, latest_protocol_version, CommitteeFixture};
@@ -107,22 +106,14 @@ async fn propose_payload_and_repropose_after_n_seconds() {
     let created_at_ts = 0;
     let (tx_ack, rx_ack) = tokio::sync::oneshot::channel();
     tx_our_digests
-        .send(OurDigestMessage {
-            digest,
-            worker_id,
-            timestamp: created_at_ts,
-            ack_channel: Some(tx_ack),
-        })
+        .send(OurDigestMessage { digest, worker_id, timestamp: created_at_ts, ack_channel: Some(tx_ack) })
         .await
         .unwrap();
 
     // Ensure the proposer makes a correct header from the provided payload.
     let header = rx_headers.recv().await.unwrap();
     assert_eq!(header.round(), 1);
-    assert_eq!(
-        header.payload().get(&digest),
-        Some(&(worker_id, created_at_ts))
-    );
+    assert_eq!(header.payload().get(&digest), Some(&(worker_id, created_at_ts)));
     assert!(header.validate(&committee, &worker_cache).is_ok());
 
     // WHEN available batches are more than the maximum ones
@@ -133,12 +124,7 @@ async fn propose_payload_and_repropose_after_n_seconds() {
     for (batch_id, (worker_id, created_at)) in batches {
         let (tx_ack, rx_ack) = tokio::sync::oneshot::channel();
         tx_our_digests
-            .send(OurDigestMessage {
-                digest: batch_id,
-                worker_id,
-                timestamp: created_at,
-                ack_channel: Some(tx_ack),
-            })
+            .send(OurDigestMessage { digest: batch_id, worker_id, timestamp: created_at, ack_channel: Some(tx_ack) })
             .await
             .unwrap();
 
@@ -230,12 +216,7 @@ async fn equivocation_protection() {
     let created_at_ts = 0;
     let (tx_ack, rx_ack) = tokio::sync::oneshot::channel();
     tx_our_digests
-        .send(OurDigestMessage {
-            digest,
-            worker_id,
-            timestamp: created_at_ts,
-            ack_channel: Some(tx_ack),
-        })
+        .send(OurDigestMessage { digest, worker_id, timestamp: created_at_ts, ack_channel: Some(tx_ack) })
         .await
         .unwrap();
 
@@ -253,10 +234,7 @@ async fn equivocation_protection() {
 
     // Ensure the proposer makes a correct header from the provided payload.
     let header = rx_headers.recv().await.unwrap();
-    assert_eq!(
-        header.payload().get(&digest),
-        Some(&(worker_id, created_at_ts))
-    );
+    assert_eq!(header.payload().get(&digest), Some(&(worker_id, created_at_ts)));
     assert!(header.validate(&committee, &worker_cache).is_ok());
 
     // restart the proposer.
@@ -301,15 +279,7 @@ async fn equivocation_protection() {
     let digest = BatchDigest(b);
     let worker_id = 0;
     let (tx_ack, rx_ack) = tokio::sync::oneshot::channel();
-    tx_our_digests
-        .send(OurDigestMessage {
-            digest,
-            worker_id,
-            timestamp: 0,
-            ack_channel: Some(tx_ack),
-        })
-        .await
-        .unwrap();
+    tx_our_digests.send(OurDigestMessage { digest, worker_id, timestamp: 0, ack_channel: Some(tx_ack) }).await.unwrap();
 
     // Create and send a superset parents, same round but different set from before
     let parents: Vec<_> = fixture

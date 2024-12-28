@@ -7,29 +7,33 @@ use crate::{
     handlers::{PrimaryReceiverHandler, WorkerReceiverHandler},
     metrics::WorkerChannelMetrics,
     quorum_waiter::QuorumWaiter,
-    TransactionValidator, NUM_SHUTDOWN_RECEIVERS,
+    TransactionValidator,
+    NUM_SHUTDOWN_RECEIVERS,
 };
-use anemo::{codegen::InboundRequestLayer, types::Address};
-use anemo::{types::PeerInfo, Network, PeerId};
+use anemo::{
+    codegen::InboundRequestLayer,
+    types::{Address, PeerInfo},
+    Network,
+    PeerId,
+};
 use anemo_tower::{
     auth::{AllowedPeers, RequireAuthorizationLayer},
     callback::CallbackLayer,
-    set_header::SetRequestHeaderLayer,
+    rate_limit,
+    set_header::{SetRequestHeaderLayer, SetResponseHeaderLayer},
     trace::{DefaultMakeSpan, DefaultOnFailure, TraceLayer},
 };
-use anemo_tower::{rate_limit, set_header::SetResponseHeaderLayer};
 use config::{Authority, AuthorityIdentifier, Committee, Parameters, WorkerCache, WorkerId};
 use crypto::{traits::KeyPair as _, NetworkKeyPair, NetworkPublicKey};
-use mysten_metrics::metered_channel::channel_with_total;
-use mysten_metrics::spawn_logged_monitored_task;
+use mysten_metrics::{metered_channel::channel_with_total, spawn_logged_monitored_task};
 use mysten_network::{multiaddr::Protocol, Multiaddr};
-use network::client::NetworkClient;
-use network::epoch_filter::{AllowedEpoch, EPOCH_HEADER_KEY};
-use network::failpoints::FailpointsMakeCallbackHandler;
-use network::metrics::MetricsMakeCallbackHandler;
-use std::collections::HashMap;
-use std::time::Duration;
-use std::{net::Ipv4Addr, sync::Arc, thread::sleep};
+use network::{
+    client::NetworkClient,
+    epoch_filter::{AllowedEpoch, EPOCH_HEADER_KEY},
+    failpoints::FailpointsMakeCallbackHandler,
+    metrics::MetricsMakeCallbackHandler,
+};
+use std::{collections::HashMap, net::Ipv4Addr, sync::Arc, thread::sleep, time::Duration};
 use store::rocks::DBMap;
 use sui_protocol_config::ProtocolConfig;
 use tap::TapFallible;
@@ -37,8 +41,12 @@ use tokio::task::JoinHandle;
 use tower::ServiceBuilder;
 use tracing::{error, info};
 use types::{
-    Batch, BatchDigest, ConditionalBroadcastReceiver, PreSubscribedBroadcastSender,
-    PrimaryToWorkerServer, WorkerToWorkerServer,
+    Batch,
+    BatchDigest,
+    ConditionalBroadcastReceiver,
+    PreSubscribedBroadcastSender,
+    PrimaryToWorkerServer,
+    WorkerToWorkerServer,
 };
 
 /// The default channel capacity for each channel of the worker.
@@ -114,19 +122,13 @@ impl Worker {
         // Apply rate limits from configuration as needed.
         if let Some(limit) = parameters.anemo.report_batch_rate_limit {
             worker_service = worker_service.add_layer_for_report_batch(InboundRequestLayer::new(
-                rate_limit::RateLimitLayer::new(
-                    governor::Quota::per_second(limit),
-                    rate_limit::WaitMode::Block,
-                ),
+                rate_limit::RateLimitLayer::new(governor::Quota::per_second(limit), rate_limit::WaitMode::Block),
             ));
         }
         if let Some(limit) = parameters.anemo.request_batches_rate_limit {
-            worker_service = worker_service.add_layer_for_request_batches(
-                InboundRequestLayer::new(rate_limit::RateLimitLayer::new(
-                    governor::Quota::per_second(limit),
-                    rate_limit::WaitMode::Block,
-                )),
-            );
+            worker_service = worker_service.add_layer_for_request_batches(InboundRequestLayer::new(
+                rate_limit::RateLimitLayer::new(governor::Quota::per_second(limit), rate_limit::WaitMode::Block),
+            ));
         }
 
         // Legacy RPC interface, only used by delete_batches() for external consensus.
@@ -150,9 +152,7 @@ impl Worker {
             .worker(authority.protocol_key(), &id)
             .expect("Our public key or worker id is not in the worker cache")
             .worker_address;
-        let address = address
-            .replace(0, |_protocol| Some(Protocol::Ip4(Ipv4Addr::UNSPECIFIED)))
-            .unwrap();
+        let address = address.replace(0, |_protocol| Some(Protocol::Ip4(Ipv4Addr::UNSPECIFIED))).unwrap();
         let addr = address.to_anemo_address().unwrap();
 
         let epoch_string: String = committee.epoch().to_string();
@@ -169,18 +169,12 @@ impl Worker {
                 epoch_string.clone(),
             )));
 
-        let worker_peer_ids = worker_cache
-            .all_workers()
-            .into_iter()
-            .map(|(worker_name, _)| PeerId(worker_name.0.to_bytes()));
+        let worker_peer_ids =
+            worker_cache.all_workers().into_iter().map(|(worker_name, _)| PeerId(worker_name.0.to_bytes()));
         let routes = anemo::Router::new()
             .add_rpc_service(worker_service)
-            .route_layer(RequireAuthorizationLayer::new(AllowedPeers::new(
-                worker_peer_ids,
-            )))
-            .route_layer(RequireAuthorizationLayer::new(AllowedEpoch::new(
-                epoch_string.clone(),
-            )))
+            .route_layer(RequireAuthorizationLayer::new(AllowedPeers::new(worker_peer_ids)))
+            .route_layer(RequireAuthorizationLayer::new(AllowedEpoch::new(epoch_string.clone())))
             .merge(primary_to_worker_router);
 
         let service = ServiceBuilder::new()
@@ -194,10 +188,7 @@ impl Worker {
                 parameters.anemo.excessive_message_size(),
             )))
             .layer(CallbackLayer::new(FailpointsMakeCallbackHandler::new()))
-            .layer(SetResponseHeaderLayer::overriding(
-                EPOCH_HEADER_KEY.parse().unwrap(),
-                epoch_string.clone(),
-            ))
+            .layer(SetResponseHeaderLayer::overriding(EPOCH_HEADER_KEY.parse().unwrap(), epoch_string.clone()))
             .service(routes);
 
         let outbound_layer = ServiceBuilder::new()
@@ -211,10 +202,7 @@ impl Worker {
                 parameters.anemo.excessive_message_size(),
             )))
             .layer(CallbackLayer::new(FailpointsMakeCallbackHandler::new()))
-            .layer(SetRequestHeaderLayer::overriding(
-                EPOCH_HEADER_KEY.parse().unwrap(),
-                epoch_string,
-            ))
+            .layer(SetRequestHeaderLayer::overriding(EPOCH_HEADER_KEY.parse().unwrap(), epoch_string))
             .into_inner();
 
         let anemo_config = {
@@ -316,44 +304,26 @@ impl Worker {
         for (public_key, address) in other_workers {
             let (peer_id, address) = Self::add_peer_in_network(&network, public_key, &address);
             peer_types.insert(peer_id, "other_worker".to_string());
-            info!(
-                "Adding others workers with peer id {} and address {}",
-                peer_id, address
-            );
+            info!("Adding others workers with peer id {} and address {}", peer_id, address);
         }
 
         // Connect worker to its corresponding primary.
-        let (peer_id, address) = Self::add_peer_in_network(
-            &network,
-            authority.network_key(),
-            &authority.primary_address(),
-        );
+        let (peer_id, address) =
+            Self::add_peer_in_network(&network, authority.network_key(), &authority.primary_address());
         peer_types.insert(peer_id, "our_primary".to_string());
-        info!(
-            "Adding our primary with peer id {} and address {}",
-            peer_id, address
-        );
+        info!("Adding our primary with peer id {} and address {}", peer_id, address);
 
         // update the peer_types with the "other_primary". We do not add them in the Network
         // struct, otherwise the networking library will try to connect to it
         let other_primaries: Vec<(AuthorityIdentifier, Multiaddr, NetworkPublicKey)> =
             committee.others_primaries_by_id(authority.id());
         for (_, _, network_key) in other_primaries {
-            peer_types.insert(
-                PeerId(network_key.0.to_bytes()),
-                "other_primary".to_string(),
-            );
+            peer_types.insert(PeerId(network_key.0.to_bytes()), "other_primary".to_string());
         }
 
-        let network_admin_server_base_port = parameters
-            .network_admin_server
-            .worker_network_admin_server_base_port
-            .checked_add(id as u16)
-            .unwrap();
-        info!(
-            "Worker {} listening to network admin messages on 127.0.0.1:{}",
-            id, network_admin_server_base_port
-        );
+        let network_admin_server_base_port =
+            parameters.network_admin_server.worker_network_admin_server_base_port.checked_add(id as u16).unwrap();
+        info!("Worker {} listening to network admin messages on 127.0.0.1:{}", id, network_admin_server_base_port);
 
         let admin_handles = network::admin::start_admin_server(
             network_admin_server_base_port,
@@ -375,8 +345,7 @@ impl Worker {
             network.clone(),
         );
 
-        let network_shutdown_handle =
-            Self::shutdown_network_listener(shutdown_receivers.pop().unwrap(), network);
+        let network_shutdown_handle = Self::shutdown_network_listener(shutdown_receivers.pop().unwrap(), network);
 
         // NOTE: This log entry is used to compute performance.
         info!(
@@ -397,18 +366,13 @@ impl Worker {
 
     // Spawns a task responsible for explicitly shutting down the network
     // when a shutdown signal has been sent to the node.
-    fn shutdown_network_listener(
-        mut rx_shutdown: ConditionalBroadcastReceiver,
-        network: Network,
-    ) -> JoinHandle<()> {
+    fn shutdown_network_listener(mut rx_shutdown: ConditionalBroadcastReceiver, network: Network) -> JoinHandle<()> {
         spawn_logged_monitored_task!(
             async move {
                 match rx_shutdown.receiver.recv().await {
                     Ok(()) | Err(_) => {
-                        let _ = network
-                            .shutdown()
-                            .await
-                            .tap_err(|err| error!("Error while shutting down network: {err}"));
+                        let _ =
+                            network.shutdown().await.tap_err(|err| error!("Error while shutting down network: {err}"));
                         info!("Worker network server shutdown");
                     }
                 }
@@ -417,18 +381,10 @@ impl Worker {
         )
     }
 
-    fn add_peer_in_network(
-        network: &Network,
-        peer_name: NetworkPublicKey,
-        address: &Multiaddr,
-    ) -> (PeerId, Address) {
+    fn add_peer_in_network(network: &Network, peer_name: NetworkPublicKey, address: &Multiaddr) -> (PeerId, Address) {
         let peer_id = PeerId(peer_name.0.to_bytes());
         let address = address.to_anemo_address().unwrap();
-        let peer_info = PeerInfo {
-            peer_id,
-            affinity: anemo::types::PeerAffinity::High,
-            address: vec![address.clone()],
-        };
+        let peer_info = PeerInfo { peer_id, affinity: anemo::types::PeerAffinity::High, address: vec![address.clone()] };
         network.known_peers().insert(peer_info);
 
         (peer_id, address)
@@ -448,11 +404,8 @@ impl Worker {
     ) -> Vec<JoinHandle<()>> {
         info!("Starting handler for transactions");
 
-        let (_tx_batch_maker, rx_batch_maker) = channel_with_total(
-            CHANNEL_CAPACITY,
-            &channel_metrics.tx_batch_maker,
-            &channel_metrics.tx_batch_maker_total,
-        );
+        let (_tx_batch_maker, rx_batch_maker) =
+            channel_with_total(CHANNEL_CAPACITY, &channel_metrics.tx_batch_maker, &channel_metrics.tx_batch_maker_total);
         let (tx_quorum_waiter, rx_quorum_waiter) = channel_with_total(
             CHANNEL_CAPACITY,
             &channel_metrics.tx_quorum_waiter,
@@ -501,10 +454,7 @@ impl Worker {
             node_metrics,
         );
 
-        info!(
-            "Worker {} listening to client transactions on {}",
-            self.id, address
-        );
+        info!("Worker {} listening to client transactions on {}", self.id, address);
 
         vec![batch_maker_handle, quorum_waiter_handle]
     }

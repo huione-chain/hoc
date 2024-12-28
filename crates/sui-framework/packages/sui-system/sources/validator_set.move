@@ -4,7 +4,7 @@
 module sui_system::validator_set {
 
     use sui::balance::Balance;
-    use sui::sui::SUI;
+    use sui::hc::HC;
     use sui_system::validator::{Validator, staking_pool_id, sui_address};
     use sui_system::validator_cap::{Self, UnverifiedValidatorOperationCap, ValidatorOperationCap};
     use sui_system::staking_pool::{PoolTokenExchangeRate, StakedSui, pool_id, FungibleStakedSui, fungible_staked_sui_pool_id};
@@ -276,7 +276,7 @@ module sui_system::validator_set {
     public(package) fun request_add_stake(
         self: &mut ValidatorSet,
         validator_address: address,
-        stake: Balance<SUI>,
+        stake: Balance<HC>,
         ctx: &mut TxContext,
     ) : StakedSui {
         let sui_amount = stake.value();
@@ -295,7 +295,7 @@ module sui_system::validator_set {
         self: &mut ValidatorSet,
         staked_sui: StakedSui,
         ctx: &TxContext,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         let staking_pool_id = pool_id(&staked_sui);
         let validator =
             if (self.staking_pool_mappings.contains(staking_pool_id)) { // This is an active validator.
@@ -332,7 +332,7 @@ module sui_system::validator_set {
         self: &mut ValidatorSet,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext,
-    ) : Balance<SUI> {
+    ) : Balance<HC> {
         let staking_pool_id = fungible_staked_sui_pool_id(&fungible_staked_sui);
 
         let validator =
@@ -372,8 +372,8 @@ module sui_system::validator_set {
     ///   5. At the end, we calculate the total stake for the new epoch.
     public(package) fun advance_epoch(
         self: &mut ValidatorSet,
-        computation_reward: &mut Balance<SUI>,
-        storage_fund_reward: &mut Balance<SUI>,
+        computation_reward: &mut Balance<HC>,
+        storage_fund_reward: &mut Balance<HC>,
         validator_report_records: &mut VecMap<address, VecSet<address>>,
         reward_slashing_rate: u64,
         low_stake_threshold: u64,
@@ -1183,8 +1183,8 @@ module sui_system::validator_set {
         validators: &mut vector<Validator>,
         adjusted_staking_reward_amounts: &vector<u64>,
         adjusted_storage_fund_reward_amounts: &vector<u64>,
-        staking_rewards: &mut Balance<SUI>,
-        storage_fund_reward: &mut Balance<SUI>,
+        staking_rewards: &mut Balance<HC>,
+        storage_fund_reward: &mut Balance<HC>,
         ctx: &mut TxContext
     ) {
         let length = validators.length();

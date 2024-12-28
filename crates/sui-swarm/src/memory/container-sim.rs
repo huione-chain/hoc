@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use prometheus::Registry;
-use std::net::{IpAddr, SocketAddr};
-use std::sync::{Arc, Weak};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::{Arc, Weak},
+};
 use sui_config::NodeConfig;
 use sui_node::{SuiNode, SuiNodeHandle};
 use sui_types::base_types::ConciseableName;
@@ -60,9 +62,7 @@ impl Container {
                 let startup_sender = startup_sender.clone();
                 async move {
                     let registry_service = mysten_metrics::RegistryService::new(Registry::new());
-                    let server = SuiNode::start(config, registry_service, None)
-                        .await
-                        .unwrap();
+                    let server = SuiNode::start(config, registry_service, None).await.unwrap();
 
                     startup_sender.send(Arc::downgrade(&server)).ok();
 

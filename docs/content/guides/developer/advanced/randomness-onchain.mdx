@@ -37,7 +37,7 @@ Consider the following vulnerable code:
 
 ```move
 // Insecure implementation, do not use!
-entry fun insecure_play(r: &Random, payment: Coin<SUI>, ...) {
+entry fun insecure_play(r: &Random, payment: Coin<HC>, ...) {
   ...
   let mut generator = new_generator(r, ctx);
   let win = generator.generate_bool();
@@ -107,7 +107,7 @@ module games::dice {
 
   /// If you guess correctly the output, then you get a GuessedCorrectly object.
   /// Otherwise you get nothing.
-  public fun play_dice(guess: u8, fee: Coin<SUI>, r: &Random, ctx: &mut TxContext): Ticket {
+  public fun play_dice(guess: u8, fee: Coin<HC>, r: &Random, ctx: &mut TxContext): Ticket {
     // Pay for the turn
     assert!(coin::value(&fee) == 1000000, EInvalidAmount);
     transfer::public_transfer(fee, CREATOR_ADDRESS);
@@ -148,7 +148,7 @@ The Move compiler enforces this behavior by rejecting `public` functions with `R
 ## Programmable transaction block (PTB) restrictions
 
 A similar attack to the one previously described involves PTBs _even_ when `play_dice` is defined as a private `entry` function.
-For example, consider the `entry play_dice(guess: u8, fee: Coin<SUI>, r: &Random, ctx: &mut TxContext): Ticket { … }` function defined earlier, the attacker can publish the function
+For example, consider the `entry play_dice(guess: u8, fee: Coin<HC>, r: &Random, ctx: &mut TxContext): Ticket { … }` function defined earlier, the attacker can publish the function
 
 ```move
 public fun attack(t: Ticket): Ticket {

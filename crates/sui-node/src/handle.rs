@@ -43,8 +43,7 @@
 //! We can't prevent this completely, but we can at least make the right way the easy way.
 
 use super::SuiNode;
-use std::future::Future;
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 use sui_core::authority::AuthorityState;
 
 /// Wrap SuiNode to allow correct access to SuiNode in simulator tests.
@@ -55,10 +54,7 @@ pub struct SuiNodeHandle {
 
 impl SuiNodeHandle {
     pub fn new(node: Arc<SuiNode>) -> Self {
-        Self {
-            node: Some(node),
-            shutdown_on_drop: false,
-        }
+        Self { node: Some(node), shutdown_on_drop: false }
     }
 
     pub fn inner(&self) -> &Arc<SuiNode> {
@@ -81,10 +77,7 @@ impl SuiNodeHandle {
 
 impl Clone for SuiNodeHandle {
     fn clone(&self) -> Self {
-        Self {
-            node: self.node.clone(),
-            shutdown_on_drop: false,
-        }
+        Self { node: self.node.clone(), shutdown_on_drop: false }
     }
 }
 
@@ -116,11 +109,7 @@ impl SuiNodeHandle {
         R: Future<Output = T>,
     {
         let fut = cb(self.node.as_ref().unwrap());
-        self.inner()
-            .sim_state
-            .sim_node
-            .await_future_in_node(fut)
-            .await
+        self.inner().sim_state.sim_node.await_future_in_node(fut).await
     }
 }
 

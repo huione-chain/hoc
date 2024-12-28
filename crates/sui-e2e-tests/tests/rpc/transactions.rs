@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use sui_macros::sim_test;
-use sui_rpc_api::client::sdk::Client;
-use sui_rpc_api::rest::transactions::ListTransactionsCursorParameters;
+use sui_rpc_api::{client::sdk::Client, rest::transactions::ListTransactionsCursorParameters};
 use test_cluster::TestClusterBuilder;
 
 use crate::transfer_coin;
@@ -27,11 +26,8 @@ async fn list_checkpoint() {
 
     let client = Client::new(test_cluster.rpc_url()).unwrap();
 
-    let transactions = client
-        .list_transactions(&ListTransactionsCursorParameters::default())
-        .await
-        .unwrap()
-        .into_inner();
+    let transactions =
+        client.list_transactions(&ListTransactionsCursorParameters::default()).await.unwrap().into_inner();
 
     assert!(!transactions.is_empty());
 }

@@ -1,20 +1,19 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use move_core_types::ident_str;
-use move_core_types::identifier::IdentStr;
-use move_core_types::language_storage::StructTag;
+use move_core_types::{ident_str, identifier::IdentStr, language_storage::StructTag};
 
-use crate::balance::Balance;
-use crate::base_types::ObjectID;
-use crate::committee::EpochId;
-use crate::error::SuiError;
-use crate::gas_coin::MIST_PER_SUI;
-use crate::id::{ID, UID};
-use crate::object::{Data, Object};
-use crate::SUI_SYSTEM_ADDRESS;
-use serde::Deserialize;
-use serde::Serialize;
+use crate::{
+    balance::Balance,
+    base_types::ObjectID,
+    committee::EpochId,
+    error::SuiError,
+    gas_coin::MIST_PER_HC,
+    id::{ID, UID},
+    object::{Data, Object},
+    SUI_SYSTEM_ADDRESS,
+};
+use serde::{Deserialize, Serialize};
 
 /// Maximum number of active validators at any moment.
 /// We do not allow the number of validators in any epoch to go above this.
@@ -23,20 +22,20 @@ pub const MAX_VALIDATOR_COUNT: u64 = 150;
 /// Lower-bound on the amount of stake required to become a validator.
 ///
 /// 30 million SUI
-pub const MIN_VALIDATOR_JOINING_STAKE_MIST: u64 = 30_000_000 * MIST_PER_SUI;
+pub const MIN_VALIDATOR_JOINING_STAKE_MIST: u64 = 30_000_000 * MIST_PER_HC;
 
 /// Validators with stake amount below `validator_low_stake_threshold` are considered to
 /// have low stake and will be escorted out of the validator set after being below this
 /// threshold for more than `validator_low_stake_grace_period` number of epochs.
 ///
 /// 20 million SUI
-pub const VALIDATOR_LOW_STAKE_THRESHOLD_MIST: u64 = 20_000_000 * MIST_PER_SUI;
+pub const VALIDATOR_LOW_STAKE_THRESHOLD_MIST: u64 = 20_000_000 * MIST_PER_HC;
 
 /// Validators with stake below `validator_very_low_stake_threshold` will be removed
 /// immediately at epoch change, no grace period.
 ///
 /// 15 million SUI
-pub const VALIDATOR_VERY_LOW_STAKE_THRESHOLD_MIST: u64 = 15_000_000 * MIST_PER_SUI;
+pub const VALIDATOR_VERY_LOW_STAKE_THRESHOLD_MIST: u64 = 15_000_000 * MIST_PER_HC;
 
 /// A validator can have stake below `validator_low_stake_threshold`
 /// for this many epochs before being kicked out.
@@ -98,6 +97,7 @@ impl StakedSui {
 
 impl TryFrom<&Object> for StakedSui {
     type Error = SuiError;
+
     fn try_from(object: &Object) -> Result<Self, Self::Error> {
         match &object.data {
             Data::Move(o) => {
@@ -110,8 +110,6 @@ impl TryFrom<&Object> for StakedSui {
             Data::Package(_) => {}
         }
 
-        Err(SuiError::TypeError {
-            error: format!("Object type is not a StakedSui: {:?}", object),
-        })
+        Err(SuiError::TypeError { error: format!("Object type is not a StakedSui: {:?}", object) })
     }
 }

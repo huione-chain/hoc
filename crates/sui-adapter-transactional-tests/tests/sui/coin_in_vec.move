@@ -7,18 +7,18 @@
 
 module test::coin_in_vec {
     use sui::coin::Coin;
-    use sui::sui::SUI;
+    use sui::hc::HC;
 
     public struct Wrapper has key {
         id: UID,
-        coins: vector<Coin<SUI>>,
+        coins: vector<Coin<HC>>,
     }
 
     fun init(ctx: &mut TxContext) {
         transfer::transfer(Wrapper { id: object::new(ctx), coins: vector[] }, tx_context::sender(ctx));
     }
 
-    public fun deposit(wrapper: &mut Wrapper, c: Coin<SUI>) {
+    public fun deposit(wrapper: &mut Wrapper, c: Coin<HC>) {
         vector::push_back(&mut wrapper.coins, c)
     }
 

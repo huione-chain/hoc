@@ -5,9 +5,16 @@ use anyhow::Result;
 use async_trait::async_trait;
 use crypto::NetworkPublicKey;
 use types::{
-    error::LocalClientError, FetchBatchesRequest, FetchBatchesResponse, FetchCertificatesRequest,
-    FetchCertificatesResponse, RequestBatchesRequest, RequestBatchesResponse,
-    WorkerOthersBatchMessage, WorkerOwnBatchMessage, WorkerSynchronizeMessage,
+    error::LocalClientError,
+    FetchBatchesRequest,
+    FetchBatchesResponse,
+    FetchCertificatesRequest,
+    FetchCertificatesResponse,
+    RequestBatchesRequest,
+    RequestBatchesResponse,
+    WorkerOthersBatchMessage,
+    WorkerOwnBatchMessage,
+    WorkerSynchronizeMessage,
 };
 
 pub trait ReliableNetwork<Request: Clone + Send + Sync> {
@@ -59,15 +66,9 @@ pub trait PrimaryToWorkerClient {
 
 #[async_trait]
 pub trait WorkerToPrimaryClient {
-    async fn report_own_batch(
-        &self,
-        request: WorkerOwnBatchMessage,
-    ) -> Result<(), LocalClientError>;
+    async fn report_own_batch(&self, request: WorkerOwnBatchMessage) -> Result<(), LocalClientError>;
 
-    async fn report_others_batch(
-        &self,
-        request: WorkerOthersBatchMessage,
-    ) -> Result<(), LocalClientError>;
+    async fn report_others_batch(&self, request: WorkerOthersBatchMessage) -> Result<(), LocalClientError>;
 }
 
 #[async_trait]

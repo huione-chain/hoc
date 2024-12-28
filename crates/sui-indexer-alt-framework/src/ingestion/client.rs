@@ -1,22 +1,27 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::ingestion::local_client::LocalIngestionClient;
-use crate::ingestion::remote_client::RemoteIngestionClient;
-use crate::ingestion::Error as IngestionError;
-use crate::ingestion::Result as IngestionResult;
-use crate::metrics::IndexerMetrics;
-use backoff::backoff::Constant;
-use backoff::Error as BE;
-use backoff::ExponentialBackoff;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use crate::{
+    ingestion::{
+        local_client::LocalIngestionClient,
+        remote_client::RemoteIngestionClient,
+        Error as IngestionError,
+        Result as IngestionResult,
+    },
+    metrics::IndexerMetrics,
+};
+use backoff::{backoff::Constant, Error as BE, ExponentialBackoff};
+use std::{
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 use sui_storage::blob::Blob;
 use sui_types::full_checkpoint_content::CheckpointData;
-use tokio_util::bytes::Bytes;
-use tokio_util::sync::CancellationToken;
+use tokio_util::{bytes::Bytes, sync::CancellationToken};
 use tracing::debug;
 use url::Url;
 
@@ -56,21 +61,13 @@ impl IngestionClient {
     pub(crate) fn new_remote(url: Url, metrics: Arc<IndexerMetrics>) -> IngestionResult<Self> {
         let client = Arc::new(RemoteIngestionClient::new(url)?);
         let latest_ingested_checkpoint = Arc::new(AtomicU64::new(0));
-        Ok(IngestionClient {
-            client,
-            metrics,
-            latest_ingested_checkpoint,
-        })
+        Ok(IngestionClient { client, metrics, latest_ingested_checkpoint })
     }
 
     pub(crate) fn new_local(path: PathBuf, metrics: Arc<IndexerMetrics>) -> Self {
         let client = Arc::new(LocalIngestionClient::new(path));
         let latest_ingested_checkpoint = Arc::new(AtomicU64::new(0));
-        IngestionClient {
-            client,
-            metrics,
-            latest_ingested_checkpoint,
-        }
+        IngestionClient { client, metrics, latest_ingested_checkpoint }
     }
 
     /// Fetch checkpoint data by sequence number.
@@ -132,14 +129,10 @@ impl IngestionClient {
 
                 let bytes = client.fetch(checkpoint).await.map_err(|err| match err {
                     FetchError::NotFound => BE::permanent(IngestionError::NotFound(checkpoint)),
-                    FetchError::Permanent(error) => {
-                        BE::permanent(IngestionError::FetchError(checkpoint, error))
+                    FetchError::Permanent(error) => BE::permanent(IngestionError::FetchError(checkpoint, error)),
+                    FetchError::Transient { reason, error } => {
+                        self.metrics.inc_retry(checkpoint, reason, IngestionError::FetchError(checkpoint, error))
                     }
-                    FetchError::Transient { reason, error } => self.metrics.inc_retry(
-                        checkpoint,
-                        reason,
-                        IngestionError::FetchError(checkpoint, error),
-                    ),
                 })?;
 
                 self.metrics.total_ingested_bytes.inc_by(bytes.len() as u64);
@@ -166,55 +159,33 @@ impl IngestionClient {
         let data = backoff::future::retry(backoff, request).await?;
         let elapsed = guard.stop_and_record();
 
-        debug!(
-            checkpoint,
-            elapsed_ms = elapsed * 1000.0,
-            "Fetched checkpoint"
-        );
+        debug!(checkpoint, elapsed_ms = elapsed * 1000.0, "Fetched checkpoint");
 
-        let lag =
-            chrono::Utc::now().timestamp_millis() - data.checkpoint_summary.timestamp_ms as i64;
-        self.metrics
-            .ingested_checkpoint_timestamp_lag
-            .observe((lag as f64) / 1000.0);
+        let lag = chrono::Utc::now().timestamp_millis() - data.checkpoint_summary.timestamp_ms as i64;
+        self.metrics.ingested_checkpoint_timestamp_lag.observe((lag as f64) / 1000.0);
 
         let new_seq = data.checkpoint_summary.sequence_number;
-        let old_seq = self
-            .latest_ingested_checkpoint
-            .fetch_max(new_seq, Ordering::Relaxed);
+        let old_seq = self.latest_ingested_checkpoint.fetch_max(new_seq, Ordering::Relaxed);
         if new_seq > old_seq {
             self.metrics.latest_ingested_checkpoint.set(new_seq as i64);
-            self.metrics
-                .latest_ingested_checkpoint_timestamp_lag_ms
-                .set(lag);
+            self.metrics.latest_ingested_checkpoint_timestamp_lag_ms.set(lag);
         }
 
         self.metrics.total_ingested_checkpoints.inc();
 
+        self.metrics.total_ingested_transactions.inc_by(data.transactions.len() as u64);
+
         self.metrics
-            .total_ingested_transactions
-            .inc_by(data.transactions.len() as u64);
+            .total_ingested_events
+            .inc_by(data.transactions.iter().map(|tx| tx.events.as_ref().map_or(0, |evs| evs.data.len()) as u64).sum());
 
-        self.metrics.total_ingested_events.inc_by(
-            data.transactions
-                .iter()
-                .map(|tx| tx.events.as_ref().map_or(0, |evs| evs.data.len()) as u64)
-                .sum(),
-        );
+        self.metrics
+            .total_ingested_inputs
+            .inc_by(data.transactions.iter().map(|tx| tx.input_objects.len() as u64).sum());
 
-        self.metrics.total_ingested_inputs.inc_by(
-            data.transactions
-                .iter()
-                .map(|tx| tx.input_objects.len() as u64)
-                .sum(),
-        );
-
-        self.metrics.total_ingested_outputs.inc_by(
-            data.transactions
-                .iter()
-                .map(|tx| tx.output_objects.len() as u64)
-                .sum(),
-        );
+        self.metrics
+            .total_ingested_outputs
+            .inc_by(data.transactions.iter().map(|tx| tx.output_objects.len() as u64).sum());
 
         Ok(Arc::new(data))
     }

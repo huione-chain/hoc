@@ -9,9 +9,7 @@ use async_graphql::*;
 use diesel::{OptionalExtension, QueryDsl};
 use diesel_async::scoped_futures::ScopedFutureExt;
 use sui_indexer::schema::chain_identifier;
-use sui_types::{
-    digests::ChainIdentifier as NativeChainIdentifier, messages_checkpoint::CheckpointDigest,
-};
+use sui_types::{digests::ChainIdentifier as NativeChainIdentifier, messages_checkpoint::CheckpointDigest};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct ChainIdentifier(pub(crate) Option<NativeChainIdentifier>);
@@ -23,12 +21,8 @@ impl ChainIdentifier {
 
         let Some(digest_bytes) = db
             .execute(move |conn| {
-                async {
-                    conn.first(move || dsl::chain_identifier.select(dsl::checkpoint_digest))
-                        .await
-                        .optional()
-                }
-                .scope_boxed()
+                async { conn.first(move || dsl::chain_identifier.select(dsl::checkpoint_digest)).await.optional() }
+                    .scope_boxed()
             })
             .await
             .map_err(|e| Error::Internal(format!("Failed to fetch genesis digest: {e}")))?

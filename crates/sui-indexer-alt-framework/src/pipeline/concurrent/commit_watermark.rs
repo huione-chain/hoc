@@ -18,9 +18,7 @@ use tracing::{debug, error, info, warn};
 use crate::{
     db::Db,
     metrics::IndexerMetrics,
-    pipeline::{
-        CommitterConfig, WatermarkPart, LOUD_WATERMARK_UPDATE_INTERVAL, WARN_PENDING_WATERMARKS,
-    },
+    pipeline::{CommitterConfig, WatermarkPart, LOUD_WATERMARK_UPDATE_INTERVAL, WARN_PENDING_WATERMARKS},
     watermarks::CommitterWatermark,
 };
 
@@ -79,8 +77,7 @@ pub(super) fn commit_watermark<H: Handler + 'static>(
 
         // The watermark task will periodically output a log message at a higher log level to
         // demonstrate that the pipeline is making progress.
-        let mut next_loud_watermark_update =
-            watermark.checkpoint_hi_inclusive + LOUD_WATERMARK_UPDATE_INTERVAL;
+        let mut next_loud_watermark_update = watermark.checkpoint_hi_inclusive + LOUD_WATERMARK_UPDATE_INTERVAL;
 
         info!(pipeline = H::NAME, ?watermark, "Starting commit watermark");
 
@@ -276,10 +273,6 @@ pub(super) fn commit_watermark<H: Handler + 'static>(
             }
         }
 
-        info!(
-            pipeline = H::NAME,
-            ?watermark,
-            "Stopping committer watermark task"
-        );
+        info!(pipeline = H::NAME, ?watermark, "Stopping committer watermark task");
     })
 }

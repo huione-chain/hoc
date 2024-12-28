@@ -4,17 +4,13 @@
 use config::Parameters;
 use fastcrypto::traits::KeyPair;
 use mysten_metrics::RegistryService;
-use narwhal_node::execution_state::SimpleExecutionState;
-use narwhal_node::primary_node::PrimaryNode;
-use narwhal_node::worker_node::WorkerNodes;
+use narwhal_node::{execution_state::SimpleExecutionState, primary_node::PrimaryNode, worker_node::WorkerNodes};
 use network::client::NetworkClient;
 use prometheus::Registry;
-use std::num::NonZeroUsize;
-use std::time::Duration;
+use std::{num::NonZeroUsize, time::Duration};
 use storage::NodeStorage;
 use test_utils::{latest_protocol_version, temp_dir, CommitteeFixture};
-use tokio::sync::mpsc::channel;
-use tokio::time::sleep;
+use tokio::{sync::mpsc::channel, time::sleep};
 use worker::TrivialTransactionValidator;
 
 #[tokio::test]
@@ -24,10 +20,8 @@ async fn simple_primary_worker_node_start_stop() {
     // GIVEN
     let parameters = Parameters::default();
     let registry_service = RegistryService::new(Registry::new());
-    let fixture = CommitteeFixture::builder()
-        .number_of_workers(NonZeroUsize::new(1).unwrap())
-        .randomize_ports(true)
-        .build();
+    let fixture =
+        CommitteeFixture::builder().number_of_workers(NonZeroUsize::new(1).unwrap()).randomize_ports(true).build();
     let committee = fixture.committee();
     let worker_cache = fixture.worker_cache();
 
@@ -85,9 +79,7 @@ async fn simple_primary_worker_node_start_stop() {
     let response = client
         .get(format!(
             "http://127.0.0.1:{}/known_peers",
-            parameters
-                .network_admin_server
-                .worker_network_admin_server_base_port
+            parameters.network_admin_server.worker_network_admin_server_base_port
         ))
         .send()
         .await
@@ -108,10 +100,8 @@ async fn primary_node_restart() {
     // GIVEN
     let parameters = Parameters::default();
     let registry_service = RegistryService::new(Registry::new());
-    let fixture = CommitteeFixture::builder()
-        .number_of_workers(NonZeroUsize::new(1).unwrap())
-        .randomize_ports(true)
-        .build();
+    let fixture =
+        CommitteeFixture::builder().number_of_workers(NonZeroUsize::new(1).unwrap()).randomize_ports(true).build();
     let committee = fixture.committee();
     let worker_cache = fixture.worker_cache();
 
@@ -173,9 +163,7 @@ async fn primary_node_restart() {
     let response = client
         .get(format!(
             "http://127.0.0.1:{}/known_peers",
-            parameters
-                .network_admin_server
-                .primary_network_admin_server_port
+            parameters.network_admin_server.primary_network_admin_server_port
         ))
         .send()
         .await

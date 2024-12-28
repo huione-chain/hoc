@@ -27,14 +27,26 @@ use std::{
 };
 use storage::{NodeStorage, VoteDigestStore};
 use test_utils::{
-    get_protocol_config, latest_protocol_version, make_optimal_signed_certificates, temp_dir,
+    get_protocol_config,
+    latest_protocol_version,
+    make_optimal_signed_certificates,
+    temp_dir,
     CommitteeFixture,
 };
 use tokio::{sync::watch, time::timeout};
 use types::{
-    now, Certificate, CertificateAPI, FetchCertificatesRequest, Header, HeaderAPI,
-    MockPrimaryToWorker, PreSubscribedBroadcastSender, PrimaryToPrimary, RequestVoteRequest,
-    SignatureVerificationState, VoteAPI,
+    now,
+    Certificate,
+    CertificateAPI,
+    FetchCertificatesRequest,
+    Header,
+    HeaderAPI,
+    MockPrimaryToWorker,
+    PreSubscribedBroadcastSender,
+    PrimaryToPrimary,
+    RequestVoteRequest,
+    SignatureVerificationState,
+    VoteAPI,
 };
 use worker::{metrics::initialise_metrics, TrivialTransactionValidator, Worker};
 
@@ -59,11 +71,8 @@ async fn test_get_network_peers_from_admin_server() {
 
     let (tx_new_certificates, _rx_new_certificates) = mysten_metrics::metered_channel::channel(
         CHANNEL_CAPACITY,
-        &prometheus::IntGauge::new(
-            PrimaryChannelMetrics::NAME_NEW_CERTS,
-            PrimaryChannelMetrics::DESC_NEW_CERTS,
-        )
-        .unwrap(),
+        &prometheus::IntGauge::new(PrimaryChannelMetrics::NAME_NEW_CERTS, PrimaryChannelMetrics::DESC_NEW_CERTS)
+            .unwrap(),
     );
     let (tx_feedback, rx_feedback) = mysten_metrics::metered_channel::channel(
         CHANNEL_CAPACITY,
@@ -73,8 +82,7 @@ async fn test_get_network_peers_from_admin_server() {
         )
         .unwrap(),
     );
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
 
     let mut tx_shutdown = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
@@ -133,9 +141,7 @@ async fn test_get_network_peers_from_admin_server() {
     // Test getting all known peers for primary 1
     let resp = reqwest::get(format!(
         "http://127.0.0.1:{}/known_peers",
-        primary_1_parameters
-            .network_admin_server
-            .primary_network_admin_server_port
+        primary_1_parameters.network_admin_server.primary_network_admin_server_port
     ))
     .await
     .unwrap()
@@ -149,9 +155,7 @@ async fn test_get_network_peers_from_admin_server() {
     // Test getting all connected peers for primary 1
     let resp = reqwest::get(format!(
         "http://127.0.0.1:{}/peers",
-        primary_1_parameters
-            .network_admin_server
-            .primary_network_admin_server_port
+        primary_1_parameters.network_admin_server.primary_network_admin_server_port
     ))
     .await
     .unwrap()
@@ -174,11 +178,8 @@ async fn test_get_network_peers_from_admin_server() {
     // TODO: Rework test-utils so that macro can be used for the channels below.
     let (tx_new_certificates_2, _rx_new_certificates_2) = mysten_metrics::metered_channel::channel(
         CHANNEL_CAPACITY,
-        &prometheus::IntGauge::new(
-            PrimaryChannelMetrics::NAME_NEW_CERTS,
-            PrimaryChannelMetrics::DESC_NEW_CERTS,
-        )
-        .unwrap(),
+        &prometheus::IntGauge::new(PrimaryChannelMetrics::NAME_NEW_CERTS, PrimaryChannelMetrics::DESC_NEW_CERTS)
+            .unwrap(),
     );
     let (tx_feedback_2, rx_feedback_2) = mysten_metrics::metered_channel::channel(
         CHANNEL_CAPACITY,
@@ -188,8 +189,7 @@ async fn test_get_network_peers_from_admin_server() {
         )
         .unwrap(),
     );
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
     let mut tx_shutdown_2 = PreSubscribedBroadcastSender::new(NUM_SHUTDOWN_RECEIVERS);
 
     // Spawn Primary 2
@@ -225,9 +225,7 @@ async fn test_get_network_peers_from_admin_server() {
     // Test getting all connected peers for primary 1
     let resp = reqwest::get(format!(
         "http://127.0.0.1:{}/peers",
-        primary_1_parameters
-            .network_admin_server
-            .primary_network_admin_server_port
+        primary_1_parameters.network_admin_server.primary_network_admin_server_port
     ))
     .await
     .unwrap()
@@ -245,9 +243,7 @@ async fn test_get_network_peers_from_admin_server() {
     // Test getting all connected peers for primary 2
     let resp = reqwest::get(format!(
         "http://127.0.0.1:{}/peers",
-        primary_2_parameters
-            .network_admin_server
-            .primary_network_admin_server_port
+        primary_2_parameters.network_admin_server.primary_network_admin_server_port
     ))
     .await
     .unwrap()
@@ -286,8 +282,7 @@ async fn test_request_vote_has_missing_parents() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(1, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(1, 0));
     let (tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -322,14 +317,9 @@ async fn test_request_vote_has_missing_parents() {
 
     // Make some mock certificates that are parents of our new header.
     let committee: Committee = fixture.committee();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
-    let ids: Vec<_> = fixture
-        .authorities()
-        .map(|a| (a.id(), a.keypair().copy()))
-        .collect();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
+    let ids: Vec<_> = fixture.authorities().map(|a| (a.id(), a.keypair().copy())).collect();
     let (certificates, _next_parents) = make_optimal_signed_certificates(
         1..=3,
         &genesis,
@@ -368,18 +358,9 @@ async fn test_request_vote_has_missing_parents() {
     }
 
     // TEST PHASE 1: Handler should report missing parent certificates to caller.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
     let result = handler.request_vote(request).await;
 
     let expected_missing: HashSet<_> = round_2_missing.iter().map(|c| c.digest()).collect();
@@ -387,18 +368,9 @@ async fn test_request_vote_has_missing_parents() {
     assert_eq!(expected_missing, received_missing);
 
     // TEST PHASE 2: Handler should not return additional unknown digests.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
     // No additional missing parents will be requested.
     let result = timeout(Duration::from_secs(5), handler.request_vote(request)).await;
     assert!(result.is_err(), "{:?}", result);
@@ -406,18 +378,9 @@ async fn test_request_vote_has_missing_parents() {
     // TEST PHASE 3: Handler should return error if header is too old.
     // Increase round threshold.
     let _ = tx_narwhal_round_updates.send(100);
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
     // Because round 1 certificates are not in store, the missing parents will not be accepted yet.
     let result = handler.request_vote(request).await;
     assert!(result.is_err(), "{:?}", result);
@@ -451,8 +414,7 @@ async fn test_request_vote_accept_missing_parents() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(1, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(1, 0));
     let (tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -487,14 +449,9 @@ async fn test_request_vote_accept_missing_parents() {
 
     // Make some mock certificates that are parents of our new header.
     let committee: Committee = fixture.committee();
-    let genesis = Certificate::genesis(&latest_protocol_version(), &committee)
-        .iter()
-        .map(|x| x.digest())
-        .collect::<BTreeSet<_>>();
-    let ids: Vec<_> = fixture
-        .authorities()
-        .map(|a| (a.id(), a.keypair().copy()))
-        .collect();
+    let genesis =
+        Certificate::genesis(&latest_protocol_version(), &committee).iter().map(|x| x.digest()).collect::<BTreeSet<_>>();
+    let ids: Vec<_> = fixture.authorities().map(|a| (a.id(), a.keypair().copy())).collect();
     let (certificates, _next_parents) = make_optimal_signed_certificates(
         1..=3,
         &genesis,
@@ -544,18 +501,9 @@ async fn test_request_vote_accept_missing_parents() {
     }
 
     // TEST PHASE 1: Handler should report missing parent certificates to caller.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
     let result = handler.request_vote(request).await;
 
     let expected_missing: HashSet<_> = round_2_missing.iter().map(|c| c.digest()).collect();
@@ -572,62 +520,34 @@ async fn test_request_vote_accept_missing_parents() {
             signatures.push((vote.author(), vote.signature().clone()));
         }
 
-        cert_v1_round_2_missing.push(
-            Certificate::new_unverified(
-                &cert_v1_config,
-                &committee,
-                cert.header().clone(),
-                signatures,
-            )
-            .unwrap(),
-        );
+        cert_v1_round_2_missing
+            .push(Certificate::new_unverified(&cert_v1_config, &committee, cert.header().clone(), signatures).unwrap());
     }
     let _ = tx_narwhal_round_updates.send(1);
     let mut request = anemo::Request::new(RequestVoteRequest {
         header: test_header.clone(),
         parents: cert_v1_round_2_missing.clone(),
     });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
-    let result = timeout(Duration::from_secs(5), handler.request_vote(request))
-        .await
-        .unwrap();
+    let result = timeout(Duration::from_secs(5), handler.request_vote(request)).await.unwrap();
     assert!(result.is_err(), "{:?}", result);
 
     // TEST PHASE 2: Handler should process missing parent certificates and succeed.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header,
-        parents: round_2_missing.clone(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header, parents: round_2_missing.clone() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
-    let result = timeout(Duration::from_secs(5), handler.request_vote(request))
-        .await
-        .unwrap();
+    let result = timeout(Duration::from_secs(5), handler.request_vote(request)).await.unwrap();
     assert!(result.is_ok(), "{:?}", result);
 }
 
 #[tokio::test]
 async fn test_request_vote_missing_batches() {
     telemetry_subscribers::init_for_testing();
-    let fixture = CommitteeFixture::builder()
-        .randomize_ports(true)
-        .committee_size(NonZeroUsize::new(4).unwrap())
-        .build();
+    let fixture =
+        CommitteeFixture::builder().randomize_ports(true).committee_size(NonZeroUsize::new(4).unwrap()).build();
     let worker_cache = fixture.worker_cache();
     let primary = fixture.authorities().next().unwrap();
     let authority_id = primary.id();
@@ -642,8 +562,7 @@ async fn test_request_vote_missing_batches() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(1, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(1, 0));
     let (_tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -682,10 +601,7 @@ async fn test_request_vote_missing_batches() {
         let header: Header = primary
             .header_builder(&latest_protocol_version(), &fixture.committee())
             .with_payload_batch(
-                test_utils::fixture_batch_with_transactions(
-                    10,
-                    &test_utils::latest_protocol_version(),
-                ),
+                test_utils::fixture_batch_with_transactions(10, &test_utils::latest_protocol_version()),
                 0,
                 0,
             )
@@ -714,12 +630,7 @@ async fn test_request_vote_missing_batches() {
         .build()
         .unwrap()
         .into();
-    let test_digests: HashSet<_> = test_header
-        .payload()
-        .iter()
-        .map(|(digest, _)| digest)
-        .cloned()
-        .collect();
+    let test_digests: HashSet<_> = test_header.payload().iter().map(|(digest, _)| digest).cloned().collect();
 
     // Set up mock worker.
     let author_id = author.id();
@@ -740,24 +651,12 @@ async fn test_request_vote_missing_batches() {
 
     let _worker_network = worker.new_network(anemo::Router::new());
     let address = worker_address.to_anemo_address().unwrap();
-    network
-        .connect_with_peer_id(address, worker_peer_id)
-        .await
-        .unwrap();
+    network.connect_with_peer_id(address, worker_peer_id).await.unwrap();
 
     // Verify Handler synchronizes missing batches and generates a Vote.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     let response = handler.request_vote(request).await.unwrap();
     assert!(response.body().vote.is_some());
@@ -766,10 +665,8 @@ async fn test_request_vote_missing_batches() {
 #[tokio::test]
 async fn test_request_vote_already_voted() {
     telemetry_subscribers::init_for_testing();
-    let fixture = CommitteeFixture::builder()
-        .randomize_ports(true)
-        .committee_size(NonZeroUsize::new(4).unwrap())
-        .build();
+    let fixture =
+        CommitteeFixture::builder().randomize_ports(true).committee_size(NonZeroUsize::new(4).unwrap()).build();
     let worker_cache = fixture.worker_cache();
     let primary = fixture.authorities().next().unwrap();
     let id = primary.id();
@@ -784,8 +681,7 @@ async fn test_request_vote_already_voted() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(1, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(1, 0));
     let (_tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -825,10 +721,7 @@ async fn test_request_vote_already_voted() {
         let header: Header = primary
             .header_builder(&latest_protocol_version(), &fixture.committee())
             .with_payload_batch(
-                test_utils::fixture_batch_with_transactions(
-                    10,
-                    &test_utils::latest_protocol_version(),
-                ),
+                test_utils::fixture_batch_with_transactions(10, &test_utils::latest_protocol_version()),
                 0,
                 0,
             )
@@ -852,18 +745,13 @@ async fn test_request_vote_already_voted() {
     let worker_peer_id = anemo::PeerId(worker.keypair().public().0.to_bytes());
     let mut mock_server = MockPrimaryToWorker::new();
     // Always Synchronize successfully.
-    mock_server
-        .expect_synchronize()
-        .returning(|_| Ok(anemo::Response::new(())));
+    mock_server.expect_synchronize().returning(|_| Ok(anemo::Response::new(())));
 
     client.set_primary_to_worker_local_handler(worker_peer_id, Arc::new(mock_server));
 
     let _worker_network = worker.new_network(anemo::Router::new());
     let address = worker_address.to_anemo_address().unwrap();
-    network
-        .connect_with_peer_id(address, worker_peer_id)
-        .await
-        .unwrap();
+    network.connect_with_peer_id(address, worker_peer_id).await.unwrap();
 
     // Verify Handler generates a Vote.
     let test_header: Header = author
@@ -878,36 +766,18 @@ async fn test_request_vote_already_voted() {
         .build()
         .unwrap()
         .into();
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     let response = handler.request_vote(request).await.unwrap();
     assert!(response.body().vote.is_some());
     let vote = response.into_body().vote.unwrap();
 
     // Verify the same request gets the same vote back successfully.
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     let response = handler.request_vote(request).await.unwrap();
     assert!(response.body().vote.is_some());
@@ -926,18 +796,9 @@ async fn test_request_vote_already_voted() {
         .build()
         .unwrap()
         .into();
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     let response = handler.request_vote(request).await;
     assert_eq!(
@@ -951,10 +812,8 @@ async fn test_request_vote_already_voted() {
 #[tokio::test]
 async fn test_fetch_certificates_v1_handler() {
     let cert_v1_protocol_config = get_protocol_config(28);
-    let fixture = CommitteeFixture::builder()
-        .randomize_ports(true)
-        .committee_size(NonZeroUsize::new(4).unwrap())
-        .build();
+    let fixture =
+        CommitteeFixture::builder().randomize_ports(true).committee_size(NonZeroUsize::new(4).unwrap()).build();
     let id = fixture.authorities().next().unwrap().id();
     let worker_cache = fixture.worker_cache();
     let primary = fixture.authorities().next().unwrap();
@@ -967,8 +826,7 @@ async fn test_fetch_certificates_v1_handler() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
     let (_tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -1001,21 +859,16 @@ async fn test_fetch_certificates_v1_handler() {
         metrics: metrics.clone(),
     };
 
-    let mut current_round: Vec<_> =
-        Certificate::genesis(&cert_v1_protocol_config, &fixture.committee())
-            .into_iter()
-            .map(|cert| cert.header().clone())
-            .collect();
+    let mut current_round: Vec<_> = Certificate::genesis(&cert_v1_protocol_config, &fixture.committee())
+        .into_iter()
+        .map(|cert| cert.header().clone())
+        .collect();
     let mut headers = vec![];
     let total_rounds = 4;
     for i in 0..total_rounds {
         let parents: BTreeSet<_> = current_round
             .into_iter()
-            .map(|header| {
-                fixture
-                    .certificate(&cert_v1_protocol_config, &header)
-                    .digest()
-            })
+            .map(|header| fixture.certificate(&cert_v1_protocol_config, &header).digest())
             .collect();
         (_, current_round) = fixture.headers_round(i, &parents, &cert_v1_protocol_config);
         headers.extend(current_round.clone());
@@ -1044,54 +897,22 @@ async fn test_fetch_certificates_v1_handler() {
         for j in 0..=i {
             let cert = certificates[i + j * total_authorities].clone();
             assert_eq!(&cert.header().author(), authorities.last().unwrap());
-            certificate_store
-                .write(cert)
-                .expect("Writing certificate to store failed");
+            certificate_store.write(cert).expect("Writing certificate to store failed");
         }
     }
 
     // Each test case contains (lower bound round, skip rounds, max items, expected output).
     let test_cases = vec![
-        (
-            0,
-            vec![vec![], vec![], vec![], vec![]],
-            20,
-            vec![1, 1, 1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            0,
-            vec![vec![1u64], vec![1], vec![], vec![]],
-            20,
-            vec![1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            0,
-            vec![vec![], vec![], vec![1], vec![1]],
-            20,
-            vec![1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            1,
-            vec![vec![], vec![], vec![2], vec![2]],
-            4,
-            vec![2, 3, 3, 4],
-        ),
+        (0, vec![vec![], vec![], vec![], vec![]], 20, vec![1, 1, 1, 1, 2, 2, 2, 3, 3, 4]),
+        (0, vec![vec![1u64], vec![1], vec![], vec![]], 20, vec![1, 1, 2, 2, 2, 3, 3, 4]),
+        (0, vec![vec![], vec![], vec![1], vec![1]], 20, vec![1, 1, 2, 2, 2, 3, 3, 4]),
+        (1, vec![vec![], vec![], vec![2], vec![2]], 4, vec![2, 3, 3, 4]),
         (1, vec![vec![], vec![], vec![2], vec![2]], 2, vec![2, 3]),
-        (
-            0,
-            vec![vec![1], vec![1], vec![1, 2, 3], vec![1, 2, 3]],
-            2,
-            vec![2, 4],
-        ),
+        (0, vec![vec![1], vec![1], vec![1, 2, 3], vec![1, 2, 3]], 2, vec![2, 4]),
         (2, vec![vec![], vec![], vec![], vec![]], 3, vec![3, 3, 4]),
         (2, vec![vec![], vec![], vec![], vec![]], 2, vec![3, 3]),
         // Check that round 2 and 4 are fetched for the last authority, skipping round 3.
-        (
-            1,
-            vec![vec![], vec![], vec![3], vec![3]],
-            5,
-            vec![2, 2, 2, 4],
-        ),
+        (1, vec![vec![], vec![], vec![3], vec![3]], 5, vec![2, 2, 2, 4]),
     ];
     for (lower_bound_round, skip_rounds_vec, max_items, expected_rounds) in test_cases {
         let req = FetchCertificatesRequest::default()
@@ -1100,36 +921,20 @@ async fn test_fetch_certificates_v1_handler() {
                 authorities
                     .clone()
                     .into_iter()
-                    .zip(
-                        skip_rounds_vec
-                            .into_iter()
-                            .map(|rounds| rounds.into_iter().collect()),
-                    )
+                    .zip(skip_rounds_vec.into_iter().map(|rounds| rounds.into_iter().collect()))
                     .collect(),
             )
             .set_max_items(max_items);
-        let resp = handler
-            .fetch_certificates(anemo::Request::new(req.clone()))
-            .await
-            .unwrap()
-            .into_body();
-        assert_eq!(
-            resp.certificates
-                .iter()
-                .map(|cert| cert.round())
-                .collect_vec(),
-            expected_rounds
-        );
+        let resp = handler.fetch_certificates(anemo::Request::new(req.clone())).await.unwrap().into_body();
+        assert_eq!(resp.certificates.iter().map(|cert| cert.round()).collect_vec(), expected_rounds);
     }
 }
 
 #[tokio::test]
 async fn test_fetch_certificates_v2_handler() {
     let cert_v2_config = latest_protocol_version();
-    let fixture = CommitteeFixture::builder()
-        .randomize_ports(true)
-        .committee_size(NonZeroUsize::new(4).unwrap())
-        .build();
+    let fixture =
+        CommitteeFixture::builder().randomize_ports(true).committee_size(NonZeroUsize::new(4).unwrap()).build();
     let id = fixture.authorities().next().unwrap().id();
     let worker_cache = fixture.worker_cache();
     let primary = fixture.authorities().next().unwrap();
@@ -1142,8 +947,7 @@ async fn test_fetch_certificates_v2_handler() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::default());
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::default());
     let (_tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -1183,10 +987,8 @@ async fn test_fetch_certificates_v2_handler() {
     let mut headers = vec![];
     let total_rounds = 4;
     for i in 0..total_rounds {
-        let parents: BTreeSet<_> = current_round
-            .into_iter()
-            .map(|header| fixture.certificate(&cert_v2_config, &header).digest())
-            .collect();
+        let parents: BTreeSet<_> =
+            current_round.into_iter().map(|header| fixture.certificate(&cert_v2_config, &header).digest()).collect();
         (_, current_round) = fixture.headers_round(i, &parents, &cert_v2_config);
         headers.extend(current_round.clone());
     }
@@ -1216,71 +1018,31 @@ async fn test_fetch_certificates_v2_handler() {
             assert_eq!(&cert.header().author(), authorities.last().unwrap());
             if i == 3 && j == 3 {
                 // Simulating only 1 directly verified certificate (Auth 3 Round 4) being stored.
-                cert.set_signature_verification_state(
-                    SignatureVerificationState::VerifiedDirectly(
-                        cert.aggregated_signature()
-                            .expect("Invalid Signature")
-                            .clone(),
-                    ),
-                );
+                cert.set_signature_verification_state(SignatureVerificationState::VerifiedDirectly(
+                    cert.aggregated_signature().expect("Invalid Signature").clone(),
+                ));
             } else {
                 // Simulating some indirectly verified certificates being stored.
-                cert.set_signature_verification_state(
-                    SignatureVerificationState::VerifiedIndirectly(
-                        cert.aggregated_signature()
-                            .expect("Invalid Signature")
-                            .clone(),
-                    ),
-                );
+                cert.set_signature_verification_state(SignatureVerificationState::VerifiedIndirectly(
+                    cert.aggregated_signature().expect("Invalid Signature").clone(),
+                ));
             }
-            certificate_store
-                .write(cert)
-                .expect("Writing certificate to store failed");
+            certificate_store.write(cert).expect("Writing certificate to store failed");
         }
     }
 
     // Each test case contains (lower bound round, skip rounds, max items, expected output).
     let test_cases = vec![
-        (
-            0,
-            vec![vec![], vec![], vec![], vec![]],
-            20,
-            vec![1, 1, 1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            0,
-            vec![vec![1u64], vec![1], vec![], vec![]],
-            20,
-            vec![1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            0,
-            vec![vec![], vec![], vec![1], vec![1]],
-            20,
-            vec![1, 1, 2, 2, 2, 3, 3, 4],
-        ),
-        (
-            1,
-            vec![vec![], vec![], vec![2], vec![2]],
-            4,
-            vec![2, 3, 3, 4],
-        ),
+        (0, vec![vec![], vec![], vec![], vec![]], 20, vec![1, 1, 1, 1, 2, 2, 2, 3, 3, 4]),
+        (0, vec![vec![1u64], vec![1], vec![], vec![]], 20, vec![1, 1, 2, 2, 2, 3, 3, 4]),
+        (0, vec![vec![], vec![], vec![1], vec![1]], 20, vec![1, 1, 2, 2, 2, 3, 3, 4]),
+        (1, vec![vec![], vec![], vec![2], vec![2]], 4, vec![2, 3, 3, 4]),
         (1, vec![vec![], vec![], vec![2], vec![2]], 2, vec![2, 3]),
-        (
-            0,
-            vec![vec![1], vec![1], vec![1, 2, 3], vec![1, 2, 3]],
-            2,
-            vec![2, 4],
-        ),
+        (0, vec![vec![1], vec![1], vec![1, 2, 3], vec![1, 2, 3]], 2, vec![2, 4]),
         (2, vec![vec![], vec![], vec![], vec![]], 3, vec![3, 3, 4]),
         (2, vec![vec![], vec![], vec![], vec![]], 2, vec![3, 3]),
         // Check that round 2 and 4 are fetched for the last authority, skipping round 3.
-        (
-            1,
-            vec![vec![], vec![], vec![3], vec![3]],
-            5,
-            vec![2, 2, 2, 4],
-        ),
+        (1, vec![vec![], vec![], vec![3], vec![3]], 5, vec![2, 2, 2, 4]),
     ];
     for (lower_bound_round, skip_rounds_vec, max_items, expected_rounds) in test_cases {
         let req = FetchCertificatesRequest::default()
@@ -1289,36 +1051,20 @@ async fn test_fetch_certificates_v2_handler() {
                 authorities
                     .clone()
                     .into_iter()
-                    .zip(
-                        skip_rounds_vec
-                            .into_iter()
-                            .map(|rounds| rounds.into_iter().collect()),
-                    )
+                    .zip(skip_rounds_vec.into_iter().map(|rounds| rounds.into_iter().collect()))
                     .collect(),
             )
             .set_max_items(max_items);
-        let resp = handler
-            .fetch_certificates(anemo::Request::new(req.clone()))
-            .await
-            .unwrap()
-            .into_body();
-        assert_eq!(
-            resp.certificates
-                .iter()
-                .map(|cert| cert.round())
-                .collect_vec(),
-            expected_rounds
-        );
+        let resp = handler.fetch_certificates(anemo::Request::new(req.clone())).await.unwrap().into_body();
+        assert_eq!(resp.certificates.iter().map(|cert| cert.round()).collect_vec(), expected_rounds);
     }
 }
 
 #[tokio::test]
 async fn test_request_vote_created_at_in_future() {
     telemetry_subscribers::init_for_testing();
-    let fixture = CommitteeFixture::builder()
-        .randomize_ports(true)
-        .committee_size(NonZeroUsize::new(4).unwrap())
-        .build();
+    let fixture =
+        CommitteeFixture::builder().randomize_ports(true).committee_size(NonZeroUsize::new(4).unwrap()).build();
     let worker_cache = fixture.worker_cache();
     let primary = fixture.authorities().next().unwrap();
     let id = primary.id();
@@ -1333,8 +1079,7 @@ async fn test_request_vote_created_at_in_future() {
     let (tx_certificate_fetcher, _rx_certificate_fetcher) = test_utils::test_channel!(1);
     let (tx_new_certificates, _rx_new_certificates) = test_utils::test_channel!(100);
     let (tx_parents, _rx_parents) = test_utils::test_channel!(100);
-    let (_tx_consensus_round_updates, rx_consensus_round_updates) =
-        watch::channel(ConsensusRound::new(1, 0));
+    let (_tx_consensus_round_updates, rx_consensus_round_updates) = watch::channel(ConsensusRound::new(1, 0));
     let (_tx_narwhal_round_updates, rx_narwhal_round_updates) = watch::channel(1u64);
 
     let synchronizer = Arc::new(Synchronizer::new(
@@ -1373,10 +1118,7 @@ async fn test_request_vote_created_at_in_future() {
         let header: Header = primary
             .header_builder(&latest_protocol_version(), &fixture.committee())
             .with_payload_batch(
-                test_utils::fixture_batch_with_transactions(
-                    10,
-                    &test_utils::latest_protocol_version(),
-                ),
+                test_utils::fixture_batch_with_transactions(10, &test_utils::latest_protocol_version()),
                 0,
                 0,
             )
@@ -1400,18 +1142,13 @@ async fn test_request_vote_created_at_in_future() {
     let worker_peer_id = anemo::PeerId(worker.keypair().public().0.to_bytes());
     let mut mock_server = MockPrimaryToWorker::new();
     // Always Synchronize successfully.
-    mock_server
-        .expect_synchronize()
-        .returning(|_| Ok(anemo::Response::new(())));
+    mock_server.expect_synchronize().returning(|_| Ok(anemo::Response::new(())));
 
     client.set_primary_to_worker_local_handler(worker_peer_id, Arc::new(mock_server));
 
     let _worker_network = worker.new_network(anemo::Router::new());
     let address = worker_address.to_anemo_address().unwrap();
-    network
-        .connect_with_peer_id(address, worker_peer_id)
-        .await
-        .unwrap();
+    network.connect_with_peer_id(address, worker_peer_id).await.unwrap();
 
     // Verify Handler generates a Vote.
 
@@ -1432,18 +1169,9 @@ async fn test_request_vote_created_at_in_future() {
         .unwrap()
         .into();
 
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request = anemo::Request::new(RequestVoteRequest { header: test_header.clone(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     // For such a future header we get back an error
     assert!(handler.request_vote(request).await.is_err());
@@ -1466,18 +1194,10 @@ async fn test_request_vote_created_at_in_future() {
         .build()
         .unwrap();
 
-    let mut request = anemo::Request::new(RequestVoteRequest {
-        header: test_header.clone().into(),
-        parents: Vec::new(),
-    });
-    assert!(request
-        .extensions_mut()
-        .insert(network.downgrade())
-        .is_none());
-    assert!(request
-        .extensions_mut()
-        .insert(anemo::PeerId(author.network_public_key().0.to_bytes()))
-        .is_none());
+    let mut request =
+        anemo::Request::new(RequestVoteRequest { header: test_header.clone().into(), parents: Vec::new() });
+    assert!(request.extensions_mut().insert(network.downgrade()).is_none());
+    assert!(request.extensions_mut().insert(anemo::PeerId(author.network_public_key().0.to_bytes())).is_none());
 
     let response = handler.request_vote(request).await.unwrap();
     assert!(response.body().vote.is_some());

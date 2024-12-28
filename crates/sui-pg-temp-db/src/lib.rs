@@ -1,11 +1,9 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::anyhow;
-use anyhow::Context;
-use anyhow::Result;
-use std::fs::OpenOptions;
+use anyhow::{anyhow, Context, Result};
 use std::{
+    fs::OpenOptions,
     path::{Path, PathBuf},
     process::{Child, Command},
     time::{Duration, Instant},
@@ -85,18 +83,9 @@ impl LocalDatabase {
     ///
     /// `port`: The port to listen for incoming connection on.
     pub fn new(dir: PathBuf, port: u16) -> Result<Self> {
-        let url = format!(
-            "postgres://postgres:postgrespw@localhost:{port}/{db_name}",
-            db_name = "postgres"
-        )
-        .parse()
-        .unwrap();
-        let mut db = Self {
-            dir,
-            port,
-            url,
-            process: None,
-        };
+        let url =
+            format!("postgres://postgres:postgrespw@localhost:{port}/{db_name}", db_name = "postgres").parse().unwrap();
+        let mut db = Self { dir, port, url, process: None };
         db.start()?;
         Ok(db)
     }
@@ -117,8 +106,7 @@ impl LocalDatabase {
     fn start(&mut self) -> Result<()> {
         if self.process.is_none() {
             self.process = Some(PostgresProcess::start(self.dir.clone(), self.port)?);
-            self.wait_till_ready()
-                .map_err(|e| anyhow!("unable to start postgres: {e:?}"))?;
+            self.wait_till_ready().map_err(|e| anyhow!("unable to start postgres: {e:?}"))?;
         }
 
         Ok(())
@@ -154,9 +142,7 @@ impl LocalDatabase {
             std::thread::sleep(Duration::from_millis(50));
         }
 
-        Err(HealthCheckError::Unknown(
-            "timeout reached when waiting for service to be ready".to_owned(),
-        ))
+        Err(HealthCheckError::Unknown("timeout reached when waiting for service to be ready".to_owned()))
     }
 }
 
@@ -280,10 +266,7 @@ fn initdb(dir: &Path) -> Result<()> {
     if output.status.success() {
         Ok(())
     } else {
-        Err(anyhow!(
-            "unable to initialize database: {:?}",
-            String::from_utf8(output.stderr)
-        ))
+        Err(anyhow!("unable to initialize database: {:?}", String::from_utf8(output.stderr)))
     }
 }
 
