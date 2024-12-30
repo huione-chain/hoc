@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/MystenLabs/Huione Chain/refs/heads/main/docs/logo.svg" alt="Logo" width="100" height="100">
+<img src="https://raw.githubusercontent.com/huione-chain/hoc/refs/heads/main/docs/logo.svg" alt="Logo" width="100" height="100">
 </p>
 
 # Huione Chain
