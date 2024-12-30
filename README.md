@@ -52,5 +52,4 @@ Use the following links to learn more about Huione Chain and the Huione Chain ec
 
  * Learn more about working with Huione Chain in the [Huione Chain Documentation](https://docs.huione.org/).
  * Join the Huione Chain community on [Huione Chain Discord](https://discord.gg/huione-chain).
- * Find out more about the Huione Chain ecosystem on the [Huione Chain Resources](https://huione.org/resources/) page.
- * Review information about Huione Chain governance, [decentralization](https://huione.org/decentralization), and [Developer Grants Program](https://Huione Chain.io/grants-hub) on the [Huione Chain Foundation](https://huione.org/) site.
+ * Find out more about the Huione Chain ecosystem on the [Huione Chain Resources](https://huione.org/ecosystem) page.
