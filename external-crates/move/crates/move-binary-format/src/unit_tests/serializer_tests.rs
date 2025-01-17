@@ -4,10 +4,21 @@
 use crate::{
     binary_config::{BinaryConfig, TableConfig},
     file_format::{
-        basic_test_module, basic_test_module_with_enum, Bytecode, CodeUnit, EnumDefInstantiation,
-        EnumDefInstantiationIndex, EnumDefinitionIndex, JumpTableInner, SignatureIndex,
-        VariantHandle, VariantHandleIndex, VariantInstantiationHandle,
-        VariantInstantiationHandleIndex, VariantJumpTable, VariantJumpTableIndex,
+        basic_test_module,
+        basic_test_module_with_enum,
+        Bytecode,
+        CodeUnit,
+        EnumDefInstantiation,
+        EnumDefInstantiationIndex,
+        EnumDefinitionIndex,
+        JumpTableInner,
+        SignatureIndex,
+        VariantHandle,
+        VariantHandleIndex,
+        VariantInstantiationHandle,
+        VariantInstantiationHandleIndex,
+        VariantJumpTable,
+        VariantJumpTableIndex,
     },
     file_format_common::*,
     CompiledModule,
@@ -63,14 +74,10 @@ fn enum_serialize_version_invalid() {
     assert!(module.serialize_with_version(VERSION_6, &mut v).is_ok());
 
     // Can be deserialized at version 6 and at max version as well.
-    CompiledModule::deserialize_with_config(&v, &BinaryConfig::with_extraneous_bytes_check(true))
-        .unwrap();
+    CompiledModule::deserialize_with_config(&v, &BinaryConfig::with_extraneous_bytes_check(true)).unwrap();
 
-    CompiledModule::deserialize_with_config(
-        &v,
-        &BinaryConfig::new(VERSION_6, VERSION_6, true, TableConfig::legacy()),
-    )
-    .unwrap();
+    CompiledModule::deserialize_with_config(&v, &BinaryConfig::new(VERSION_6, VERSION_6, true, TableConfig::legacy()))
+        .unwrap();
 }
 
 #[test]
@@ -79,10 +86,7 @@ fn enum_serialize_variant_handle_wrong_version() {
     let mut module = basic_test_module();
     let mut v = vec![];
     // Invalid variant handle
-    module.variant_handles.push(VariantHandle {
-        enum_def: EnumDefinitionIndex(0),
-        variant: 0,
-    });
+    module.variant_handles.push(VariantHandle { enum_def: EnumDefinitionIndex(0), variant: 0 });
     assert!(module.serialize_with_version(VERSION_6, &mut v).is_err());
 }
 
@@ -94,10 +98,7 @@ fn enum_serialize_variant_handle_instantiation_wrong_version() {
     // Invalid variant handle
     module
         .variant_instantiation_handles
-        .push(VariantInstantiationHandle {
-            enum_def: EnumDefInstantiationIndex(0),
-            variant: 0,
-        });
+        .push(VariantInstantiationHandle { enum_def: EnumDefInstantiationIndex(0), variant: 0 });
     assert!(module.serialize_with_version(VERSION_6, &mut v).is_err());
 }
 
@@ -107,10 +108,9 @@ fn enum_serialize_enum_def_instantiation_wrong_version() {
     let mut module = basic_test_module();
     let mut v = vec![];
     // Invalid variant handle
-    module.enum_def_instantiations.push(EnumDefInstantiation {
-        def: EnumDefinitionIndex(0),
-        type_parameters: SignatureIndex(0),
-    });
+    module
+        .enum_def_instantiations
+        .push(EnumDefInstantiation { def: EnumDefinitionIndex(0), type_parameters: SignatureIndex(0) });
     assert!(module.serialize_with_version(VERSION_6, &mut v).is_err());
 }
 
@@ -157,34 +157,24 @@ fn serialization_upgrades_version() {
     let mut module = basic_test_module();
     let mut m_bytes = vec![];
     module.version = VERSION_6;
-    assert!(module
-        .serialize_with_version(VERSION_MAX, &mut m_bytes)
-        .is_ok());
+    assert!(module.serialize_with_version(VERSION_MAX, &mut m_bytes).is_ok());
     let v_max_bytes = BinaryFlavor::encode_version(VERSION_MAX).to_le_bytes();
     let v_6_bytes = BinaryFlavor::encode_version(VERSION_6).to_le_bytes();
     assert_eq!(
-        m_bytes[BinaryConstants::MOVE_MAGIC_SIZE
-            ..BinaryConstants::MOVE_MAGIC_SIZE + v_max_bytes.len()],
+        m_bytes[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v_max_bytes.len()],
         v_max_bytes
     );
-    assert_ne!(
-        m_bytes
-            [BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v_6_bytes.len()],
-        v_6_bytes
-    );
+    assert_ne!(m_bytes[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v_6_bytes.len()], v_6_bytes);
 }
 
 #[test]
 fn serialization_upgrades_version_no_override() {
     let module = basic_test_module();
     let mut m_bytes = vec![];
-    assert!(module
-        .serialize_with_version(module.version, &mut m_bytes)
-        .is_ok());
+    assert!(module.serialize_with_version(module.version, &mut m_bytes).is_ok());
     let v_max_bytes = BinaryFlavor::encode_version(VERSION_MAX).to_le_bytes();
     assert_eq!(
-        m_bytes[BinaryConstants::MOVE_MAGIC_SIZE
-            ..BinaryConstants::MOVE_MAGIC_SIZE + v_max_bytes.len()],
+        m_bytes[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v_max_bytes.len()],
         v_max_bytes
     );
 }
@@ -198,10 +188,7 @@ fn serialize_v6_has_no_flavor() {
     let v6_flavor_bytes = BinaryFlavor::encode_version(VERSION_6).to_le_bytes();
     // assert that no flavoring is added to v6
     assert_eq!(v6_bytes, v6_flavor_bytes);
-    assert_eq!(
-        bin[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v6_bytes.len()],
-        v6_bytes
-    );
+    assert_eq!(bin[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v6_bytes.len()], v6_bytes);
 }
 
 #[test]
@@ -212,13 +199,11 @@ fn serialize_v7_has_flavor() {
     let v7_flavored_bytes = BinaryFlavor::encode_version(VERSION_7).to_le_bytes();
     let v7_unflavored_bytes = VERSION_7.to_le_bytes();
     assert_eq!(
-        bin[BinaryConstants::MOVE_MAGIC_SIZE
-            ..BinaryConstants::MOVE_MAGIC_SIZE + v7_flavored_bytes.len()],
+        bin[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v7_flavored_bytes.len()],
         v7_flavored_bytes
     );
     assert_ne!(
-        bin[BinaryConstants::MOVE_MAGIC_SIZE
-            ..BinaryConstants::MOVE_MAGIC_SIZE + v7_unflavored_bytes.len()],
+        bin[BinaryConstants::MOVE_MAGIC_SIZE..BinaryConstants::MOVE_MAGIC_SIZE + v7_unflavored_bytes.len()],
         v7_unflavored_bytes
     );
 }

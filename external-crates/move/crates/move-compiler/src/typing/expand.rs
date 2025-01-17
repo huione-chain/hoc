@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    debug_display, diag,
+    debug_display,
+    diag,
     editions::FeatureGate,
     expansion::ast::Value_,
     ice,
@@ -65,10 +66,7 @@ pub fn type_(context: &mut Context, ty: &mut Type) {
             debug_print!(context.debug.type_elaboration, ("resolved" => replacement));
             let replacement = match replacement {
                 sp!(loc, Var(_)) => {
-                    let diag = ice!((
-                        ty.loc,
-                        "ICE unfold_type_base failed to expand type inf. var"
-                    ));
+                    let diag = ice!((ty.loc, "ICE unfold_type_base failed to expand type inf. var"));
                     context.add_diag(diag);
                     sp(loc, UnresolvedError)
                 }
@@ -90,10 +88,7 @@ pub fn type_(context: &mut Context, ty: &mut Type) {
         }
         Apply(Some(_), sp!(_, TypeName_::Builtin(_)), tys) => types(context, tys),
         aty @ Apply(Some(_), _, _) => {
-            let diag = ice!((
-                ty.loc,
-                format!("ICE expanding pre-expanded type {}", debug_display!(aty))
-            ));
+            let diag = ice!((ty.loc, format!("ICE expanding pre-expanded type {}", debug_display!(aty))));
             context.add_diag(diag);
             *ty = sp(ty.loc, UnresolvedError)
         }
@@ -173,9 +168,7 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
             }
             e.ty = sp(e.ty.loc, Type_::Anything)
         }
-        E::Loop {
-            has_break: false, ..
-        } => {
+        E::Loop { has_break: false, .. } => {
             let t = e.ty.clone();
             match core::unfold_type(&context.subst, t) {
                 sp!(_, Type_::Anything) => (),
@@ -193,11 +186,8 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
             let from_user = false;
             let var = *v;
             let abs = core::infer_abilities(&context.modules, &context.subst, e.ty.clone());
-            e.exp.value = if abs.has_ability_(Ability_::Copy) {
-                E::Copy { from_user, var }
-            } else {
-                E::Move { from_user, var }
-            }
+            e.exp.value =
+                if abs.has_ability_(Ability_::Copy) { E::Copy { from_user, var } } else { E::Move { from_user, var } }
         }
         E::Value(sp!(vloc, Value_::InferredNum(v))) => {
             if let Some(value) = inferred_numerical_value(context, e.exp.loc, *v, &e.ty) {
@@ -241,10 +231,7 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
             }
         }
         E::VariantMatch(subject, _, arms) => {
-            context.add_diag(ice!((
-                e.exp.loc,
-                "shouldn't find variant match before match compilation"
-            )));
+            context.add_diag(ice!((e.exp.loc, "shouldn't find variant match before match compilation")));
             exp(context, subject);
             for (_, rhs) in arms {
                 exp(context, rhs);
@@ -302,12 +289,7 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
     }
 }
 
-fn inferred_numerical_value(
-    context: &mut Context,
-    eloc: Loc,
-    value: U256,
-    ty: &Type,
-) -> Option<Value_> {
+fn inferred_numerical_value(context: &mut Context, eloc: Loc, value: U256, ty: &Type) -> Option<Value_> {
     use BuiltinTypeName_ as BT;
     let bt = match ty.value.builtin_name() {
         Some(sp!(_, bt)) if bt.is_numeric() => bt,
@@ -329,10 +311,7 @@ fn inferred_numerical_value(
         BT::Address | BT::Signer | BT::Vector | BT::Bool => unreachable!(),
     };
     if value > max {
-        let msg = format!(
-            "Expected a literal of type '{}', but the value is too large.",
-            bt
-        );
+        let msg = format!("Expected a literal of type '{}', but the value is too large.", bt);
         let fix_bt = if value > u128_max {
             BT::U256
         } else if value > u64_max {
@@ -350,12 +329,8 @@ fn inferred_numerical_value(
             "Annotating the literal might help inference: '{value}{type}'",
             type=fix_bt,
         );
-        context.add_diag(diag!(
-            TypeSafety::InvalidNum,
-            (eloc, "Invalid numerical literal"),
-            (ty.loc, msg),
-            (eloc, fix),
-        ));
+        context
+            .add_diag(diag!(TypeSafety::InvalidNum, (eloc, "Invalid numerical literal"), (ty.loc, msg), (eloc, fix),));
         None
     } else {
         let value_ = match bt {
@@ -436,11 +411,7 @@ fn lvalue(context: &mut Context, b: &mut T::LValue) {
     use T::LValue_ as L;
     match &mut b.value {
         L::Ignore => (),
-        L::Var {
-            ty,
-            unused_binding: true,
-            ..
-        } => {
+        L::Var { ty, unused_binding: true, .. } => {
             // silence type inference error for unused bindings
             if let Type_::Var(tvar) = &ty.value {
                 let ty_tvar = sp(ty.loc, Type_::Var(*tvar));

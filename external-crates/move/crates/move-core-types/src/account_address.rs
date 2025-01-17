@@ -16,21 +16,18 @@ use crate::gas_algebra::AbstractMemorySize;
 pub struct AccountAddress([u8; AccountAddress::LENGTH]);
 
 impl AccountAddress {
-    pub const fn new(address: [u8; Self::LENGTH]) -> Self {
-        Self(address)
-    }
-
     /// The number of bytes in an address.
     pub const LENGTH: usize = 32;
-
+    /// Hex address: 0x1
+    pub const ONE: Self = Self::get_hex_address_one();
+    /// Hex address: 0x2
+    pub const TWO: Self = Self::get_hex_address_two();
     /// Hex address: 0x0
     pub const ZERO: Self = Self([0u8; Self::LENGTH]);
 
-    /// Hex address: 0x1
-    pub const ONE: Self = Self::get_hex_address_one();
-
-    /// Hex address: 0x2
-    pub const TWO: Self = Self::get_hex_address_two();
+    pub const fn new(address: [u8; Self::LENGTH]) -> Self {
+        Self(address)
+    }
 
     pub const fn from_suffix(suffix: u16) -> AccountAddress {
         let mut addr = [0u8; AccountAddress::LENGTH];
@@ -84,10 +81,7 @@ impl AccountAddress {
                 }
             }
         }
-        HexDisplay {
-            data: &self.0,
-            with_prefix,
-        }
+        HexDisplay { data: &self.0, with_prefix }
     }
 
     pub fn short_str_lossless(&self) -> String {
@@ -132,9 +126,7 @@ impl AccountAddress {
     }
 
     pub fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, AccountAddressParseError> {
-        <[u8; Self::LENGTH]>::from_hex(hex)
-            .map_err(|_| AccountAddressParseError)
-            .map(Self)
+        <[u8; Self::LENGTH]>::from_hex(hex).map_err(|_| AccountAddressParseError).map(Self)
     }
 
     pub fn to_hex(&self) -> String {
@@ -142,9 +134,7 @@ impl AccountAddress {
     }
 
     pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self, AccountAddressParseError> {
-        <[u8; Self::LENGTH]>::try_from(bytes.as_ref())
-            .map_err(|_| AccountAddressParseError)
-            .map(Self)
+        <[u8; Self::LENGTH]>::try_from(bytes.as_ref()).map_err(|_| AccountAddressParseError).map(Self)
     }
 
     /// TODO (ade): use macro to enfornce determinism
@@ -323,11 +313,7 @@ pub struct AccountAddressParseError;
 
 impl fmt::Display for AccountAddressParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "Unable to parse AccountAddress (must be hex string of length {})",
-            AccountAddress::LENGTH
-        )
+        write!(f, "Unable to parse AccountAddress (must be hex string of length {})", AccountAddress::LENGTH)
     }
 }
 
@@ -362,23 +348,16 @@ mod tests {
 
     #[test]
     fn test_short_str_lossless() {
-        let address = AccountAddress::from_hex(
-            "1234567890abcdef1234567890abcdef00c0f1f95c5b1c5f0eda533eff269000",
-        )
-        .unwrap();
+        let address =
+            AccountAddress::from_hex("1234567890abcdef1234567890abcdef00c0f1f95c5b1c5f0eda533eff269000").unwrap();
 
-        assert_eq!(
-            address.short_str_lossless(),
-            "1234567890abcdef1234567890abcdef00c0f1f95c5b1c5f0eda533eff269000",
-        );
+        assert_eq!(address.short_str_lossless(), "1234567890abcdef1234567890abcdef00c0f1f95c5b1c5f0eda533eff269000",);
     }
 
     #[test]
     fn test_short_str_lossless_zero() {
-        let address = AccountAddress::from_hex(
-            "0000000000000000000000000000000000000000000000000000000000000000",
-        )
-        .unwrap();
+        let address =
+            AccountAddress::from_hex("0000000000000000000000000000000000000000000000000000000000000000").unwrap();
 
         assert_eq!(address.short_str_lossless(), "0");
     }
@@ -416,10 +395,8 @@ mod tests {
         // Missing '0x'
         AccountAddress::from_hex_literal(hex).unwrap_err();
         // Too long
-        AccountAddress::from_hex_literal(
-            "0x10000000000000000000000000000000000000000000000000000000000000001",
-        )
-        .unwrap_err();
+        AccountAddress::from_hex_literal("0x10000000000000000000000000000000000000000000000000000000000000001")
+            .unwrap_err();
     }
 
     #[test]
@@ -438,8 +415,7 @@ mod tests {
     fn test_deserialize_from_json_value() {
         let address = AccountAddress::random();
         let json_value = serde_json::to_value(address).expect("serde_json::to_value fail.");
-        let address2: AccountAddress =
-            serde_json::from_value(json_value).expect("serde_json::from_value fail.");
+        let address2: AccountAddress = serde_json::from_value(json_value).expect("serde_json::from_value fail.");
         assert_eq!(address, address2)
     }
 

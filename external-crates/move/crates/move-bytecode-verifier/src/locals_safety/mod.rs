@@ -38,9 +38,7 @@ fn execute_inner(
     meter.add(Scope::Function, STEP_BASE_COST)?;
     match bytecode {
         Bytecode::StLoc(idx) => match state.local_state(*idx) {
-            LocalState::MaybeAvailable | LocalState::Available
-                if !state.local_abilities(*idx).has_drop() =>
-            {
+            LocalState::MaybeAvailable | LocalState::Available if !state.local_abilities(*idx).has_drop() => {
                 return Err(state.error(StatusCode::STLOC_UNSAFE_TO_DESTROY_ERROR, offset))
             }
             _ => state.set_available(*idx),
@@ -60,14 +58,12 @@ fn execute_inner(
             LocalState::Available => (),
         },
 
-        Bytecode::MutBorrowLoc(idx) | Bytecode::ImmBorrowLoc(idx) => {
-            match state.local_state(*idx) {
-                LocalState::Unavailable | LocalState::MaybeAvailable => {
-                    return Err(state.error(StatusCode::BORROWLOC_UNAVAILABLE_ERROR, offset))
-                }
-                LocalState::Available => (),
+        Bytecode::MutBorrowLoc(idx) | Bytecode::ImmBorrowLoc(idx) => match state.local_state(*idx) {
+            LocalState::Unavailable | LocalState::MaybeAvailable => {
+                return Err(state.error(StatusCode::BORROWLOC_UNAVAILABLE_ERROR, offset))
             }
-        }
+            LocalState::Available => (),
+        },
 
         Bytecode::Ret => {
             let local_states = state.local_states();
@@ -76,12 +72,8 @@ fn execute_inner(
             assert!(local_states.len() == all_local_abilities.len());
             for (local_state, local_abilities) in local_states.iter().zip(all_local_abilities) {
                 match local_state {
-                    LocalState::MaybeAvailable | LocalState::Available
-                        if !local_abilities.has_drop() =>
-                    {
-                        return Err(
-                            state.error(StatusCode::UNSAFE_RET_UNUSED_VALUES_WITHOUT_DROP, offset)
-                        )
+                    LocalState::MaybeAvailable | LocalState::Available if !local_abilities.has_drop() => {
+                        return Err(state.error(StatusCode::UNSAFE_RET_UNUSED_VALUES_WITHOUT_DROP, offset))
                     }
                     _ => (),
                 }
@@ -175,8 +167,8 @@ fn execute_inner(
 struct LocalsSafetyAnalysis();
 
 impl TransferFunctions for LocalsSafetyAnalysis {
-    type State = AbstractState;
     type Error = PartialVMError;
+    type State = AbstractState;
 
     fn execute(
         &mut self,

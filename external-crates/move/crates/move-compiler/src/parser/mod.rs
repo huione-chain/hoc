@@ -13,10 +13,7 @@ pub(crate) mod verification_attribute_filter;
 
 use crate::{
     parser::{self, ast::PackageDefinition, syntax::parse_file_string},
-    shared::{
-        files::MappedFiles, CompilationEnv, IndexedVfsPackagePath, NamedAddressMapIndex,
-        NamedAddressMaps,
-    },
+    shared::{files::MappedFiles, CompilationEnv, IndexedVfsPackagePath, NamedAddressMapIndex, NamedAddressMaps},
 };
 use anyhow::anyhow;
 use comments::*;
@@ -64,41 +61,17 @@ pub(crate) fn parse_program(
         .map(|p| (false, p))
         .chain(deps.into_par_iter().map(|p| (true, p)))
         .map(|(is_dep, package_path)| {
-            let IndexedVfsPackagePath {
-                package,
-                path,
-                named_address_map,
-            } = package_path;
+            let IndexedVfsPackagePath { package, path, named_address_map } = package_path;
             let file = parse_file(&path, compilation_env, package)?;
-            Ok(ParsedPackageFile {
-                is_dep,
-                package,
-                named_address_map,
-                file,
-            })
+            Ok(ParsedPackageFile { is_dep, package, named_address_map, file })
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
     for parsed_package_file in parsed {
-        let ParsedPackageFile {
-            is_dep,
-            package,
-            named_address_map,
-            file,
-        } = parsed_package_file;
-        let ParsedFile {
-            fname,
-            defs,
-            comments,
-            hash,
-            text,
-        } = file;
+        let ParsedPackageFile { is_dep, package, named_address_map, file } = parsed_package_file;
+        let ParsedFile { fname, defs, comments, hash, text } = file;
         files.add(hash, fname, text);
         source_comments.insert(hash, comments);
-        let defs = defs.into_iter().map(|def| PackageDefinition {
-            package,
-            named_address_map,
-            def,
-        });
+        let defs = defs.into_iter().map(|def| PackageDefinition { package, named_address_map, def });
         if is_dep {
             lib_definitions.extend(defs);
         } else {
@@ -106,11 +79,7 @@ pub(crate) fn parse_program(
         }
     }
 
-    let pprog = parser::ast::Program {
-        named_address_maps,
-        source_definitions,
-        lib_definitions,
-    };
+    let pprog = parser::ast::Program { named_address_maps, source_definitions, lib_definitions };
     Ok((files, pprog, source_comments))
 }
 
@@ -119,14 +88,8 @@ fn ensure_targets_deps_dont_intersect(
     targets: &[IndexedVfsPackagePath],
     deps: &mut Vec<IndexedVfsPackagePath>,
 ) -> anyhow::Result<()> {
-    let target_set = targets
-        .iter()
-        .map(|p| p.path.as_str().to_owned())
-        .collect::<BTreeSet<_>>();
-    let dep_set = deps
-        .iter()
-        .map(|p| p.path.as_str().to_owned())
-        .collect::<BTreeSet<_>>();
+    let target_set = targets.iter().map(|p| p.path.as_str().to_owned()).collect::<BTreeSet<_>>();
+    let dep_set = deps.iter().map(|p| p.path.as_str().to_owned()).collect::<BTreeSet<_>>();
     let intersection = target_set.intersection(&dep_set).collect::<Vec<_>>();
     if intersection.is_empty() {
         return Ok(());
@@ -135,22 +98,11 @@ fn ensure_targets_deps_dont_intersect(
         deps.retain(|p| !intersection.contains(&&p.path.as_str().to_owned()));
         return Ok(());
     }
-    let all_files = intersection
-        .into_iter()
-        .map(|s| format!("    {}", s))
-        .collect::<Vec<_>>()
-        .join("\n");
-    Err(anyhow!(
-        "The following files were marked as both targets and dependencies:\n{}",
-        all_files
-    ))
+    let all_files = intersection.into_iter().map(|s| format!("    {}", s)).collect::<Vec<_>>().join("\n");
+    Err(anyhow!("The following files were marked as both targets and dependencies:\n{}", all_files))
 }
 
-fn parse_file(
-    path: &VfsPath,
-    compilation_env: &CompilationEnv,
-    package: Option<Symbol>,
-) -> anyhow::Result<ParsedFile> {
+fn parse_file(path: &VfsPath, compilation_env: &CompilationEnv, package: Option<Symbol>) -> anyhow::Result<ParsedFile> {
     let mut source_buffer = String::new();
     path.open_file()?.read_to_string(&mut source_buffer)?;
     let file_hash = FileHash::new(&source_buffer);
@@ -167,19 +119,12 @@ fn parse_file(
             text: source_str,
         });
     }
-    let (defs, comments) = match parse_file_string(compilation_env, file_hash, &source_str, package)
-    {
+    let (defs, comments) = match parse_file_string(compilation_env, file_hash, &source_str, package) {
         Ok(defs_and_comments) => defs_and_comments,
         Err(ds) => {
             reporter.add_diags(ds);
             (vec![], MatchedFileCommentMap::new())
         }
     };
-    Ok(ParsedFile {
-        fname,
-        defs,
-        comments,
-        hash: file_hash,
-        text: source_str,
-    })
+    Ok(ParsedFile { fname, defs, comments, hash: file_hash, text: source_str })
 }

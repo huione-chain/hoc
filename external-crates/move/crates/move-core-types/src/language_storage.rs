@@ -106,10 +106,7 @@ impl TypeTag {
             }
         }
 
-        CanonicalDisplay {
-            data: self,
-            with_prefix,
-        }
+        CanonicalDisplay { data: self, with_prefix }
     }
 
     /// Return the abstract size we use for gas metering
@@ -161,17 +158,13 @@ impl StructTag {
     /// Returns true if this is a `StructTag` for an `std::ascii::String` struct defined in the
     /// standard library at address `move_std_addr`.
     pub fn is_ascii_string(&self, move_std_addr: &AccountAddress) -> bool {
-        self.address == *move_std_addr
-            && self.module.as_str().eq("ascii")
-            && self.name.as_str().eq("String")
+        self.address == *move_std_addr && self.module.as_str().eq("ascii") && self.name.as_str().eq("String")
     }
 
     /// Returns true if this is a `StructTag` for an `std::string::String` struct defined in the
     /// standard library at address `move_std_addr`.
     pub fn is_std_string(&self, move_std_addr: &AccountAddress) -> bool {
-        self.address == *move_std_addr
-            && self.module.as_str().eq("string")
-            && self.name.as_str().eq("String")
+        self.address == *move_std_addr && self.module.as_str().eq("string") && self.name.as_str().eq("String")
     }
 
     pub fn module_id(&self) -> ModuleId {
@@ -225,10 +218,7 @@ impl StructTag {
             }
         }
 
-        CanonicalDisplay {
-            data: self,
-            with_prefix,
-        }
+        CanonicalDisplay { data: self, with_prefix }
     }
 
     /// Return the abstract size we use for gas metering
@@ -242,9 +232,7 @@ impl StructTag {
             + self
                 .type_params
                 .iter()
-                .fold(AbstractMemorySize::new(0), |accum, val| {
-                    accum + val.abstract_size_for_gas_metering()
-                })
+                .fold(AbstractMemorySize::new(0), |accum, val| accum + val.abstract_size_for_gas_metering())
     }
 }
 
@@ -305,19 +293,11 @@ impl ModuleId {
 
         impl<'a> Display for IdDisplay<'a> {
             fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{}::{}",
-                    self.id.address.to_canonical_display(self.with_prefix),
-                    self.id.name,
-                )
+                write!(f, "{}::{}", self.id.address.to_canonical_display(self.with_prefix), self.id.name,)
             }
         }
 
-        IdDisplay {
-            id: self,
-            with_prefix,
-        }
+        IdDisplay { id: self, with_prefix }
     }
 }
 
@@ -329,6 +309,7 @@ impl Display for ModuleId {
 
 impl FromStr for ModuleId {
     type Err = anyhow::Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ParsedModuleId::parse(s)?.into_module_id(&|_| None)
     }
@@ -342,13 +323,7 @@ impl ModuleId {
 
 impl Display for StructTag {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "0x{}::{}::{}",
-            self.address.short_str_lossless(),
-            self.module,
-            self.name
-        )?;
+        write!(f, "0x{}::{}::{}", self.address.short_str_lossless(), self.module, self.name)?;
         if let Some(first_ty) = self.type_params.first() {
             write!(f, "<")?;
             write!(f, "{}", first_ty)?;
@@ -388,10 +363,7 @@ impl From<StructTag> for TypeTag {
 #[cfg(test)]
 mod tests {
     use super::{ModuleId, TypeTag};
-    use crate::{
-        account_address::AccountAddress, ident_str, identifier::Identifier,
-        language_storage::StructTag,
-    };
+    use crate::{account_address::AccountAddress, ident_str, identifier::Identifier, language_storage::StructTag};
     use std::mem;
 
     #[test]
@@ -412,10 +384,7 @@ mod tests {
     fn test_module_id_display() {
         let id = ModuleId::new(AccountAddress::ONE, ident_str!("foo").to_owned());
 
-        assert_eq!(
-            format!("{id}"),
-            "0000000000000000000000000000000000000000000000000000000000000001::foo",
-        );
+        assert_eq!(format!("{id}"), "0000000000000000000000000000000000000000000000000000000000000001::foo",);
 
         assert_eq!(
             format!("{}", id.to_canonical_display(/* with_prefix */ false)),

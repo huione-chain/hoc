@@ -7,12 +7,17 @@ use self::known_attributes::AttributePosition;
 use crate::{
     expansion::ast::{AbilitySet, Attributes, ModuleIdent, TargetKind, Visibility},
     naming::ast::{
-        self as N, DatatypeTypeParameter, EnumDefinition, FunctionSignature, ResolvedUseFuns,
-        StructDefinition, SyntaxMethods, Type,
+        self as N,
+        DatatypeTypeParameter,
+        EnumDefinition,
+        FunctionSignature,
+        ResolvedUseFuns,
+        StructDefinition,
+        SyntaxMethods,
+        Type,
     },
     parser::ast::{ConstantName, DatatypeName, Field, FunctionName, VariantName},
-    shared::unique_map::UniqueMap,
-    shared::*,
+    shared::{unique_map::UniqueMap, *},
     sui_mode::info::SuiInfo,
     typing::ast::{self as T},
     FullyCompiledProgram,
@@ -118,10 +123,7 @@ macro_rules! program_info {
                 }
             }
         }
-        ProgramInfo {
-            modules,
-            sui_flavor_info: None,
-        }
+        ProgramInfo { modules, sui_flavor_info: None }
     }};
 }
 
@@ -141,10 +143,7 @@ impl TypingProgramInfo {
         let mut info = program_info!(pcl, prog, typing, module_use_funs);
         // TODO we should really have an idea of root package flavor here
         // but this feels roughly equivalent
-        if env
-            .package_configs()
-            .any(|(_, config)| config.flavor == Flavor::Sui)
-        {
+        if env.package_configs().any(|(_, config)| config.flavor == Flavor::Sui) {
             let sui_flavor_info = SuiInfo::new(pre_compiled_lib, modules, &info);
             info.sui_flavor_info = Some(sui_flavor_info);
         };
@@ -168,17 +167,10 @@ impl NamingProgramInfo {
     }
 
     pub fn take_use_funs(self) -> BTreeMap<ModuleIdent, ResolvedUseFuns> {
-        self.modules
-            .into_iter()
-            .map(|(mident, minfo)| (mident, minfo.use_funs))
-            .collect()
+        self.modules.into_iter().map(|(mident, minfo)| (mident, minfo.use_funs)).collect()
     }
 
-    pub fn set_module_syntax_methods(
-        &mut self,
-        mident: ModuleIdent,
-        syntax_methods: SyntaxMethods,
-    ) {
+    pub fn set_module_syntax_methods(&mut self, mident: ModuleIdent, syntax_methods: SyntaxMethods) {
         let syntax_methods_ref = &mut self.modules.get_mut(&mident).unwrap().syntax_methods;
         *syntax_methods_ref = syntax_methods;
     }
@@ -186,8 +178,7 @@ impl NamingProgramInfo {
 
 impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
     pub fn module(&self, m: &ModuleIdent) -> &ModuleInfo {
-        self.module_opt(m)
-            .expect("ICE should have failed in naming")
+        self.module_opt(m).expect("ICE should have failed in naming")
     }
 
     pub fn module_opt(&self, m: &ModuleIdent) -> Option<&ModuleInfo> {
@@ -210,8 +201,7 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
     }
 
     pub fn function_info(&self, m: &ModuleIdent, n: &FunctionName) -> &FunctionInfo {
-        self.function_info_opt(m, n)
-            .expect("ICE should have failed in naming")
+        self.function_info_opt(m, n).expect("ICE should have failed in naming")
     }
 
     pub fn function_info_opt(&self, m: &ModuleIdent, n: &FunctionName) -> Option<&FunctionInfo> {
@@ -219,8 +209,7 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
     }
 
     pub fn constant_info(&self, m: &ModuleIdent, n: &ConstantName) -> &ConstantInfo {
-        self.constant_info_opt(m, n)
-            .expect("ICE should have failed in naming")
+        self.constant_info_opt(m, n).expect("ICE should have failed in naming")
     }
 
     pub fn constant_info_opt(&self, m: &ModuleIdent, n: &ConstantName) -> Option<&ConstantInfo> {
@@ -250,15 +239,10 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
     }
 
     pub fn struct_definition(&self, m: &ModuleIdent, n: &DatatypeName) -> &StructDefinition {
-        self.struct_definition_opt(m, n)
-            .expect("ICE should have failed in naming")
+        self.struct_definition_opt(m, n).expect("ICE should have failed in naming")
     }
 
-    pub fn struct_definition_opt(
-        &self,
-        m: &ModuleIdent,
-        n: &DatatypeName,
-    ) -> Option<&StructDefinition> {
+    pub fn struct_definition_opt(&self, m: &ModuleIdent, n: &DatatypeName) -> Option<&StructDefinition> {
         self.module_opt(m)?.structs.get(n)
     }
 
@@ -272,32 +256,18 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
 
     pub fn struct_declared_loc_(&self, m: &ModuleIdent, n: &Symbol) -> Loc {
         let minfo = self.module(m);
-        *minfo
-            .structs
-            .get_loc_(n)
-            .expect("ICE should have failed in naming")
+        *minfo.structs.get_loc_(n).expect("ICE should have failed in naming")
     }
 
-    pub fn struct_type_parameters(
-        &self,
-        m: &ModuleIdent,
-        n: &DatatypeName,
-    ) -> &Vec<DatatypeTypeParameter> {
+    pub fn struct_type_parameters(&self, m: &ModuleIdent, n: &DatatypeName) -> &Vec<DatatypeTypeParameter> {
         &self.struct_definition(m, n).type_parameters
     }
 
     pub fn is_struct(&self, module: &ModuleIdent, datatype_name: &DatatypeName) -> bool {
-        matches!(
-            self.datatype_kind(module, datatype_name),
-            DatatypeKind::Struct
-        )
+        matches!(self.datatype_kind(module, datatype_name), DatatypeKind::Struct)
     }
 
-    pub fn struct_fields(
-        &self,
-        module: &ModuleIdent,
-        struct_name: &DatatypeName,
-    ) -> Option<UniqueMap<Field, usize>> {
+    pub fn struct_fields(&self, module: &ModuleIdent, struct_name: &DatatypeName) -> Option<UniqueMap<Field, usize>> {
         let fields = match &self.struct_definition(module, struct_name).fields {
             N::StructFields::Defined(_, fields) => Some(fields.ref_map(|_, (ndx, _)| *ndx)),
             N::StructFields::Native(_) => None,
@@ -314,15 +284,10 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
     }
 
     pub fn enum_definition(&self, m: &ModuleIdent, n: &DatatypeName) -> &EnumDefinition {
-        self.enum_definition_opt(m, n)
-            .expect("ICE should have failed in naming")
+        self.enum_definition_opt(m, n).expect("ICE should have failed in naming")
     }
 
-    pub fn enum_definition_opt(
-        &self,
-        m: &ModuleIdent,
-        n: &DatatypeName,
-    ) -> Option<&EnumDefinition> {
+    pub fn enum_definition_opt(&self, m: &ModuleIdent, n: &DatatypeName) -> Option<&EnumDefinition> {
         self.module_opt(m)?.enums.get(n)
     }
 
@@ -336,26 +301,15 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
 
     pub fn enum_declared_loc_(&self, m: &ModuleIdent, n: &Symbol) -> Loc {
         let minfo = self.module(m);
-        *minfo
-            .enums
-            .get_loc_(n)
-            .expect("ICE should have failed in naming")
+        *minfo.enums.get_loc_(n).expect("ICE should have failed in naming")
     }
 
-    pub fn enum_type_parameters(
-        &self,
-        m: &ModuleIdent,
-        n: &DatatypeName,
-    ) -> &Vec<DatatypeTypeParameter> {
+    pub fn enum_type_parameters(&self, m: &ModuleIdent, n: &DatatypeName) -> &Vec<DatatypeTypeParameter> {
         &self.enum_definition(m, n).type_parameters
     }
 
     /// Returns the enum variant names in sorted order.
-    pub fn enum_variants(
-        &self,
-        module: &ModuleIdent,
-        enum_name: &DatatypeName,
-    ) -> Vec<VariantName> {
+    pub fn enum_variants(&self, module: &ModuleIdent, enum_name: &DatatypeName) -> Vec<VariantName> {
         let mut names = self
             .enum_definition(module, enum_name)
             .variants
@@ -373,11 +327,7 @@ impl<const AFTER_TYPING: bool> ProgramInfo<AFTER_TYPING> {
         enum_name: &DatatypeName,
         variant_name: &VariantName,
     ) -> Option<UniqueMap<Field, usize>> {
-        let Some(variant) = self
-            .enum_definition(module, enum_name)
-            .variants
-            .get(variant_name)
-        else {
+        let Some(variant) = self.enum_definition(module, enum_name).variants.get(variant_name) else {
             return None;
         };
         match &variant.fields {

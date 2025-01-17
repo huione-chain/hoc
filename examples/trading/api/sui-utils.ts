@@ -14,7 +14,7 @@ export type Network = 'mainnet' | 'testnet' | 'devnet' | 'localnet';
 
 export const ACTIVE_NETWORK = (process.env.NETWORK as Network) || 'testnet';
 
-export const SUI_BIN = `sui`;
+export const SUI_BIN = `hoc`;
 
 export const getActiveAddress = () => {
 	return execSync(`${SUI_BIN} client active-address`, { encoding: 'utf8' }).trim();
@@ -25,7 +25,7 @@ export const getSigner = () => {
 	const sender = getActiveAddress();
 
 	const keystore = JSON.parse(
-		readFileSync(path.join(homedir(), '.sui', 'sui_config', 'sui.keystore'), 'utf8'),
+		readFileSync(path.join(homedir(), '.hoc', 'hoc_config', 'hoc.keystore'), 'utf8'),
 	);
 
 	for (const priv of keystore) {

@@ -59,6 +59,7 @@ impl From<TransactionArgument> for MoveValue {
 
 impl TryFrom<MoveValue> for TransactionArgument {
     type Error = Error;
+
     fn try_from(val: MoveValue) -> Result<Self> {
         Ok(match val {
             MoveValue::U8(i) => TransactionArgument::U8(i),
@@ -90,11 +91,7 @@ impl TryFrom<MoveValue> for TransactionArgument {
 /// Convert the transaction arguments into Move values.
 pub fn convert_txn_args(args: &[TransactionArgument]) -> Vec<Vec<u8>> {
     args.iter()
-        .map(|arg| {
-            MoveValue::from(arg.clone())
-                .simple_serialize()
-                .expect("transaction arguments must serialize")
-        })
+        .map(|arg| MoveValue::from(arg.clone()).simple_serialize().expect("transaction arguments must serialize"))
         .collect()
 }
 
@@ -104,19 +101,11 @@ pub struct VecBytes(Vec<serde_bytes::ByteBuf>);
 
 impl VecBytes {
     pub fn from(vec_bytes: Vec<Vec<u8>>) -> Self {
-        VecBytes(
-            vec_bytes
-                .into_iter()
-                .map(serde_bytes::ByteBuf::from)
-                .collect(),
-        )
+        VecBytes(vec_bytes.into_iter().map(serde_bytes::ByteBuf::from).collect())
     }
 
     pub fn into_vec(self) -> Vec<Vec<u8>> {
-        self.0
-            .into_iter()
-            .map(|byte_buf| byte_buf.into_vec())
-            .collect()
+        self.0.into_iter().map(|byte_buf| byte_buf.into_vec()).collect()
     }
 }
 
@@ -125,8 +114,10 @@ mod tests {
     use std::convert::{From, TryInto};
 
     use crate::{
-        account_address::AccountAddress, runtime_value::MoveValue,
-        transaction_argument::TransactionArgument, u256::U256,
+        account_address::AccountAddress,
+        runtime_value::MoveValue,
+        transaction_argument::TransactionArgument,
+        u256::U256,
     };
 
     #[test]

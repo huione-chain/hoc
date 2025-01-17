@@ -64,10 +64,9 @@ pub struct GasProfiler {
 
 #[cfg(feature = "tracing")]
 impl GasProfiler {
+    const CLOSE_FRAME_IDENT: &'static str = "C";
     // Used by profiler viz tool
     const OPEN_FRAME_IDENT: &'static str = "O";
-    const CLOSE_FRAME_IDENT: &'static str = "C";
-
     const TOP_LEVEL_FRAME_NAME: &'static str = "root";
 
     #[cfg(feature = "tracing")]
@@ -77,10 +76,7 @@ impl GasProfiler {
             name: name.clone(),
             active_profile_index: 0,
             schema: "https://www.speedscope.app/file-format-schema.json".to_string(),
-            shared: Shared {
-                frames: vec![],
-                frame_table: BTreeMap::new(),
-            },
+            shared: Shared { frames: vec![], frame_table: BTreeMap::new() },
             profiles: vec![Profile {
                 ty: "evented".to_string(),
                 name,
@@ -93,21 +89,13 @@ impl GasProfiler {
             config: config.clone(),
             finished: false,
         };
-        profile_open_frame_impl!(
-            Some(&mut prof),
-            Self::TOP_LEVEL_FRAME_NAME.to_string(),
-            start_gas
-        );
+        profile_open_frame_impl!(Some(&mut prof), Self::TOP_LEVEL_FRAME_NAME.to_string(), start_gas);
         prof
     }
 
     #[cfg(feature = "tracing")]
     pub fn init_default_cfg(name: String, start_gas: u64) -> Self {
-        Self::init(
-            &VMProfilerConfig::get_default_config_if_enabled(),
-            name,
-            start_gas,
-        )
+        Self::init(&VMProfilerConfig::get_default_config_if_enabled(), name, start_gas)
     }
 
     #[cfg(feature = "tracing")]
@@ -126,20 +114,12 @@ impl GasProfiler {
     }
 
     #[cfg(feature = "tracing")]
-    fn add_frame(
-        &mut self,
-        frame_name: String,
-        frame_display_name: String,
-        metadata: String,
-    ) -> u64 {
+    fn add_frame(&mut self, frame_name: String, frame_display_name: String, metadata: String) -> u64 {
         match self.shared.frame_table.get(frame_name.as_str()) {
             Some(idx) => *idx as u64,
             None => {
                 let val = self.shared.frames.len() as u64;
-                self.shared.frames.push(FrameName {
-                    name: frame_display_name,
-                    file: metadata,
-                });
+                self.shared.frames.push(FrameName { name: frame_display_name, file: metadata });
                 self.shared.frame_table.insert(frame_name, val as usize);
                 val
             }
@@ -180,10 +160,12 @@ impl GasProfiler {
 
     #[cfg(feature = "tracing")]
     pub fn to_file(&self) {
-        use std::ffi::{OsStr, OsString};
-        use std::fs::File;
-        use std::io::Write;
-        use std::time::SystemTime;
+        use std::{
+            ffi::{OsStr, OsString},
+            fs::File,
+            io::Write,
+            time::SystemTime,
+        };
 
         let Some(config) = &self.config else {
             return;
@@ -213,8 +195,7 @@ impl GasProfiler {
         let mut file = File::create(&p).expect("Unable to create file");
 
         let json = serde_json::to_string_pretty(&self).expect("Unable to serialize profile");
-        file.write_all(json.as_bytes())
-            .expect("Unable to write to file");
+        file.write_all(json.as_bytes()).expect("Unable to write to file");
         info!("Gas profile written to file: {}", p.display());
     }
 
@@ -244,11 +225,7 @@ macro_rules! profile_open_frame {
         #[cfg(feature = "tracing")]
         {
             let gas_rem = $gas_meter.remaining_gas().into();
-            move_vm_profiler::profile_open_frame_impl!(
-                $gas_meter.get_profiler_mut(),
-                $frame_name,
-                gas_rem
-            )
+            move_vm_profiler::profile_open_frame_impl!($gas_meter.get_profiler_mut(), $frame_name, gas_rem)
         }
     };
 }
@@ -278,11 +255,7 @@ macro_rules! profile_close_frame {
         #[cfg(feature = "tracing")]
         {
             let gas_rem = $gas_meter.remaining_gas().into();
-            move_vm_profiler::profile_close_frame_impl!(
-                $gas_meter.get_profiler_mut(),
-                $frame_name,
-                gas_rem
-            )
+            move_vm_profiler::profile_close_frame_impl!($gas_meter.get_profiler_mut(), $frame_name, gas_rem)
         }
     };
 }

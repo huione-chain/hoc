@@ -52,11 +52,7 @@ impl ReachingDefProcessor {
     }
 
     /// Returns Some(temp, def) if temp has a unique reaching definition and None otherwise.
-    fn get_unique_def(
-        temp: TempIndex,
-        defs: &BTreeSet<Def>,
-        havoc_vars: &HavocSet,
-    ) -> Option<(TempIndex, TempIndex)> {
+    fn get_unique_def(temp: TempIndex, defs: &BTreeSet<Def>, havoc_vars: &HavocSet) -> Option<(TempIndex, TempIndex)> {
         if defs.len() != 1 {
             return None;
         }
@@ -71,15 +67,9 @@ impl ReachingDefProcessor {
     fn get_propagated_local(temp: TempIndex, state: &ReachingDefState) -> TempIndex {
         // For being robust, we protect this function against cycles in alias definitions. If
         // a cycle is detected, alias resolution stops.
-        fn get(
-            temp: TempIndex,
-            state: &ReachingDefState,
-            visited: &mut BTreeSet<TempIndex>,
-        ) -> TempIndex {
+        fn get(temp: TempIndex, state: &ReachingDefState, visited: &mut BTreeSet<TempIndex>) -> TempIndex {
             if let Some(defs) = state.map.get(&temp) {
-                if let Some((_, def_temp)) =
-                    ReachingDefProcessor::get_unique_def(temp, defs, &state.havoced)
-                {
+                if let Some((_, def_temp)) = ReachingDefProcessor::get_unique_def(temp, defs, &state.havoced) {
                     if visited.insert(def_temp) {
                         return get(def_temp, state, visited);
                     }
@@ -140,17 +130,12 @@ impl FunctionTargetProcessor for ReachingDefProcessor {
                 borrowed_locals: self.borrowed_locals(&data.code),
             };
             let block_state_map = analyzer.analyze_function(
-                ReachingDefState {
-                    map: BTreeMap::new(),
-                    havoced: BTreeSet::new(),
-                },
+                ReachingDefState { map: BTreeMap::new(), havoced: BTreeSet::new() },
                 &data.code,
                 &cfg,
             );
             let per_bytecode_state =
-                analyzer.state_per_instruction(block_state_map, &data.code, &cfg, |before, _| {
-                    before.clone()
-                });
+                analyzer.state_per_instruction(block_state_map, &data.code, &cfg, |before, _| before.clone());
 
             // Run copy propagation transformation.
             let annotations = ReachingDefAnnotation(per_bytecode_state);
@@ -181,6 +166,7 @@ impl<'a> ReachingDefAnalysis<'a> {}
 
 impl<'a> TransferFunctions for ReachingDefAnalysis<'a> {
     type State = ReachingDefState;
+
     const BACKWARD: bool = false;
 
     fn execute(&self, state: &mut ReachingDefState, instr: &Bytecode, _offset: CodeOffset) {
@@ -275,13 +261,8 @@ impl ReachingDefState {
 // Formatting
 
 /// Format a reaching definition annotation.
-pub fn format_reaching_def_annotation(
-    target: &FunctionTarget<'_>,
-    code_offset: CodeOffset,
-) -> Option<String> {
-    if let Some(ReachingDefAnnotation(map)) =
-        target.get_annotations().get::<ReachingDefAnnotation>()
-    {
+pub fn format_reaching_def_annotation(target: &FunctionTarget<'_>, code_offset: CodeOffset) -> Option<String> {
+    if let Some(ReachingDefAnnotation(map)) = target.get_annotations().get::<ReachingDefAnnotation>() {
         if let Some(map_at) = map.get(&code_offset) {
             let mut res = map_at
                 .map
@@ -295,10 +276,8 @@ pub fn format_reaching_def_annotation(
                             .map(|def| {
                                 match def {
                                     Def::Alias(a) => {
-                                        let local_name = format!(
-                                            "{}",
-                                            target.get_local_name(*a).display(target.symbol_pool())
-                                        );
+                                        let local_name =
+                                            format!("{}", target.get_local_name(*a).display(target.symbol_pool()));
                                         if map_at.havoced.contains(a) {
                                             format!("{}, {}*", local_name, local_name)
                                         } else {

@@ -5,8 +5,12 @@ use anyhow::{self, ensure, Context};
 use clap::*;
 use move_core_types::identifier::Identifier;
 use move_package::source_package::layout::SourcePackageLayout;
-use std::io::{BufRead, BufReader};
-use std::{fmt::Display, fs::create_dir_all, io::Write, path::Path};
+use std::{
+    fmt::Display,
+    fs::create_dir_all,
+    io::{BufRead, BufReader, Write},
+    path::Path,
+};
 
 pub const MOVE_STDLIB_ADDR_NAME: &str = "std";
 pub const MOVE_STDLIB_ADDR_VALUE: &str = "0x1";
@@ -22,12 +26,7 @@ pub struct New {
 
 impl New {
     pub fn execute_with_defaults(self, path: Option<&Path>) -> anyhow::Result<()> {
-        self.execute(
-            path,
-            std::iter::empty::<(&str, &str)>(),
-            std::iter::empty::<(&str, &str)>(),
-            "",
-        )
+        self.execute(path, std::iter::empty::<(&str, &str)>(), std::iter::empty::<(&str, &str)>(), "")
     }
 
     pub fn execute(

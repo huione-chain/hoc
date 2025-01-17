@@ -30,10 +30,7 @@ pub struct ModuleCache<R: ModuleResolver> {
 
 impl<R: ModuleResolver> ModuleCache<R> {
     pub fn new(resolver: R) -> Self {
-        ModuleCache {
-            cache: RefCell::new(BTreeMap::new()),
-            resolver,
-        }
+        ModuleCache { cache: RefCell::new(BTreeMap::new()), resolver }
     }
 
     pub fn add(&self, id: ModuleId, m: CompiledModule) {
@@ -73,10 +70,7 @@ impl<R: ModuleResolver> GetModule for &R {
     type Item = CompiledModule;
 
     fn get_module_by_id(&self, id: &ModuleId) -> Result<Option<CompiledModule>, Self::Error> {
-        Ok(self
-            .get_module(id)
-            .unwrap()
-            .map(|bytes| CompiledModule::deserialize_with_defaults(&bytes).unwrap()))
+        Ok(self.get_module(id).unwrap().map(|bytes| CompiledModule::deserialize_with_defaults(&bytes).unwrap()))
     }
 }
 
@@ -85,10 +79,7 @@ impl<R: ModuleResolver> GetModule for &mut R {
     type Item = CompiledModule;
 
     fn get_module_by_id(&self, id: &ModuleId) -> Result<Option<CompiledModule>, Self::Error> {
-        Ok(self
-            .get_module(id)
-            .unwrap()
-            .map(|bytes| CompiledModule::deserialize_with_defaults(&bytes).unwrap()))
+        Ok(self.get_module(id).unwrap().map(|bytes| CompiledModule::deserialize_with_defaults(&bytes).unwrap()))
     }
 }
 
@@ -109,10 +100,7 @@ pub struct SyncModuleCache<R: ModuleResolver> {
 
 impl<R: ModuleResolver> SyncModuleCache<R> {
     pub fn new(resolver: R) -> Self {
-        SyncModuleCache {
-            cache: RwLock::new(BTreeMap::new()),
-            resolver,
-        }
+        SyncModuleCache { cache: RwLock::new(BTreeMap::new()), resolver }
     }
 
     pub fn add(&self, id: ModuleId, m: CompiledModule) {
@@ -134,20 +122,13 @@ impl<R: ModuleResolver> GetModule for SyncModuleCache<R> {
             return Ok(Some(compiled_module.clone()));
         }
 
-        if let Some(module_bytes) = self
-            .resolver
-            .get_module(id)
-            .map_err(|_| anyhow!("Failed to get module {:?}", id))?
-        {
+        if let Some(module_bytes) = self.resolver.get_module(id).map_err(|_| anyhow!("Failed to get module {:?}", id))? {
             let module = Arc::new(
                 CompiledModule::deserialize_with_defaults(&module_bytes)
                     .map_err(|_| anyhow!("Failure deserializing module {:?}", id))?,
             );
 
-            self.cache
-                .write()
-                .unwrap()
-                .insert(id.clone(), module.clone());
+            self.cache.write().unwrap().insert(id.clone(), module.clone());
             Ok(Some(module))
         } else {
             Ok(None)

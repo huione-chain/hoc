@@ -7,8 +7,7 @@ use crate::{
     identifier::IdentStr,
     language_storage::{ModuleId, StructTag},
 };
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 /// Traits for resolving Move modules and resources from persistent storage
 
@@ -33,11 +32,7 @@ pub trait LinkageResolver {
 
     /// Translate the runtime fully-qualified struct name to the on-chain `ModuleId` that originally
     /// defined that type.
-    fn defining_module(
-        &self,
-        module_id: &ModuleId,
-        _struct: &IdentStr,
-    ) -> Result<ModuleId, Self::Error> {
+    fn defining_module(&self, module_id: &ModuleId, _struct: &IdentStr) -> Result<ModuleId, Self::Error> {
         Ok(module_id.clone())
     }
 }
@@ -69,29 +64,18 @@ pub trait ModuleResolver {
 pub trait ResourceResolver {
     type Error: Debug;
 
-    fn get_resource(
-        &self,
-        address: &AccountAddress,
-        typ: &StructTag,
-    ) -> Result<Option<Vec<u8>>, Self::Error>;
+    fn get_resource(&self, address: &AccountAddress, typ: &StructTag) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 /// A persistent storage implementation that can resolve both resources and modules
 pub trait MoveResolver:
-    LinkageResolver<Error = Self::Err>
-    + ModuleResolver<Error = Self::Err>
-    + ResourceResolver<Error = Self::Err>
+    LinkageResolver<Error = Self::Err> + ModuleResolver<Error = Self::Err> + ResourceResolver<Error = Self::Err>
 {
     type Err: Debug;
 }
 
-impl<
-        E: Debug,
-        T: LinkageResolver<Error = E>
-            + ModuleResolver<Error = E>
-            + ResourceResolver<Error = E>
-            + ?Sized,
-    > MoveResolver for T
+impl<E: Debug, T: LinkageResolver<Error = E> + ModuleResolver<Error = E> + ResourceResolver<Error = E> + ?Sized>
+    MoveResolver for T
 {
     type Err = E;
 }
@@ -99,17 +83,14 @@ impl<
 impl<T: ResourceResolver + ?Sized> ResourceResolver for &T {
     type Error = T::Error;
 
-    fn get_resource(
-        &self,
-        address: &AccountAddress,
-        tag: &StructTag,
-    ) -> Result<Option<Vec<u8>>, Self::Error> {
+    fn get_resource(&self, address: &AccountAddress, tag: &StructTag) -> Result<Option<Vec<u8>>, Self::Error> {
         (**self).get_resource(address, tag)
     }
 }
 
 impl<T: ModuleResolver + ?Sized> ModuleResolver for &T {
     type Error = T::Error;
+
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
         (**self).get_module(module_id)
     }
@@ -117,6 +98,7 @@ impl<T: ModuleResolver + ?Sized> ModuleResolver for &T {
 
 impl<T: ModuleResolver + ?Sized> ModuleResolver for Arc<T> {
     type Error = T::Error;
+
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
         (**self).get_module(module_id)
     }
@@ -133,11 +115,7 @@ impl<T: LinkageResolver + ?Sized> LinkageResolver for &T {
         (**self).relocate(module_id)
     }
 
-    fn defining_module(
-        &self,
-        module_id: &ModuleId,
-        struct_: &IdentStr,
-    ) -> Result<ModuleId, Self::Error> {
+    fn defining_module(&self, module_id: &ModuleId, struct_: &IdentStr) -> Result<ModuleId, Self::Error> {
         (**self).defining_module(module_id, struct_)
     }
 }

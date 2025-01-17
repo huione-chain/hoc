@@ -30,9 +30,6 @@ pub(crate) struct PackageLock {
 
 impl PackageLock {
     pub(crate) fn lock() -> PackageLock {
-        Self {
-            _thread_lock: PACKAGE_THREAD_MUTEX.lock().unwrap(),
-            _process_lock: PACKAGE_PROCESS_MUTEX.lock().unwrap(),
-        }
+        Self { _thread_lock: PACKAGE_THREAD_MUTEX.lock().unwrap(), _process_lock: PACKAGE_PROCESS_MUTEX.lock().unwrap() }
     }
 }

@@ -4,7 +4,8 @@
 //! Detects an unnecessary unit expression in a block, sequence, if, or else.
 
 use crate::{
-    diag, ice,
+    diag,
+    ice,
     linters::StyleCodes,
     typing::{
         ast::{self as T, UnannotatedExp_},
@@ -35,10 +36,7 @@ simple_visitor!(
                 for (i, stmt) in seq_.iter().enumerate() {
                     if i != last && stmt.value.is_unit(&self.reporter) {
                         let msg = "Unnecessary unit in sequence '();'. Consider removing";
-                        self.add_diag(diag!(
-                            StyleCodes::UnnecessaryUnit.diag_info(),
-                            (stmt.loc, msg),
-                        ));
+                        self.add_diag(diag!(StyleCodes::UnnecessaryUnit.diag_info(), (stmt.loc, msg),));
                     }
                 }
             }
@@ -53,11 +51,8 @@ simple_visitor!(
         if e_true.is_unit(&self.reporter) {
             let u_msg = "Unnecessary unit '()'";
             let if_msg = "Consider negating the 'if' condition and simplifying";
-            let mut diag = diag!(
-                StyleCodes::UnnecessaryUnit.diag_info(),
-                (e_true.exp.loc, u_msg),
-                (e_cond.exp.loc, if_msg),
-            );
+            let mut diag =
+                diag!(StyleCodes::UnnecessaryUnit.diag_info(), (e_true.exp.loc, u_msg), (e_cond.exp.loc, if_msg),);
             diag.add_note("For example 'if (cond) () else e' can be simplified to 'if (!cond) e'");
             self.add_diag(diag);
         }
@@ -66,14 +61,9 @@ simple_visitor!(
                 let u_msg = "Unnecessary 'else ()'.";
                 let if_msg = "An 'if' without an 'else' has an implicit 'else ()'. \
                             Consider removing the 'else' branch";
-                let mut diag = diag!(
-                    StyleCodes::UnnecessaryUnit.diag_info(),
-                    (e_false.exp.loc, u_msg),
-                    (e.exp.loc, if_msg),
-                );
-                diag.add_note(
-                    "For example 'if (cond) e else ()' can be simplified to 'if (cond) e'",
-                );
+                let mut diag =
+                    diag!(StyleCodes::UnnecessaryUnit.diag_info(), (e_false.exp.loc, u_msg), (e.exp.loc, if_msg),);
+                diag.add_note("For example 'if (cond) e else ()' can be simplified to 'if (cond) e'");
                 self.add_diag(diag);
             }
         }

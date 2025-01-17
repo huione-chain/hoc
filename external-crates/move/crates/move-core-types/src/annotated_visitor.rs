@@ -29,47 +29,19 @@ pub trait Visitor<'b, 'l> {
     /// ```
     type Error: From<Error>;
 
-    fn visit_u8(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u8,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u8(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u8) -> Result<Self::Value, Self::Error>;
 
-    fn visit_u16(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u16,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u16(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u16) -> Result<Self::Value, Self::Error>;
 
-    fn visit_u32(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u32,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u32(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u32) -> Result<Self::Value, Self::Error>;
 
-    fn visit_u64(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u64,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u64(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u64) -> Result<Self::Value, Self::Error>;
 
-    fn visit_u128(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u128,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u128(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u128) -> Result<Self::Value, Self::Error>;
 
-    fn visit_u256(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: U256,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_u256(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: U256) -> Result<Self::Value, Self::Error>;
 
-    fn visit_bool(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: bool,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_bool(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: bool) -> Result<Self::Value, Self::Error>;
 
     fn visit_address(
         &mut self,
@@ -83,20 +55,11 @@ pub trait Visitor<'b, 'l> {
         value: AccountAddress,
     ) -> Result<Self::Value, Self::Error>;
 
-    fn visit_vector(
-        &mut self,
-        driver: &mut VecDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_vector(&mut self, driver: &mut VecDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error>;
 
-    fn visit_struct(
-        &mut self,
-        driver: &mut StructDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_struct(&mut self, driver: &mut StructDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error>;
 
-    fn visit_variant(
-        &mut self,
-        driver: &mut VariantDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error>;
+    fn visit_variant(&mut self, driver: &mut VariantDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error>;
 }
 
 /// A traversal is a special kind of visitor that doesn't return any values. The trait comes with
@@ -115,75 +78,39 @@ pub trait Visitor<'b, 'l> {
 pub trait Traversal<'b, 'l> {
     type Error: From<Error>;
 
-    fn traverse_u8(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: u8,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u8(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: u8) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_u16(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: u16,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u16(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: u16) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_u32(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: u32,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u32(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: u32) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_u64(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: u64,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u64(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: u64) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_u128(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: u128,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u128(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: u128) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_u256(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: U256,
-    ) -> Result<(), Self::Error> {
+    fn traverse_u256(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: U256) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_bool(
-        &mut self,
-        _driver: &ValueDriver<'_, 'b, 'l>,
-        _value: bool,
-    ) -> Result<(), Self::Error> {
+    fn traverse_bool(&mut self, _driver: &ValueDriver<'_, 'b, 'l>, _value: bool) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_address(
-        &mut self,
-        _: &ValueDriver<'_, 'b, 'l>,
-        _: AccountAddress,
-    ) -> Result<(), Self::Error> {
+    fn traverse_address(&mut self, _: &ValueDriver<'_, 'b, 'l>, _: AccountAddress) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn traverse_signer(
-        &mut self,
-        _: &ValueDriver<'_, 'b, 'l>,
-        _: AccountAddress,
-    ) -> Result<(), Self::Error> {
+    fn traverse_signer(&mut self, _: &ValueDriver<'_, 'b, 'l>, _: AccountAddress) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -192,18 +119,12 @@ pub trait Traversal<'b, 'l> {
         Ok(())
     }
 
-    fn traverse_struct(
-        &mut self,
-        driver: &mut StructDriver<'_, 'b, 'l>,
-    ) -> Result<(), Self::Error> {
+    fn traverse_struct(&mut self, driver: &mut StructDriver<'_, 'b, 'l>) -> Result<(), Self::Error> {
         while driver.next_field(self)?.is_some() {}
         Ok(())
     }
 
-    fn traverse_variant(
-        &mut self,
-        driver: &mut VariantDriver<'_, 'b, 'l>,
-    ) -> Result<(), Self::Error> {
+    fn traverse_variant(&mut self, driver: &mut VariantDriver<'_, 'b, 'l>) -> Result<(), Self::Error> {
         while driver.next_field(self)?.is_some() {}
         Ok(())
     }
@@ -211,62 +132,34 @@ pub trait Traversal<'b, 'l> {
 
 /// Default implementation converting any traversal into a visitor.
 impl<'b, 'l, T: Traversal<'b, 'l> + ?Sized> Visitor<'b, 'l> for T {
-    type Value = ();
     type Error = T::Error;
+    type Value = ();
 
-    fn visit_u8(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u8,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u8(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u8) -> Result<Self::Value, Self::Error> {
         self.traverse_u8(driver, value)
     }
 
-    fn visit_u16(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u16,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u16(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u16) -> Result<Self::Value, Self::Error> {
         self.traverse_u16(driver, value)
     }
 
-    fn visit_u32(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u32,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u32(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u32) -> Result<Self::Value, Self::Error> {
         self.traverse_u32(driver, value)
     }
 
-    fn visit_u64(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u64,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u64(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u64) -> Result<Self::Value, Self::Error> {
         self.traverse_u64(driver, value)
     }
 
-    fn visit_u128(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: u128,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u128(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: u128) -> Result<Self::Value, Self::Error> {
         self.traverse_u128(driver, value)
     }
 
-    fn visit_u256(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: U256,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_u256(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: U256) -> Result<Self::Value, Self::Error> {
         self.traverse_u256(driver, value)
     }
 
-    fn visit_bool(
-        &mut self,
-        driver: &ValueDriver<'_, 'b, 'l>,
-        value: bool,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_bool(&mut self, driver: &ValueDriver<'_, 'b, 'l>, value: bool) -> Result<Self::Value, Self::Error> {
         self.traverse_bool(driver, value)
     }
 
@@ -286,24 +179,15 @@ impl<'b, 'l, T: Traversal<'b, 'l> + ?Sized> Visitor<'b, 'l> for T {
         self.traverse_signer(driver, value)
     }
 
-    fn visit_vector(
-        &mut self,
-        driver: &mut VecDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_vector(&mut self, driver: &mut VecDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error> {
         self.traverse_vector(driver)
     }
 
-    fn visit_struct(
-        &mut self,
-        driver: &mut StructDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_struct(&mut self, driver: &mut StructDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error> {
         self.traverse_struct(driver)
     }
 
-    fn visit_variant(
-        &mut self,
-        driver: &mut VariantDriver<'_, 'b, 'l>,
-    ) -> Result<Self::Value, Self::Error> {
+    fn visit_variant(&mut self, driver: &mut VariantDriver<'_, 'b, 'l>) -> Result<Self::Value, Self::Error> {
         self.traverse_variant(driver)
     }
 }
@@ -378,11 +262,7 @@ impl<'b, 'l> Traversal<'b, 'l> for NullTraversal {
 impl<'c, 'b, 'l> ValueDriver<'c, 'b, 'l> {
     pub(crate) fn new(bytes: &'c mut Cursor<&'b [u8]>, layout: Option<&'l MoveTypeLayout>) -> Self {
         let start = bytes.position() as usize;
-        Self {
-            bytes,
-            layout,
-            start,
-        }
+        Self { bytes, layout, start }
     }
 
     /// The offset at which the value being visited starts in the byte stream.
@@ -399,6 +279,7 @@ impl<'c, 'b, 'l> ValueDriver<'c, 'b, 'l> {
     pub fn bytes(&self) -> &'b [u8] {
         self.bytes.get_ref()
     }
+
     ///
     /// The bytes that haven't been consumed by the visitor yet.
     pub fn remaining_bytes(&self) -> &'b [u8] {
@@ -414,9 +295,7 @@ impl<'c, 'b, 'l> ValueDriver<'c, 'b, 'l> {
 
     fn read_exact<const N: usize>(&mut self) -> Result<[u8; N], Error> {
         let mut buf = [0u8; N];
-        self.bytes
-            .read_exact(&mut buf)
-            .map_err(|_| Error::UnexpectedEof)?;
+        self.bytes.read_exact(&mut buf).map_err(|_| Error::UnexpectedEof)?;
         Ok(buf)
     }
 
@@ -428,12 +307,7 @@ impl<'c, 'b, 'l> ValueDriver<'c, 'b, 'l> {
 #[allow(clippy::len_without_is_empty)]
 impl<'c, 'b, 'l> VecDriver<'c, 'b, 'l> {
     fn new(inner: ValueDriver<'c, 'b, 'l>, layout: &'l MoveTypeLayout, len: u64) -> Self {
-        Self {
-            inner,
-            layout,
-            len,
-            off: 0,
-        }
+        Self { inner, layout, len, off: 0 }
     }
 
     /// The offset at which the value being visited starts in the byte stream.
@@ -483,10 +357,7 @@ impl<'c, 'b, 'l> VecDriver<'c, 'b, 'l> {
     /// Returns `Ok(None)` if there are no more elements in the vector, `Ok(v)` if there was an
     /// element and it was successfully visited (where `v` is the value returned by the visitor) or
     /// an error if there was an underlying deserialization error, or an error during visitation.
-    pub fn next_element<V: Visitor<'b, 'l> + ?Sized>(
-        &mut self,
-        visitor: &mut V,
-    ) -> Result<Option<V::Value>, V::Error> {
+    pub fn next_element<V: Visitor<'b, 'l> + ?Sized>(&mut self, visitor: &mut V) -> Result<Option<V::Value>, V::Error> {
         Ok(if self.off >= self.len {
             None
         } else {
@@ -505,11 +376,7 @@ impl<'c, 'b, 'l> VecDriver<'c, 'b, 'l> {
 
 impl<'c, 'b, 'l> StructDriver<'c, 'b, 'l> {
     fn new(inner: ValueDriver<'c, 'b, 'l>, layout: &'l MoveStructLayout) -> Self {
-        Self {
-            inner,
-            layout,
-            off: 0,
-        }
+        Self { inner, layout, off: 0 }
     }
 
     /// The offset at which the value being visited starts in the byte stream.
@@ -571,8 +438,7 @@ impl<'c, 'b, 'l> StructDriver<'c, 'b, 'l> {
     /// Skip the next field. Returns the layout of the field that was visited if there was one, or
     /// `None` if there was none. Can return an error if there was a deserialization error.
     pub fn skip_field(&mut self) -> Result<Option<&'l MoveFieldLayout>, Error> {
-        self.next_field(&mut NullTraversal)
-            .map(|res| res.map(|(f, _)| f))
+        self.next_field(&mut NullTraversal).map(|res| res.map(|(f, _)| f))
     }
 }
 
@@ -584,14 +450,7 @@ impl<'c, 'b, 'l> VariantDriver<'c, 'b, 'l> {
         variant_name: &'l IdentStr,
         tag: u16,
     ) -> Self {
-        Self {
-            inner,
-            layout,
-            tag,
-            variant_name,
-            variant_layout,
-            off: 0,
-        }
+        Self { inner, layout, tag, variant_name, variant_layout, off: 0 }
     }
 
     /// The offset at which the value being visited starts in the byte stream.
@@ -668,8 +527,7 @@ impl<'c, 'b, 'l> VariantDriver<'c, 'b, 'l> {
     /// Skip the next field. Returns the layout of the field that was visited if there was one, or
     /// `None` if there was none. Can return an error if there was a deserialization error.
     pub fn skip_field(&mut self) -> Result<Option<&'l MoveFieldLayout>, Error> {
-        self.next_field(&mut NullTraversal)
-            .map(|res| res.map(|(f, _)| f))
+        self.next_field(&mut NullTraversal).map(|res| res.map(|(f, _)| f))
     }
 }
 
@@ -784,13 +642,7 @@ fn visit_variant<'c, 'b, 'l, V: Visitor<'b, 'l> + ?Sized>(
         .find(|((_, vtag), _)| *vtag == tag as u16)
         .ok_or(Error::UnexpectedVariantTag(tag as usize))?;
 
-    let mut driver = VariantDriver::new(
-        inner,
-        layout,
-        variant_layout.1,
-        &variant_layout.0 .0,
-        tag as u16,
-    );
+    let mut driver = VariantDriver::new(inner, layout, variant_layout.1, &variant_layout.0 .0, tag as u16);
     let res = visitor.visit_variant(&mut driver)?;
     while driver.skip_field()?.is_some() {}
     Ok(res)

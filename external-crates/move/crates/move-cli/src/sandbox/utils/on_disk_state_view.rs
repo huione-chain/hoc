@@ -98,9 +98,7 @@ impl OnDiskStateView {
         let name = Identifier::new(p.file_stem().unwrap().to_str().unwrap()).unwrap();
         match p.parent().and_then(|parent| parent.parent()) {
             Some(parent) => {
-                let addr =
-                    AccountAddress::from_hex_literal(parent.file_stem().unwrap().to_str().unwrap())
-                        .unwrap();
+                let addr = AccountAddress::from_hex_literal(parent.file_stem().unwrap().to_str().unwrap()).unwrap();
                 Some(ModuleId::new(addr, name))
             }
             None => None,
@@ -121,11 +119,8 @@ impl OnDiskStateView {
     pub fn resolve_function(&self, module_id: &ModuleId, idx: u16) -> Result<Option<Identifier>> {
         if let Some(m) = self.get_module_by_id(module_id)? {
             Ok(Some(
-                m.identifier_at(
-                    m.function_handle_at(m.function_def_at(FunctionDefinitionIndex(idx)).function)
-                        .name,
-                )
-                .to_owned(),
+                m.identifier_at(m.function_handle_at(m.function_def_at(FunctionDefinitionIndex(idx)).function).name)
+                    .to_owned(),
             ))
         } else {
             Ok(None)
@@ -133,11 +128,7 @@ impl OnDiskStateView {
     }
 
     fn get_bytes(path: &Path) -> Result<Option<Vec<u8>>> {
-        Ok(if path.exists() {
-            Some(fs::read(path)?)
-        } else {
-            None
-        })
+        Ok(if path.exists() { Some(fs::read(path)?) } else { None })
     }
 
     fn view_bytecode(path: &Path) -> Result<Option<String>> {
@@ -150,8 +141,7 @@ impl OnDiskStateView {
                 let module = CompiledModule::deserialize_with_defaults(&bytes)
                     .map_err(|e| anyhow!("Failure deserializing module: {:?}", e))?;
                 // TODO: find or create source map and pass it to disassembler
-                let d: Disassembler =
-                    Disassembler::from_module(&module, Spanned::unsafe_no_loc(()).loc)?;
+                let d: Disassembler = Disassembler::from_module(&module, Spanned::unsafe_no_loc(()).loc)?;
                 Some(d.disassemble()?)
             }
             None => None,
@@ -181,10 +171,7 @@ impl OnDiskStateView {
     }
 
     /// Save all the modules in the local cache, re-generate mv_interfaces if required.
-    pub fn save_modules<'a>(
-        &self,
-        modules: impl IntoIterator<Item = &'a (ModuleId, Vec<u8>)>,
-    ) -> Result<()> {
+    pub fn save_modules<'a>(&self, modules: impl IntoIterator<Item = &'a (ModuleId, Vec<u8>)>) -> Result<()> {
         for (module_id, module_bytes) in modules {
             self.save_module(module_id, module_bytes)?;
         }
@@ -238,6 +225,7 @@ impl LinkageResolver for OnDiskStateView {
 
 impl ModuleResolver for OnDiskStateView {
     type Error = anyhow::Error;
+
     fn get_module(&self, module_id: &ModuleId) -> Result<Option<Vec<u8>>, Self::Error> {
         self.get_module_bytes(module_id)
     }
@@ -246,11 +234,7 @@ impl ModuleResolver for OnDiskStateView {
 impl ResourceResolver for OnDiskStateView {
     type Error = anyhow::Error;
 
-    fn get_resource(
-        &self,
-        _address: &AccountAddress,
-        _struct_tag: &StructTag,
-    ) -> Result<Option<Vec<u8>>, Self::Error> {
+    fn get_resource(&self, _address: &AccountAddress, _struct_tag: &StructTag) -> Result<Option<Vec<u8>>, Self::Error> {
         unimplemented!()
     }
 }

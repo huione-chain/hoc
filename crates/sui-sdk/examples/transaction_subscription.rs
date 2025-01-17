@@ -14,8 +14,8 @@ use sui_sdk::SuiClientBuilder;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let ws = SuiClientBuilder::default()
-        .ws_url("wss://rpc.testnet.sui.io:443")
-        .build("https://fullnode.testnet.sui.io:443")
+        .ws_url("wss://rpc.testnet.huione.org:443")
+        .build("https://fullnode.testnet.huione.org:443")
         .await?;
     println!("WS version {:?}", ws.api_version());
 
@@ -23,7 +23,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .read_api()
         .subscribe_transaction(TransactionFilter::MoveFunction {
             package: "0x2".parse()?,
-            module: Some("sui".to_owned()),
+            module: Some("hoc".to_owned()),
             function: Some("transfer".to_owned()),
         })
         .await?;

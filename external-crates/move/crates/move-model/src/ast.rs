@@ -88,10 +88,7 @@ impl ModuleName {
         ModuleName(addr, name)
     }
 
-    pub fn from_address_bytes_and_name(
-        addr: move_compiler::shared::NumericalAddress,
-        name: Symbol,
-    ) -> ModuleName {
+    pub fn from_address_bytes_and_name(addr: move_compiler::shared::NumericalAddress, name: Symbol) -> ModuleName {
         ModuleName(BigUint::from_bytes_be(&addr.into_bytes()), name)
     }
 
@@ -114,8 +111,7 @@ impl ModuleName {
     /// Determine whether this is a script. The move-compiler infrastructure uses MAX_ADDR
     /// for pseudo modules created from scripts, so use this address to check.
     pub fn is_script(&self) -> bool {
-        static MAX_ADDR: Lazy<BigUint> =
-            Lazy::new(|| BigUint::from_str_radix(MAX_ADDR_STRING, 16).expect("valid hex"));
+        static MAX_ADDR: Lazy<BigUint> = Lazy::new(|| BigUint::from_str_radix(MAX_ADDR_STRING, 16).expect("valid hex"));
         self.0 == *MAX_ADDR
     }
 }
@@ -124,21 +120,13 @@ impl ModuleName {
     /// Creates a value implementing the Display trait which shows this name,
     /// excluding address.
     pub fn display<'a>(&'a self, pool: &'a SymbolPool) -> ModuleNameDisplay<'a> {
-        ModuleNameDisplay {
-            name: self,
-            pool,
-            with_address: false,
-        }
+        ModuleNameDisplay { name: self, pool, with_address: false }
     }
 
     /// Creates a value implementing the Display trait which shows this name,
     /// including address.
     pub fn display_full<'a>(&'a self, pool: &'a SymbolPool) -> ModuleNameDisplay<'a> {
-        ModuleNameDisplay {
-            name: self,
-            pool,
-            with_address: true,
-        }
+        ModuleNameDisplay { name: self, pool, with_address: true }
     }
 }
 
@@ -169,34 +157,19 @@ impl QualifiedSymbol {
     /// Creates a value implementing the Display trait which shows this symbol,
     /// including module name but excluding address.
     pub fn display<'a>(&'a self, pool: &'a SymbolPool) -> QualifiedSymbolDisplay<'a> {
-        QualifiedSymbolDisplay {
-            sym: self,
-            pool,
-            with_module: true,
-            with_address: false,
-        }
+        QualifiedSymbolDisplay { sym: self, pool, with_module: true, with_address: false }
     }
 
     /// Creates a value implementing the Display trait which shows this qualified symbol,
     /// excluding module name.
     pub fn display_simple<'a>(&'a self, pool: &'a SymbolPool) -> QualifiedSymbolDisplay<'a> {
-        QualifiedSymbolDisplay {
-            sym: self,
-            pool,
-            with_module: false,
-            with_address: false,
-        }
+        QualifiedSymbolDisplay { sym: self, pool, with_module: false, with_address: false }
     }
 
     /// Creates a value implementing the Display trait which shows this symbol,
     /// including module name with address.
     pub fn display_full<'a>(&'a self, pool: &'a SymbolPool) -> QualifiedSymbolDisplay<'a> {
-        QualifiedSymbolDisplay {
-            sym: self,
-            pool,
-            with_module: true,
-            with_address: true,
-        }
+        QualifiedSymbolDisplay { sym: self, pool, with_module: true, with_address: true }
     }
 }
 

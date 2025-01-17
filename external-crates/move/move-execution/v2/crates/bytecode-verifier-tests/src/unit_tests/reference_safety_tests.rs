@@ -4,8 +4,17 @@
 
 use crate::unit_tests::production_config;
 use move_binary_format::file_format::{
-    empty_module, Bytecode, CodeUnit, FunctionDefinition, FunctionHandle, FunctionHandleIndex,
-    IdentifierIndex, ModuleHandleIndex, Signature, SignatureIndex, SignatureToken,
+    empty_module,
+    Bytecode,
+    CodeUnit,
+    FunctionDefinition,
+    FunctionHandle,
+    FunctionHandleIndex,
+    IdentifierIndex,
+    ModuleHandleIndex,
+    Signature,
+    SignatureIndex,
+    SignatureToken,
     Visibility::Public,
 };
 use move_bytecode_verifier_meter::bound::BoundMeter;
@@ -41,12 +50,9 @@ fn test_bicliques() {
 
     // create take_and_return_references
     m.signatures.push(Signature(
-        std::iter::repeat(SignatureToken::Reference(Box::new(SignatureToken::U64)))
-            .take(NUM_LOCALS as usize)
-            .collect(),
+        std::iter::repeat(SignatureToken::Reference(Box::new(SignatureToken::U64))).take(NUM_LOCALS as usize).collect(),
     ));
-    m.identifiers
-        .push(Identifier::new("take_and_return_references").unwrap());
+    m.identifiers.push(Identifier::new("take_and_return_references").unwrap());
     m.function_handles.push(FunctionHandle {
         module: ModuleHandleIndex(0),
         name: IdentifierIndex(1),
@@ -59,11 +65,7 @@ fn test_bicliques() {
         visibility: Public,
         is_entry: false,
         acquires_global_resources: vec![],
-        code: Some(CodeUnit {
-            locals: SignatureIndex(0),
-            code: vec![],
-            jump_tables: vec![],
-        }),
+        code: Some(CodeUnit { locals: SignatureIndex(0), code: vec![], jump_tables: vec![] }),
     });
     let code = &mut m.function_defs[1].code.as_mut().unwrap().code;
     for i in 0..NUM_LOCALS {
@@ -72,8 +74,7 @@ fn test_bicliques() {
     code.push(Bytecode::Ret);
 
     // create swallow_references
-    m.identifiers
-        .push(Identifier::new("swallow_references").unwrap());
+    m.identifiers.push(Identifier::new("swallow_references").unwrap());
     m.function_handles.push(FunctionHandle {
         module: ModuleHandleIndex(0),
         name: IdentifierIndex(2),
@@ -86,17 +87,12 @@ fn test_bicliques() {
         visibility: Public,
         is_entry: false,
         acquires_global_resources: vec![],
-        code: Some(CodeUnit {
-            locals: SignatureIndex(0),
-            code: vec![Bytecode::Ret],
-            jump_tables: vec![],
-        }),
+        code: Some(CodeUnit { locals: SignatureIndex(0), code: vec![Bytecode::Ret], jump_tables: vec![] }),
     });
 
     // create other functions
     for i in 1..(NUM_FUNCTIONS + 1) {
-        m.identifiers
-            .push(Identifier::new(format!("f{}", i)).unwrap());
+        m.identifiers.push(Identifier::new(format!("f{}", i)).unwrap());
         m.function_handles.push(FunctionHandle {
             module: ModuleHandleIndex(0),
             name: IdentifierIndex(i + 2),
@@ -109,11 +105,7 @@ fn test_bicliques() {
             visibility: Public,
             is_entry: false,
             acquires_global_resources: vec![],
-            code: Some(CodeUnit {
-                locals: SignatureIndex(0),
-                code: vec![],
-                jump_tables: vec![],
-            }),
+            code: Some(CodeUnit { locals: SignatureIndex(0), code: vec![], jump_tables: vec![] }),
         });
         let code = &mut m.function_defs[i as usize + 2].code.as_mut().unwrap().code;
         for j in 0..NUM_LOCALS {
@@ -128,16 +120,9 @@ fn test_bicliques() {
 
     let (verifier_config, meter_config) = production_config();
     let mut meter = BoundMeter::new(meter_config);
-    let result = move_bytecode_verifier::verify_module_with_config_for_test(
-        "test_bicliques",
-        &verifier_config,
-        &m,
-        &mut meter,
-    );
-    assert_eq!(
-        result.unwrap_err().major_status(),
-        StatusCode::CONSTRAINT_NOT_SATISFIED
-    );
+    let result =
+        move_bytecode_verifier::verify_module_with_config_for_test("test_bicliques", &verifier_config, &m, &mut meter);
+    assert_eq!(result.unwrap_err().major_status(), StatusCode::CONSTRAINT_NOT_SATISFIED);
 }
 
 #[test]
@@ -169,9 +154,7 @@ fn test_merge_state_large_graph() {
     });
 
     m.signatures.push(Signature(
-        std::iter::repeat(SignatureToken::Reference(Box::new(SignatureToken::U8)))
-            .take(N as usize)
-            .collect(),
+        std::iter::repeat(SignatureToken::Reference(Box::new(SignatureToken::U8))).take(N as usize).collect(),
     ));
 
     m.identifiers.push(Identifier::new("return_refs").unwrap());
@@ -194,8 +177,7 @@ fn test_merge_state_large_graph() {
         }),
     });
 
-    m.identifiers
-        .push(Identifier::new("take_and_return_refs").unwrap());
+    m.identifiers.push(Identifier::new("take_and_return_refs").unwrap());
     m.function_handles.push(FunctionHandle {
         module: ModuleHandleIndex(0),
         name: IdentifierIndex(2),
@@ -216,8 +198,7 @@ fn test_merge_state_large_graph() {
     });
 
     for i in 0..NUM_FUNCTIONS {
-        m.identifiers
-            .push(Identifier::new(format!("f{}", i)).unwrap());
+        m.identifiers.push(Identifier::new(format!("f{}", i)).unwrap());
         m.function_handles.push(FunctionHandle {
             module: ModuleHandleIndex(0),
             name: IdentifierIndex(i + 3),
@@ -230,11 +211,7 @@ fn test_merge_state_large_graph() {
             visibility: Public,
             is_entry: false,
             acquires_global_resources: vec![],
-            code: Some(CodeUnit {
-                locals: SignatureIndex(1),
-                code: vec![],
-                jump_tables: vec![],
-            }),
+            code: Some(CodeUnit { locals: SignatureIndex(1), code: vec![], jump_tables: vec![] }),
         });
         let code = &mut m.function_defs[i as usize + 3].code.as_mut().unwrap().code;
         for j in 0..N {
@@ -260,10 +237,7 @@ fn test_merge_state_large_graph() {
         &m,
         &mut meter,
     );
-    assert_eq!(
-        result.unwrap_err().major_status(),
-        StatusCode::CONSTRAINT_NOT_SATISFIED
-    );
+    assert_eq!(result.unwrap_err().major_status(), StatusCode::CONSTRAINT_NOT_SATISFIED);
 }
 
 #[test]
@@ -294,10 +268,7 @@ fn test_merge_state() {
         }),
     });
 
-    m.signatures
-        .push(Signature(vec![SignatureToken::Reference(Box::new(
-            SignatureToken::U8,
-        ))]));
+    m.signatures.push(Signature(vec![SignatureToken::Reference(Box::new(SignatureToken::U8))]));
     m.signatures.push(Signature(
         std::iter::repeat(SignatureToken::Reference(Box::new(SignatureToken::U8)))
             .take(NUM_LOCALS as usize - 1)
@@ -305,8 +276,7 @@ fn test_merge_state() {
     ));
 
     for i in 0..NUM_FUNCTIONS {
-        m.identifiers
-            .push(Identifier::new(format!("f{}", i)).unwrap());
+        m.identifiers.push(Identifier::new(format!("f{}", i)).unwrap());
         m.function_handles.push(FunctionHandle {
             module: ModuleHandleIndex(0),
             name: IdentifierIndex(i + 1),
@@ -319,11 +289,7 @@ fn test_merge_state() {
             visibility: Public,
             is_entry: false,
             acquires_global_resources: vec![],
-            code: Some(CodeUnit {
-                locals: SignatureIndex(2),
-                code: vec![],
-                jump_tables: vec![],
-            }),
+            code: Some(CodeUnit { locals: SignatureIndex(2), code: vec![], jump_tables: vec![] }),
         });
         let code = &mut m.function_defs[i as usize + 1].code.as_mut().unwrap().code;
         // create reference id
@@ -347,16 +313,9 @@ fn test_merge_state() {
 
     let (verifier_config, meter_config) = production_config();
     let mut meter = BoundMeter::new(meter_config);
-    let result = move_bytecode_verifier::verify_module_with_config_for_test(
-        "test_merge_state",
-        &verifier_config,
-        &m,
-        &mut meter,
-    );
-    assert_eq!(
-        result.unwrap_err().major_status(),
-        StatusCode::CONSTRAINT_NOT_SATISFIED
-    );
+    let result =
+        move_bytecode_verifier::verify_module_with_config_for_test("test_merge_state", &verifier_config, &m, &mut meter);
+    assert_eq!(result.unwrap_err().major_status(), StatusCode::CONSTRAINT_NOT_SATISFIED);
 }
 
 #[test]
@@ -369,27 +328,20 @@ fn test_copyloc_pop() {
     let mut m = empty_module();
 
     // parameters of f0, f1, ...
-    m.signatures
-        .push(Signature(vec![SignatureToken::Reference(Box::new(
-            SignatureToken::Vector(Box::new(SignatureToken::U8)),
-        ))]));
+    m.signatures.push(Signature(vec![SignatureToken::Reference(Box::new(SignatureToken::Vector(Box::new(
+        SignatureToken::U8,
+    ))))]));
     // locals of f0, f1, ...
     m.signatures.push(Signature(vec![
-        SignatureToken::Reference(Box::new(SignatureToken::Vector(Box::new(
-            SignatureToken::U8,
-        )))),
+        SignatureToken::Reference(Box::new(SignatureToken::Vector(Box::new(SignatureToken::U8)))),
         SignatureToken::U8, // ignore this, it's just here because I don't want to fix indices and the TypeParameter after removing the collision
     ]));
     // for VecImmBorrow
-    m.signatures.push(Signature(
-        std::iter::repeat(SignatureToken::U8).take(1).collect(),
-    ));
-    m.signatures
-        .push(Signature(vec![SignatureToken::TypeParameter(0)]));
+    m.signatures.push(Signature(std::iter::repeat(SignatureToken::U8).take(1).collect()));
+    m.signatures.push(Signature(vec![SignatureToken::TypeParameter(0)]));
 
     for i in 0..NUM_FUNCTIONS {
-        m.identifiers
-            .push(Identifier::new(format!("f{}", i)).unwrap());
+        m.identifiers.push(Identifier::new(format!("f{}", i)).unwrap());
         m.function_handles.push(FunctionHandle {
             module: ModuleHandleIndex(0),
             name: IdentifierIndex(i),
@@ -402,11 +354,7 @@ fn test_copyloc_pop() {
             visibility: Public,
             is_entry: false,
             acquires_global_resources: vec![],
-            code: Some(CodeUnit {
-                locals: SignatureIndex(2),
-                code: vec![],
-                jump_tables: vec![],
-            }),
+            code: Some(CodeUnit { locals: SignatureIndex(2), code: vec![], jump_tables: vec![] }),
         });
         let code = &mut m.function_defs[i as usize].code.as_mut().unwrap().code;
 
@@ -433,14 +381,7 @@ fn test_copyloc_pop() {
 
     let (verifier_config, meter_config) = production_config();
     let mut meter = BoundMeter::new(meter_config);
-    let result = move_bytecode_verifier::verify_module_with_config_for_test(
-        "test_copyloc_pop",
-        &verifier_config,
-        &m,
-        &mut meter,
-    );
-    assert_eq!(
-        result.unwrap_err().major_status(),
-        StatusCode::CONSTRAINT_NOT_SATISFIED
-    );
+    let result =
+        move_bytecode_verifier::verify_module_with_config_for_test("test_copyloc_pop", &verifier_config, &m, &mut meter);
+    assert_eq!(result.unwrap_err().major_status(), StatusCode::CONSTRAINT_NOT_SATISFIED);
 }

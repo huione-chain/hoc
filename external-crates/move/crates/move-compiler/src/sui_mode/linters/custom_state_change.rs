@@ -16,19 +16,23 @@ use crate::{
         absint::JoinResult,
         cfg::ImmForwardCFG,
         visitor::{
-            calls_special_function, LocalState, SimpleAbsInt, SimpleAbsIntConstructor,
-            SimpleDomain, SimpleExecutionContext,
+            calls_special_function,
+            LocalState,
+            SimpleAbsInt,
+            SimpleAbsIntConstructor,
+            SimpleDomain,
+            SimpleExecutionContext,
         },
-        CFGContext, MemberName,
+        CFGContext,
+        MemberName,
     },
     diag,
     diagnostics::{
         codes::{custom, DiagnosticInfo, Severity},
-        Diagnostic, Diagnostics,
+        Diagnostic,
+        Diagnostics,
     },
-    hlir::ast::{
-        BaseType_, Label, ModuleCall, SingleType, SingleType_, Type, TypeName_, Type_, Var,
-    },
+    hlir::ast::{BaseType_, Label, ModuleCall, SingleType, SingleType_, Type, TypeName_, Type_, Var},
     parser::ast::Ability_,
     shared::Identifier,
     sui_mode::SUI_ADDR_VALUE,
@@ -36,8 +40,15 @@ use crate::{
 use std::collections::BTreeMap;
 
 use super::{
-    LinterDiagnosticCategory, LinterDiagnosticCode, FREEZE_FUN, INVALID_LOC, LINT_WARNING_PREFIX,
-    RECEIVE_FUN, SHARE_FUN, TRANSFER_FUN, TRANSFER_MOD_NAME,
+    LinterDiagnosticCategory,
+    LinterDiagnosticCode,
+    FREEZE_FUN,
+    INVALID_LOC,
+    LINT_WARNING_PREFIX,
+    RECEIVE_FUN,
+    SHARE_FUN,
+    TRANSFER_FUN,
+    TRANSFER_MOD_NAME,
 };
 
 const PRIVATE_OBJ_FUNCTIONS: &[(AccountAddress, &str, &str)] = &[
@@ -88,11 +99,7 @@ pub struct State {
 impl SimpleAbsIntConstructor for CustomStateChangeVerifier {
     type AI<'a> = CustomStateChangeVerifierAI;
 
-    fn new<'a>(
-        context: &'a CFGContext<'a>,
-        cfg: &ImmForwardCFG,
-        init_state: &mut State,
-    ) -> Option<Self::AI<'a>> {
+    fn new<'a>(context: &'a CFGContext<'a>, cfg: &ImmForwardCFG, init_state: &mut State) -> Option<Self::AI<'a>> {
         let MemberName::Function(fn_name) = context.member else {
             return None;
         };
@@ -112,24 +119,20 @@ impl SimpleAbsIntConstructor for CustomStateChangeVerifier {
             return None;
         }
 
-        Some(CustomStateChangeVerifierAI {
-            fn_name_loc: fn_name.loc,
-        })
+        Some(CustomStateChangeVerifierAI { fn_name_loc: fn_name.loc })
     }
 }
 
 impl SimpleAbsInt for CustomStateChangeVerifierAI {
-    type State = State;
     type ExecutionContext = ExecutionContext;
+    type State = State;
 
     fn finish(&mut self, _final_states: BTreeMap<Label, State>, diags: Diagnostics) -> Diagnostics {
         diags
     }
 
     fn start_command(&self, _: &mut State) -> ExecutionContext {
-        ExecutionContext {
-            diags: Diagnostics::new(),
-        }
+        ExecutionContext { diags: Diagnostics::new() }
     }
 
     fn finish_command(&self, context: ExecutionContext, _state: &mut State) -> Diagnostics {
@@ -146,10 +149,7 @@ impl SimpleAbsInt for CustomStateChangeVerifierAI {
         f: &ModuleCall,
         args: Vec<Value>,
     ) -> Option<Vec<Value>> {
-        if let Some((_, _, fname)) = PRIVATE_OBJ_FUNCTIONS
-            .iter()
-            .find(|(addr, module, fun)| f.is(addr, module, fun))
-        {
+        if let Some((_, _, fname)) = PRIVATE_OBJ_FUNCTIONS.iter().find(|(addr, module, fun)| f.is(addr, module, fun)) {
             if let Value::LocalObjWithStore(obj_addr_loc) = args[0] {
                 let (op, action) = match *fname {
                     TRANSFER_FUN => ("transfer", "transferred"),
@@ -168,11 +168,7 @@ impl SimpleAbsInt for CustomStateChangeVerifierAI {
                     "A custom {op} policy for a given type is implemented through \
                     calling the private '{fname}' function variant in the module defining this type"
                 );
-                let mut d = diag!(
-                    CUSTOM_STATE_CHANGE_DIAG,
-                    (self.fn_name_loc, msg),
-                    (f.name.loc(), uid_msg)
-                );
+                let mut d = diag!(CUSTOM_STATE_CHANGE_DIAG, (self.fn_name_loc, msg), (f.name.loc(), uid_msg));
                 d.add_note(note_msg);
                 if obj_addr_loc != INVALID_LOC {
                     let loc_msg = format!(

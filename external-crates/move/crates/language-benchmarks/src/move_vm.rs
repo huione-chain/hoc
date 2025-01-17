@@ -46,32 +46,20 @@ pub fn bench<M: Measurement + 'static>(c: &mut Criterion<M>, filename: &str) {
 }
 
 fn make_path(file: &str) -> PathBuf {
-    vec![env!("CARGO_MANIFEST_DIR"), "tests", file]
-        .into_iter()
-        .collect()
+    vec![env!("CARGO_MANIFEST_DIR"), "tests", file].into_iter().collect()
 }
 
 // Compile `bench.move` and its dependencies
 pub fn compile_modules(filename: &str) -> Vec<CompiledModule> {
     let src_files = vec![make_path(filename).to_str().unwrap().to_owned()];
-    let pkg_config = move_compiler::shared::PackageConfig {
-        edition: Edition::E2024_BETA,
-        ..Default::default()
-    };
-    let (_files, compiled_units) = Compiler::from_files(
-        None,
-        src_files,
-        vec![],
-        move_stdlib::move_stdlib_named_addresses(),
-    )
-    .set_pre_compiled_lib(Arc::new(PRECOMPILED_MOVE_STDLIB.clone()))
-    .set_default_config(pkg_config)
-    .build_and_report()
-    .expect("Error compiling...");
-    compiled_units
-        .into_iter()
-        .map(|annot_unit| annot_unit.named_module.module)
-        .collect()
+    let pkg_config = move_compiler::shared::PackageConfig { edition: Edition::E2024_BETA, ..Default::default() };
+    let (_files, compiled_units) =
+        Compiler::from_files(None, src_files, vec![], move_stdlib::move_stdlib_named_addresses())
+            .set_pre_compiled_lib(Arc::new(PRECOMPILED_MOVE_STDLIB.clone()))
+            .set_default_config(pkg_config)
+            .build_and_report()
+            .expect("Error compiling...");
+    compiled_units.into_iter().map(|annot_unit| annot_unit.named_module.module).collect()
 }
 
 fn create_vm() -> MoveVM {
@@ -84,12 +72,7 @@ fn create_vm() -> MoveVM {
 }
 
 // execute a given function in the Bench module
-fn execute<M: Measurement + 'static>(
-    c: &mut Criterion<M>,
-    move_vm: &MoveVM,
-    modules: Vec<CompiledModule>,
-    file: &str,
-) {
+fn execute<M: Measurement + 'static>(c: &mut Criterion<M>, move_vm: &MoveVM, modules: Vec<CompiledModule>, file: &str) {
     // establish running context
     let storage = BlankStorage::new();
     let sender = CORE_CODE_ADDRESS;
@@ -99,12 +82,8 @@ fn execute<M: Measurement + 'static>(
 
     for module in modules {
         let mut mod_blob = vec![];
-        module
-            .serialize_with_version(module.version, &mut mod_blob)
-            .expect("Module serialization error");
-        session
-            .publish_module(mod_blob, sender, &mut UnmeteredGasMeter)
-            .expect("Module must load");
+        module.serialize_with_version(module.version, &mut mod_blob).expect("Module serialization error");
+        session.publish_module(mod_blob, sender, &mut UnmeteredGasMeter).expect("Module must load");
     }
 
     // module and function to call
@@ -122,9 +101,7 @@ fn execute<M: Measurement + 'static>(
                     Vec::<Vec<u8>>::new(),
                     &mut UnmeteredGasMeter,
                 )
-                .unwrap_or_else(|err| {
-                    panic!("{:?}::bench in {file} failed with {:?}", &module_id, err)
-                })
+                .unwrap_or_else(|err| panic!("{:?}::bench in {file} failed with {:?}", &module_id, err))
         })
     });
 }

@@ -77,11 +77,7 @@ type ControlFlowSet = BTreeSet<ControlFlowEntry>;
 enum ControlFlow {
     None,
     Possible,
-    Divergent {
-        loc: Loc,
-        set: ControlFlowSet,
-        reported: bool,
-    },
+    Divergent { loc: Loc, set: ControlFlowSet, reported: bool },
 }
 
 impl ControlFlow {
@@ -112,24 +108,12 @@ impl ControlFlow {
                 CF::Divergent { .. } => CF::Possible,
             },
             CF::Possible => CF::Possible,
-            CF::Divergent {
-                loc: _,
-                set: mut left,
-                reported: reported_left,
-            } => match other {
+            CF::Divergent { loc: _, set: mut left, reported: reported_left } => match other {
                 CF::None => CF::Possible,
                 CF::Possible => CF::Possible,
-                CF::Divergent {
-                    loc: _,
-                    set: mut right,
-                    reported: reported_right,
-                } => {
+                CF::Divergent { loc: _, set: mut right, reported: reported_right } => {
                     left.append(&mut right);
-                    CF::Divergent {
-                        loc,
-                        set: left,
-                        reported: reported_left || reported_right,
-                    }
+                    CF::Divergent { loc, set: left, reported: reported_left || reported_right }
                 }
             },
         }
@@ -165,11 +149,7 @@ impl ControlFlow {
         use ControlFlow as CF;
         match &mut self {
             CF::None | CF::Possible => (),
-            CF::Divergent {
-                set,
-                reported: _,
-                loc: _,
-            } => {
+            CF::Divergent { set, reported: _, loc: _ } => {
                 set.remove(&ControlFlowEntry::GiveCalled(*label));
                 set.remove(&ControlFlowEntry::ContinueCalled(*label));
                 if set.is_empty() {
@@ -223,11 +203,7 @@ impl<'env> Context<'env> {
     fn maybe_report_value_error(&mut self, error: &mut ControlFlow) -> bool {
         use ControlFlow as CF;
         match error {
-            CF::Divergent {
-                loc,
-                set: _,
-                reported,
-            } if !*reported => {
+            CF::Divergent { loc, set: _, reported } if !*reported => {
                 *reported = true;
                 self.add_diag(diag!(UnusedItem::DeadCode, (*loc, VALUE_UNREACHABLE_MSG)));
                 true
@@ -239,11 +215,7 @@ impl<'env> Context<'env> {
     fn maybe_report_tail_error(&mut self, error: &mut ControlFlow) -> bool {
         use ControlFlow as CF;
         match error {
-            CF::Divergent {
-                loc,
-                set: _,
-                reported,
-            } if !*reported => {
+            CF::Divergent { loc, set: _, reported } if !*reported => {
                 *reported = true;
                 self.add_diag(diag!(UnusedItem::DeadCode, (*loc, DIVERGENT_MSG)));
                 true
@@ -252,18 +224,10 @@ impl<'env> Context<'env> {
         }
     }
 
-    fn maybe_report_statement_error(
-        &mut self,
-        error: &mut ControlFlow,
-        next_stmt: Option<&Loc>,
-    ) -> bool {
+    fn maybe_report_statement_error(&mut self, error: &mut ControlFlow, next_stmt: Option<&Loc>) -> bool {
         use ControlFlow as CF;
         match error {
-            CF::Divergent {
-                loc,
-                set: _,
-                reported,
-            } if !*reported => {
+            CF::Divergent { loc, set: _, reported } if !*reported => {
                 *reported = true;
                 let mut diag = diag!(UnusedItem::DeadCode, (*loc, DIVERGENT_MSG));
                 if let Some(next_loc) = next_stmt {
@@ -276,19 +240,11 @@ impl<'env> Context<'env> {
         }
     }
 
-    fn maybe_report_statement_tail_error(
-        &mut self,
-        error: &mut ControlFlow,
-        tail_exp: &T::Exp,
-    ) -> bool {
+    fn maybe_report_statement_tail_error(&mut self, error: &mut ControlFlow, tail_exp: &T::Exp) -> bool {
         use ControlFlow as CF;
         if matches!(tail_exp.exp.value, T::UnannotatedExp_::Unit { .. }) {
             match error {
-                CF::Divergent {
-                    loc,
-                    set: _,
-                    reported,
-                } if !*reported => {
+                CF::Divergent { loc, set: _, reported } if !*reported => {
                     *reported = true;
                     self.add_diag(diag!(
                         UnusedItem::TrailingSemi,
@@ -311,52 +267,30 @@ const VALUE_UNREACHABLE_MSG: &str =
 
 const DIVERGENT_MSG: &str = "Any code after this expression will not be reached";
 
-const UNREACHABLE_MSG: &str =
-    "Unreachable code. This statement (and any following statements) will not be executed.";
+const UNREACHABLE_MSG: &str = "Unreachable code. This statement (and any following statements) will not be executed.";
 
 const SEMI_MSG: &str = "Invalid trailing ';'";
-const INFO_MSG: &str =
-    "A trailing ';' in an expression block implicitly adds a '()' value after the semicolon. \
+const INFO_MSG: &str = "A trailing ';' in an expression block implicitly adds a '()' value after the semicolon. \
      That '()' value will not be reachable";
 
 fn return_called(loc: Loc) -> ControlFlow {
-    ControlFlow::Divergent {
-        loc,
-        set: BTreeSet::from([ControlFlowEntry::ReturnCalled]),
-        reported: false,
-    }
+    ControlFlow::Divergent { loc, set: BTreeSet::from([ControlFlowEntry::ReturnCalled]), reported: false }
 }
 
 fn abort_called(loc: Loc) -> ControlFlow {
-    ControlFlow::Divergent {
-        loc,
-        set: BTreeSet::from([ControlFlowEntry::AbortCalled]),
-        reported: false,
-    }
+    ControlFlow::Divergent { loc, set: BTreeSet::from([ControlFlowEntry::AbortCalled]), reported: false }
 }
 
 fn give_called(loc: Loc, label: BlockLabel) -> ControlFlow {
-    ControlFlow::Divergent {
-        loc,
-        set: BTreeSet::from([ControlFlowEntry::GiveCalled(label)]),
-        reported: false,
-    }
+    ControlFlow::Divergent { loc, set: BTreeSet::from([ControlFlowEntry::GiveCalled(label)]), reported: false }
 }
 
 fn continue_called(loc: Loc, label: BlockLabel) -> ControlFlow {
-    ControlFlow::Divergent {
-        loc,
-        set: BTreeSet::from([ControlFlowEntry::ContinueCalled(label)]),
-        reported: false,
-    }
+    ControlFlow::Divergent { loc, set: BTreeSet::from([ControlFlowEntry::ContinueCalled(label)]), reported: false }
 }
 
 fn infinite_loop(loc: Loc) -> ControlFlow {
-    ControlFlow::Divergent {
-        loc,
-        set: BTreeSet::from([ControlFlowEntry::InfiniteLoop]),
-        reported: false,
-    }
+    ControlFlow::Divergent { loc, set: BTreeSet::from([ControlFlowEntry::InfiniteLoop]), reported: false }
 }
 
 //**************************************************************************************************
@@ -390,11 +324,7 @@ fn module(context: &mut Context, mdef: &T::ModuleDefinition) {
 //**************************************************************************************************
 
 fn function(context: &mut Context, _name: &Symbol, f: &T::Function) {
-    let T::Function {
-        warning_filter,
-        body,
-        ..
-    } = f;
+    let T::Function { warning_filter, body, .. } = f;
     context.push_warning_filter_scope(*warning_filter);
     function_body(context, body);
     context.pop_warning_filter_scope();
@@ -416,10 +346,7 @@ fn constant(context: &mut Context, _name: &Symbol, cdef: &T::Constant) {
     let eloc = cdef.value.exp.loc;
     let tseq = {
         let mut v = VecDeque::new();
-        v.push_back(sp(
-            eloc,
-            T::SequenceItem_::Seq(Box::new(cdef.value.clone())),
-        ));
+        v.push_back(sp(eloc, T::SequenceItem_::Seq(Box::new(cdef.value.clone()))));
         v
     };
     body(context, &tseq);
@@ -444,28 +371,26 @@ fn body(context: &mut Context, seq: &VecDeque<T::SequenceItem>) {
 fn tail(context: &mut Context, e: &T::Exp) -> ControlFlow {
     use ControlFlow as CF;
     use T::UnannotatedExp_ as E;
-    let T::Exp {
-        exp: sp!(eloc, e_), ..
-    } = e;
+    let T::Exp { exp: sp!(eloc, e_), .. } = e;
 
     match e_ {
         // -----------------------------------------------------------------------------------------
         // control flow statements
         // -----------------------------------------------------------------------------------------
-        E::IfElse(test, conseq, alt_opt) => do_if(
-            context,
-            (eloc, test, conseq, alt_opt.as_deref()),
-            /* tail_pos */ true,
-            tail,
-            |context, flow| context.maybe_report_tail_error(flow),
-        ),
-        E::Match(subject, arms) => do_match(
-            context,
-            (subject, arms),
-            /* tail_pos */ true,
-            tail,
-            |context, flow| context.maybe_report_tail_error(flow),
-        ),
+        E::IfElse(test, conseq, alt_opt) => {
+            do_if(context, (eloc, test, conseq, alt_opt.as_deref()), /* tail_pos */ true, tail, |context, flow| {
+                context.maybe_report_tail_error(flow)
+            })
+        }
+        E::Match(subject, arms) => {
+            do_match(
+                context,
+                (subject, arms),
+                /* tail_pos */ true,
+                tail,
+                |context, flow| context.maybe_report_tail_error(flow),
+            )
+        }
         E::VariantMatch(..) => {
             context.add_diag(ice!((*eloc, "Found variant match in detect_dead_code")));
             CF::None
@@ -503,9 +428,7 @@ fn tail(context: &mut Context, e: &T::Exp) -> ControlFlow {
 fn tail_block(context: &mut Context, seq: &VecDeque<T::SequenceItem>) -> ControlFlow {
     use T::SequenceItem_ as S;
     let last_exp = seq.iter().last();
-    let mut stmt_flow = statement_block(
-        context, seq, /* stmt_pos */ false, /* skip_last */ true,
-    );
+    let mut stmt_flow = statement_block(context, seq, /* stmt_pos */ false, /* skip_last */ true);
     if stmt_flow.is_some() {
         // If we have statement flow and a final expression, we might have an unnecessary
         // semicolon if `last` is just a unit value. Let's check for that.
@@ -521,10 +444,7 @@ fn tail_block(context: &mut Context, seq: &VecDeque<T::SequenceItem>) -> Control
             None => ControlFlow::None,
             Some(sp!(_, S::Seq(last))) => tail(context, last),
             Some(sp!(loc, _)) => {
-                context.add_diag(ice!((
-                    *loc,
-                    "ICE last sequence item should have been an exp in dead code analysis"
-                )));
+                context.add_diag(ice!((*loc, "ICE last sequence item should have been an exp in dead code analysis")));
                 ControlFlow::None
             }
         }
@@ -540,9 +460,7 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
     use ControlFlow as CF;
     use T::UnannotatedExp_ as E;
 
-    let T::Exp {
-        exp: sp!(eloc, e_), ..
-    } = e;
+    let T::Exp { exp: sp!(eloc, e_), .. } = e;
 
     macro_rules! value_report {
         ($nested_value:expr) => {{
@@ -558,13 +476,11 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
         // -----------------------------------------------------------------------------------------
         // control flow statements
         // -----------------------------------------------------------------------------------------
-        E::IfElse(test, conseq, alt) => do_if(
-            context,
-            (eloc, test, conseq, alt.as_deref()),
-            /* tail_pos */ false,
-            value,
-            |context, flow| context.maybe_report_value_error(flow),
-        ),
+        E::IfElse(test, conseq, alt) => {
+            do_if(context, (eloc, test, conseq, alt.as_deref()), /* tail_pos */ false, value, |context, flow| {
+                context.maybe_report_value_error(flow)
+            })
+        }
         E::Match(subject, arms) => do_match(
             context,
             (subject, arms),
@@ -577,11 +493,7 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
             CF::None
         }
         E::While(..) => statement(context, e),
-        E::Loop {
-            name,
-            body,
-            has_break: _,
-        } => {
+        E::Loop { name, body, has_break: _ } => {
             // A loop can yield values, but only through `break`. We treat the body as a statement,
             // but then consider if it ever breaks out. If it does not, this is an infinite loop.
             let body_flow = statement(context, body);
@@ -629,10 +541,7 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
                         context.maybe_report_value_error(&mut flow);
                     }
                     T::ExpListItem::Splat(_, _, _) => {
-                        context.add_diag(ice!((
-                            *eloc,
-                            "ICE splat exp unsupported by dead code analysis"
-                        )));
+                        context.add_diag(ice!((*eloc, "ICE splat exp unsupported by dead code analysis")));
                     }
                 }
             }
@@ -641,22 +550,18 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
 
         E::Annotate(base_exp, _) | E::Cast(base_exp, _) => value(context, base_exp),
 
-        E::Dereference(base_exp)
-        | E::UnaryExp(_, base_exp)
-        | E::Borrow(_, base_exp, _)
-        | E::TempBorrow(_, base_exp) => value_report!(base_exp),
+        E::Dereference(base_exp) | E::UnaryExp(_, base_exp) | E::Borrow(_, base_exp, _) | E::TempBorrow(_, base_exp) => {
+            value_report!(base_exp)
+        }
 
         E::BorrowLocal(_, _) => CF::None,
 
         // -----------------------------------------------------------------------------------------
         // value-based expressions without subexpressions -- no control flow
         // -----------------------------------------------------------------------------------------
-        E::Unit { .. }
-        | E::Value(_)
-        | E::Constant(_, _)
-        | E::Move { .. }
-        | E::Copy { .. }
-        | E::ErrorConstant { .. } => CF::None,
+        E::Unit { .. } | E::Value(_) | E::Constant(_, _) | E::Move { .. } | E::Copy { .. } | E::ErrorConstant { .. } => {
+            CF::None
+        }
 
         // -----------------------------------------------------------------------------------------
         //  statements
@@ -679,9 +584,7 @@ fn value(context: &mut Context, e: &T::Exp) -> ControlFlow {
 fn value_block(context: &mut Context, seq: &VecDeque<T::SequenceItem>) -> ControlFlow {
     use T::SequenceItem_ as S;
     let last_exp = seq.iter().last();
-    let mut stmt_flow = statement_block(
-        context, seq, /* stmt_pos */ false, /* skip_last */ true,
-    );
+    let mut stmt_flow = statement_block(context, seq, /* stmt_pos */ false, /* skip_last */ true);
     if stmt_flow.is_some() {
         // If we have statement flow and a final expression, we might have an unnecessary
         // semicolon if `last` is just a unit value. Let's check for that.
@@ -697,10 +600,7 @@ fn value_block(context: &mut Context, seq: &VecDeque<T::SequenceItem>) -> Contro
             None => ControlFlow::None,
             Some(sp!(_, S::Seq(last))) => value(context, last),
             Some(sp!(loc, _)) => {
-                context.add_diag(ice!((
-                    *loc,
-                    "ICE last sequence item should have been an exp in dead code analysis"
-                )));
+                context.add_diag(ice!((*loc, "ICE last sequence item should have been an exp in dead code analysis")));
                 ControlFlow::None
             }
         }
@@ -715,9 +615,7 @@ fn value_block(context: &mut Context, seq: &VecDeque<T::SequenceItem>) -> Contro
 fn statement(context: &mut Context, e: &T::Exp) -> ControlFlow {
     use ControlFlow as CF;
     use T::UnannotatedExp_ as E;
-    let T::Exp {
-        exp: sp!(eloc, e_), ..
-    } = e;
+    let T::Exp { exp: sp!(eloc, e_), .. } = e;
 
     macro_rules! value_report {
         ($nested_value:expr) => {{
@@ -735,20 +633,12 @@ fn statement(context: &mut Context, e: &T::Exp) -> ControlFlow {
         // -----------------------------------------------------------------------------------------
         // For `if` and `match`, we don't care if the arms individually diverge since we only care
         // about the final, total view of them.
-        E::IfElse(test, conseq, alt) => do_if(
-            context,
-            (eloc, test, conseq, alt.as_deref()),
-            /* tail_pos */ false,
-            statement,
-            |_, _| false,
-        ),
-        E::Match(subject, arms) => do_match(
-            context,
-            (subject, arms),
-            /* tail_pos */ false,
-            statement,
-            |_, _| false,
-        ),
+        E::IfElse(test, conseq, alt) => {
+            do_if(context, (eloc, test, conseq, alt.as_deref()), /* tail_pos */ false, statement, |_, _| false)
+        }
+        E::Match(subject, arms) => {
+            do_match(context, (subject, arms), /* tail_pos */ false, statement, |_, _| false)
+        }
         E::VariantMatch(_subject, _, _arms) => {
             context.add_diag(ice!((*eloc, "Found variant match in detect_dead_code")));
             CF::None
@@ -766,11 +656,7 @@ fn statement(context: &mut Context, e: &T::Exp) -> ControlFlow {
             }
         }
 
-        E::Loop {
-            name,
-            body,
-            has_break: _,
-        } => {
+        E::Loop { name, body, has_break: _ } => {
             // A loop can yield values, but only through `break`. We treat the body as a statement,
             // but then consider if it ever breaks out. If it does not, this is an infinite loop.
             let body_flow = statement(context, body);
@@ -786,14 +672,10 @@ fn statement(context: &mut Context, e: &T::Exp) -> ControlFlow {
         E::NamedBlock(name, (_, seq)) => {
             // a named block checks for bad semicolons plus if the body exits that
             // block; if so, at least some of that code is live.
-            let body_flow = statement_block(
-                context, seq, /* stmt_pos */ true, /* skip_last */ false,
-            );
+            let body_flow = statement_block(context, seq, /* stmt_pos */ true, /* skip_last */ false);
             body_flow.remove_label(name)
         }
-        E::Block((_, seq)) => statement_block(
-            context, seq, /* stmt_pos */ true, /* skip_last */ false,
-        ),
+        E::Block((_, seq)) => statement_block(context, seq, /* stmt_pos */ true, /* skip_last */ false),
         E::Return(rhs) => value_report!(rhs).combine_seq(return_called(*eloc)),
         E::Abort(rhs) => value_report!(rhs).combine_seq(abort_called(*eloc)),
         E::Give(name, rhs) => value_report!(rhs).combine_seq(give_called(*eloc, *name)),
@@ -856,9 +738,7 @@ fn statement_block(
     // statement position.
     if stmt_pos && seq_has_trailing_unit {
         let last = seq.iter().last();
-        let mut control_flow = statement_block(
-            context, seq, /* stmt_pos */ false, /* skip_last */ true,
-        );
+        let mut control_flow = statement_block(context, seq, /* stmt_pos */ false, /* skip_last */ true);
         if let Some(sp!(_, S::Seq(entry))) = last {
             context.maybe_report_statement_tail_error(&mut control_flow, entry);
         }
@@ -883,10 +763,7 @@ fn statement_block(
                 S::Seq(entry) => {
                     let entry_flow = statement(context, entry);
                     cur_flow = cur_flow.combine_seq(entry_flow);
-                    if cur_flow.is_divergent()
-                        && ndx != last_ndx
-                        && !(ndx + 1 == last_ndx && seq_has_trailing_unit)
-                    {
+                    if cur_flow.is_divergent() && ndx != last_ndx && !(ndx + 1 == last_ndx && seq_has_trailing_unit) {
                         context.maybe_report_statement_error(&mut cur_flow, Some(&locs[ndx + 1]));
                     }
                 }
@@ -933,15 +810,10 @@ where
     };
 
     let conseq_flow = arm_recur(context, conseq);
-    let alt_flow = alt_opt
-        .map(|alt| arm_recur(context, alt))
-        .unwrap_or(CF::None);
+    let alt_flow = alt_opt.map(|alt| arm_recur(context, alt)).unwrap_or(CF::None);
     if tail_pos
         && matches!(conseq.ty, sp!(_, N::Type_::Unit | N::Type_::Anything))
-        && matches!(
-            alt_opt.map(|alt| &alt.ty),
-            None | Some(sp!(_, N::Type_::Unit | N::Type_::Anything))
-        )
+        && matches!(alt_opt.map(|alt| &alt.ty), None | Some(sp!(_, N::Type_::Unit | N::Type_::Anything)))
     {
         return CF::None;
     };
@@ -981,25 +853,12 @@ where
             arm_recur(context, &arm.rhs)
         })
         .collect::<Vec<_>>();
-    if tail_pos
-        && arms.value.iter().all(|arm| {
-            matches!(
-                arm.value.rhs.ty,
-                sp!(_, N::Type_::Unit | N::Type_::Anything)
-            )
-        })
-    {
+    if tail_pos && arms.value.iter().all(|arm| matches!(arm.value.rhs.ty, sp!(_, N::Type_::Unit | N::Type_::Anything))) {
         return CF::None;
     };
     // We _must_ have at least one arm, but we already produced errors about it.
-    let arms_first = if let Some(arm) = arm_flows.pop() {
-        arm
-    } else {
-        CF::None
-    };
-    let mut arms_flow = arm_flows
-        .into_iter()
-        .fold(arms_first, |base, arm| base.combine_arms(arms.loc, arm));
+    let arms_first = if let Some(arm) = arm_flows.pop() { arm } else { CF::None };
+    let mut arms_flow = arm_flows.into_iter().fold(arms_first, |base, arm| base.combine_arms(arms.loc, arm));
     if arm_error(context, &mut arms_flow) {
         arms_flow
     } else {
@@ -1021,11 +880,7 @@ fn process_binops(context: &mut Context, e: &T::Exp) -> ControlFlow {
     let mut value_stack: Vec<ControlFlow> = vec![];
 
     while let Some(exp) = work_queue.pop() {
-        if let T::Exp {
-            exp: sp!(_eloc, E::BinopExp(lhs, sp!(_, op), _, rhs)),
-            ..
-        } = exp
-        {
+        if let T::Exp { exp: sp!(_eloc, E::BinopExp(lhs, sp!(_, op), _, rhs)), .. } = exp {
             match op {
                 BinOp_::Or | BinOp_::And => {
                     // We only care about errors in the left-hand side due to laziness

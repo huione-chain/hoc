@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    bytecode_viewer::BytecodeViewer, source_viewer::ModuleViewer,
-    tui::tui_interface::start_tui_with_interface, viewer::Viewer,
+    bytecode_viewer::BytecodeViewer,
+    source_viewer::ModuleViewer,
+    tui::tui_interface::start_tui_with_interface,
+    viewer::Viewer,
 };
 use clap::Parser;
 use move_binary_format::file_format::CompiledModule;
@@ -36,11 +38,7 @@ pub struct BytecodeViewerConfig {
     pub source_file_path: PathBuf,
 }
 
-pub fn start_viewer_in_memory(
-    compiled_module: CompiledModule,
-    source_map: SourceMap,
-    source_path: &Path,
-) {
+pub fn start_viewer_in_memory(compiled_module: CompiledModule, source_map: SourceMap, source_path: &Path) {
     let module_viewer = ModuleViewer::new(compiled_module.clone(), source_map.clone(), source_path);
     let bytecode_viewer = BytecodeViewer::new(source_map, &compiled_module);
     let interface = Viewer::new(module_viewer, bytecode_viewer);
@@ -49,10 +47,9 @@ pub fn start_viewer_in_memory(
 
 impl BytecodeViewerConfig {
     pub fn start_viewer(&self) {
-        let bytecode_bytes =
-            fs::read(&self.module_binary_path).expect("Unable to read bytecode file");
-        let compiled_module = CompiledModule::deserialize_with_defaults(&bytecode_bytes)
-            .expect("Module blob can't be deserialized");
+        let bytecode_bytes = fs::read(&self.module_binary_path).expect("Unable to read bytecode file");
+        let compiled_module =
+            CompiledModule::deserialize_with_defaults(&bytecode_bytes).expect("Module blob can't be deserialized");
 
         let source_map = source_map_from_file(&self.module_sourcemap_path).unwrap();
 

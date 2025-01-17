@@ -18,10 +18,7 @@ use crate::{
         program_info::{DatatypeKind, TypingProgramInfo},
         unique_map::UniqueMap,
     },
-    sui_mode::{
-        OBJECT_MODULE_NAME, SUI_ADDR_VALUE, TRANSFER_FUNCTION_NAME, TRANSFER_MODULE_NAME,
-        UID_TYPE_NAME,
-    },
+    sui_mode::{OBJECT_MODULE_NAME, SUI_ADDR_VALUE, TRANSFER_FUNCTION_NAME, TRANSFER_MODULE_NAME, UID_TYPE_NAME},
     typing::{ast as T, visitor::TypingVisitorContext},
     FullyCompiledProgram,
 };
@@ -64,10 +61,7 @@ impl SuiInfo {
         assert!(info.sui_flavor_info.is_none());
         let uid_holders = all_uid_holders(info);
         let transferred = all_transferred(pre_compiled_lib, modules, info);
-        Self {
-            uid_holders,
-            transferred,
-        }
+        Self { uid_holders, transferred }
     }
 }
 
@@ -81,10 +75,7 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
         }
     }
 
-    fn merge_uid_holder_opt(
-        u1_opt: Option<UIDHolder>,
-        u2_opt: Option<UIDHolder>,
-    ) -> Option<UIDHolder> {
+    fn merge_uid_holder_opt(u1_opt: Option<UIDHolder>, u2_opt: Option<UIDHolder>) -> Option<UIDHolder> {
         match (u1_opt, u2_opt) {
             (Some(u1), Some(u2)) => Some(merge_uid_holder(u1, u2)),
             (o1, o2) => o1.or(o2),
@@ -92,17 +83,12 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
     }
 
     // returns true if the type at the given position is a phantom type
-    fn phantom_positions(
-        info: &TypingProgramInfo,
-        sp!(_, tn_): &N::TypeName,
-    ) -> Vec</* is_phantom */ bool> {
+    fn phantom_positions(info: &TypingProgramInfo, sp!(_, tn_): &N::TypeName) -> Vec</* is_phantom */ bool> {
         match tn_ {
             N::TypeName_::Multiple(n) => vec![false; *n],
-            N::TypeName_::Builtin(sp!(_, b_)) => b_
-                .tparam_constraints(Loc::invalid())
-                .into_iter()
-                .map(|_| false)
-                .collect(),
+            N::TypeName_::Builtin(sp!(_, b_)) => {
+                b_.tparam_constraints(Loc::invalid()).into_iter().map(|_| false).collect()
+            }
             N::TypeName_::ModuleType(m, n) => {
                 let ty_params = match info.datatype_kind(m, n) {
                     DatatypeKind::Struct => &info.struct_definition(m, n).type_parameters,
@@ -130,9 +116,7 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
 
             N::Type_::Ref(_, inner) => visit_ty(info, visited, uid_holders, inner),
 
-            N::Type_::Apply(_, sp!(_, tn_), _)
-                if tn_.is(&SUI_ADDR_VALUE, OBJECT_MODULE_NAME, UID_TYPE_NAME) =>
-            {
+            N::Type_::Apply(_, sp!(_, tn_), _) if tn_.is(&SUI_ADDR_VALUE, OBJECT_MODULE_NAME, UID_TYPE_NAME) => {
                 Some(UIDHolder::IsUID)
             }
 
@@ -167,12 +151,9 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
             .map(|(field, (_, ty))| {
                 Some(match visit_ty(info, visited, uid_holders, ty)? {
                     UIDHolder::IsUID => UIDHolder::Direct { field, ty: ty.loc },
-                    UIDHolder::Direct { field, ty: uid }
-                    | UIDHolder::Indirect { field, uid, ty: _ } => UIDHolder::Indirect {
-                        field,
-                        ty: ty.loc,
-                        uid,
-                    },
+                    UIDHolder::Direct { field, ty: uid } | UIDHolder::Indirect { field, uid, ty: _ } => {
+                        UIDHolder::Indirect { field, ty: ty.loc, uid }
+                    }
                 })
             })
             .fold(None, merge_uid_holder_opt)
@@ -193,9 +174,7 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
 
         let uid_holder_opt = match info.datatype_kind(&mident, &tn) {
             DatatypeKind::Struct => match &info.struct_definition(&mident, &tn).fields {
-                N::StructFields::Defined(_, fields) => {
-                    visit_fields(info, visited, uid_holders, fields)
-                }
+                N::StructFields::Defined(_, fields) => visit_fields(info, visited, uid_holders, fields),
                 N::StructFields::Native(_) => None,
             },
             DatatypeKind::Enum => info
@@ -218,11 +197,8 @@ fn all_uid_holders(info: &TypingProgramInfo) -> BTreeMap<(ModuleIdent, DatatypeN
     let visited = &mut BTreeSet::new();
     let mut uid_holders = BTreeMap::new();
     for (mident, mdef) in info.modules.key_cloned_iter() {
-        let datatypes = mdef
-            .structs
-            .key_cloned_iter()
-            .map(|(n, _)| n)
-            .chain(mdef.enums.key_cloned_iter().map(|(n, _)| n));
+        let datatypes =
+            mdef.structs.key_cloned_iter().map(|(n, _)| n).chain(mdef.enums.key_cloned_iter().map(|(n, _)| n));
         for tn in datatypes {
             visit_decl(info, visited, &mut uid_holders, mident, tn)
         }
@@ -249,13 +225,7 @@ fn all_transferred(
 
         let mdef = match modules.get(&mident) {
             Some(mdef) => mdef,
-            None => pre_compiled_lib
-                .as_ref()
-                .unwrap()
-                .typing
-                .modules
-                .get(&mident)
-                .unwrap(),
+            None => pre_compiled_lib.as_ref().unwrap().typing.modules.get(&mident).unwrap(),
         };
         for (_, _, fdef) in &mdef.functions {
             add_private_transfers(&mut transferred, fdef);
@@ -264,10 +234,7 @@ fn all_transferred(
     transferred
 }
 
-fn add_private_transfers(
-    transferred: &mut BTreeMap<(ModuleIdent, DatatypeName), TransferKind>,
-    fdef: &T::Function,
-) {
+fn add_private_transfers(transferred: &mut BTreeMap<(ModuleIdent, DatatypeName), TransferKind>, fdef: &T::Function) {
     struct TransferVisitor<'a> {
         transferred: &'a mut BTreeMap<(ModuleIdent, DatatypeName), TransferKind>,
     }
@@ -285,11 +252,7 @@ fn add_private_transfers(
             let E::ModuleCall(call) = &e.exp.value else {
                 return false;
             };
-            if !call.is(
-                &SUI_ADDR_VALUE,
-                TRANSFER_MODULE_NAME,
-                TRANSFER_FUNCTION_NAME,
-            ) {
+            if !call.is(&SUI_ADDR_VALUE, TRANSFER_MODULE_NAME, TRANSFER_FUNCTION_NAME) {
                 return false;
             }
             let [sp!(_, ty)] = call.type_arguments.as_slice() else {
@@ -298,9 +261,7 @@ fn add_private_transfers(
             let Some(n) = ty.type_name().and_then(|t| t.value.datatype_name()) else {
                 return false;
             };
-            self.transferred
-                .entry(n)
-                .or_insert_with(|| TransferKind::PrivateTransfer(e.exp.loc));
+            self.transferred.entry(n).or_insert_with(|| TransferKind::PrivateTransfer(e.exp.loc));
             false
         }
     }

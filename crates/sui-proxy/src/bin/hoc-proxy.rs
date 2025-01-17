@@ -31,7 +31,7 @@ static APP_USER_AGENT: &str = const_str::concat!(env!("CARGO_PKG_NAME"), "/", en
 #[clap(name = env!("CARGO_BIN_NAME"))]
 #[clap(version = VERSION)]
 struct Args {
-    #[clap(long, short, default_value = "./sui-proxy.yaml", help = "Specify the config file path to use")]
+    #[clap(long, short, default_value = "./hoc-proxy.yaml", help = "Specify the config file path to use")]
     config: String,
 }
 
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
     let histogram_relay = histogram_relay::start_prometheus_server(histogram_listener);
     let registry_service = metrics::start_prometheus_server(metrics_listener);
     let prometheus_registry = registry_service.default_registry();
-    prometheus_registry.register(mysten_metrics::uptime_metric("sui-proxy", VERSION, "unavailable")).unwrap();
+    prometheus_registry.register(mysten_metrics::uptime_metric("hoc-proxy", VERSION, "unavailable")).unwrap();
     let app = app(
         Labels {
             network: config.network,

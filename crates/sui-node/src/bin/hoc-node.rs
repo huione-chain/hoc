@@ -46,7 +46,7 @@ fn main() {
     // ProtocolConfig::poison_get_for_min_version();
 
     move_vm_profiler::tracing_feature_enabled! {
-        panic!("Cannot run the sui-node binary with tracing feature enabled");
+        panic!("Cannot run the hoc-node binary with tracing feature enabled");
     }
 
     let args = Args::parse();

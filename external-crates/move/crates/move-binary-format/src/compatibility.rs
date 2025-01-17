@@ -110,12 +110,7 @@ impl Compatibility {
 
         // module's name and address are unchanged
         if old_module.address != new_module.address || old_module.name != new_module.name {
-            context.module_id_mismatch(
-                &old_module.address,
-                &old_module.name,
-                &new_module.address,
-                &new_module.name,
-            );
+            context.module_id_mismatch(&old_module.address, &old_module.name, &new_module.address, &new_module.name);
         }
 
         // old module's structs are a subset of the new module's structs
@@ -128,11 +123,8 @@ impl Compatibility {
                 continue;
             };
 
-            if !datatype_abilities_compatible(
-                self.disallowed_new_abilities,
-                old_struct.abilities,
-                new_struct.abilities,
-            ) {
+            if !datatype_abilities_compatible(self.disallowed_new_abilities, old_struct.abilities, new_struct.abilities)
+            {
                 context.struct_ability_mismatch(name, old_struct, new_struct);
             }
 
@@ -165,11 +157,7 @@ impl Compatibility {
                 continue;
             };
 
-            if !datatype_abilities_compatible(
-                self.disallowed_new_abilities,
-                old_enum.abilities,
-                new_enum.abilities,
-            ) {
+            if !datatype_abilities_compatible(self.disallowed_new_abilities, old_enum.abilities, new_enum.abilities) {
                 context.enum_ability_mismatch(name, old_enum, new_enum);
             }
 
@@ -232,9 +220,7 @@ impl Compatibility {
             };
 
             // Check visibility compatibility
-            if old_func.visibility == Visibility::Public
-                && new_func.visibility != Visibility::Public
-            {
+            if old_func.visibility == Visibility::Public && new_func.visibility != Visibility::Public {
                 context.function_lost_public_visibility(name, old_func);
             }
 
@@ -253,10 +239,7 @@ impl Compatibility {
             // Check signature compatibility
             if old_func.parameters != new_func.parameters
                 || old_func.return_ != new_func.return_
-                || !fun_type_parameters_compatible(
-                    &old_func.type_parameters,
-                    &new_func.type_parameters,
-                )
+                || !fun_type_parameters_compatible(&old_func.type_parameters, &new_func.type_parameters)
             {
                 context.function_signature_mismatch(name, old_func, new_func);
             }
@@ -283,10 +266,7 @@ fn datatype_abilities_compatible(
 
 // When upgrading, the new type parameters must be the same length, and the new type parameter
 // constraints must be compatible
-fn fun_type_parameters_compatible(
-    old_type_parameters: &[AbilitySet],
-    new_type_parameters: &[AbilitySet],
-) -> bool {
+fn fun_type_parameters_compatible(old_type_parameters: &[AbilitySet], new_type_parameters: &[AbilitySet]) -> bool {
     old_type_parameters.len() == new_type_parameters.len()
         && old_type_parameters.iter().zip(new_type_parameters).all(
             |(old_type_parameter_constraint, new_type_parameter_constraint)| {
@@ -305,19 +285,17 @@ fn datatype_type_parameters_compatible(
     new_type_parameters: &[DatatypeTyParameter],
 ) -> bool {
     old_type_parameters.len() == new_type_parameters.len()
-        && old_type_parameters.iter().zip(new_type_parameters).all(
-            |(old_type_parameter, new_type_parameter)| {
-                type_parameter_phantom_decl_compatible(
-                    disallow_changing_generic_abilities,
-                    old_type_parameter,
-                    new_type_parameter,
-                ) && type_parameter_constraints_compatible(
-                    disallow_changing_generic_abilities,
-                    old_type_parameter.constraints,
-                    new_type_parameter.constraints,
-                )
-            },
-        )
+        && old_type_parameters.iter().zip(new_type_parameters).all(|(old_type_parameter, new_type_parameter)| {
+            type_parameter_phantom_decl_compatible(
+                disallow_changing_generic_abilities,
+                old_type_parameter,
+                new_type_parameter,
+            ) && type_parameter_constraints_compatible(
+                disallow_changing_generic_abilities,
+                old_type_parameter.constraints,
+                new_type_parameter.constraints,
+            )
+        })
 }
 
 // When upgrading, the new constraints must be a subset of (or equal to) the old constraints.
@@ -364,9 +342,7 @@ impl InclusionCheck {
     // in `new_module` (Note: `new_module` may have larger pools, but they are not accessed by the
     // code).
     pub fn check(&self, old_module: &Module, new_module: &Module) -> PartialVMResult<()> {
-        let err = Err(PartialVMError::new(
-            StatusCode::BACKWARD_INCOMPATIBLE_MODULE_UPDATE,
-        ));
+        let err = Err(PartialVMError::new(StatusCode::BACKWARD_INCOMPATIBLE_MODULE_UPDATE));
 
         // Module checks
         if old_module.address != new_module.address
@@ -428,23 +404,14 @@ impl InclusionCheck {
             // already ensured that the old variants are >= new variants, and the fact
             // that zip will truncate the second iterator if there are extra there to allow
             // adding new variants to enums in `Self::Subset` compatibility mode.
-            if !old_enum
-                .variants
-                .iter()
-                .zip(&new_enum.variants)
-                .all(|(old, new)| old == new)
-            {
+            if !old_enum.variants.iter().zip(&new_enum.variants).all(|(old, new)| old == new) {
                 return err;
             }
         }
 
         // Function checks
         for (name, old_func) in &old_module.functions {
-            match new_module
-                .functions
-                .get(name)
-                .or_else(|| new_module.functions.get(name))
-            {
+            match new_module.functions.get(name).or_else(|| new_module.functions.get(name)) {
                 Some(new_func) if old_func == new_func => (),
                 _ => {
                     return err;

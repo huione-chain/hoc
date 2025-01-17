@@ -42,10 +42,10 @@ struct Opts {
     #[clap(long, num_args(1..), default_value = "http://127.0.0.1:9000")]
     pub urls: Vec<String>,
     /// the path to log file directory
-    #[clap(long, default_value = "~/.sui/sui_config/logs")]
+    #[clap(long, default_value = "~/.hoc/hoc_config/logs")]
     logs_directory: String,
 
-    #[clap(long, default_value = "~/.sui/loadgen/data")]
+    #[clap(long, default_value = "~/.hoc/loadgen/data")]
     data_directory: String,
 }
 
@@ -141,8 +141,8 @@ pub enum ClapCommand {
 
 fn get_keypair() -> Result<SignerInfo> {
     // TODO(chris) allow pass in custom path for keystore
-    // Load keystore from ~/.sui/sui_config/sui.keystore
-    let keystore_path = get_sui_config_directory().join("sui.keystore");
+    // Load keystore from ~/.hoc/hoc_config/hoc.keystore
+    let keystore_path = get_sui_config_directory().join("hoc.keystore");
     let keystore = Keystore::from(FileBasedKeystore::new(&keystore_path)?);
     let active_address = keystore.addresses().pop().unwrap();
     let keypair: &SuiKeyPair = keystore.get_key(&active_address)?;
@@ -152,7 +152,7 @@ fn get_keypair() -> Result<SignerInfo> {
 
 fn get_sui_config_directory() -> PathBuf {
     match dirs::home_dir() {
-        Some(v) => v.join(".sui").join("sui_config"),
+        Some(v) => v.join(".hoc").join("hoc_config"),
         None => panic!("Cannot obtain home directory path"),
     }
 }

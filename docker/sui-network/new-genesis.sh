@@ -2,9 +2,9 @@
 # Copyright (c) Mysten Labs, Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
-# assumes sui cli installed (brew install sui or cargo build --bin sui)
+# assumes hoc cli installed (cargo build --bin hoc)
 
-cd genesis
+cd genesis || exit
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -r requirements.txt

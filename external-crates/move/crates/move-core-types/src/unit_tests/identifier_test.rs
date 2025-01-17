@@ -30,11 +30,7 @@ fn valid_identifiers() {
         "<SELF>",
     ];
     for identifier in &valid_identifiers {
-        assert!(
-            Identifier::is_valid(identifier),
-            "Identifier '{}' should be valid",
-            identifier
-        );
+        assert!(Identifier::is_valid(identifier), "Identifier '{}' should be valid", identifier);
     }
 }
 
@@ -58,11 +54,7 @@ fn invalid_identifiers() {
         "foo!!bar!!<<>>",
     ];
     for identifier in &invalid_identifiers {
-        assert!(
-            !Identifier::is_valid(identifier),
-            "Identifier '{}' should be invalid",
-            identifier
-        );
+        assert!(!Identifier::is_valid(identifier), "Identifier '{}' should be invalid", identifier);
     }
 }
 
