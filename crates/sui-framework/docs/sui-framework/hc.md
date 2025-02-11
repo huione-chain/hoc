@@ -130,7 +130,7 @@ This should be called only once during genesis creation.
         <a href="../sui-framework/hc.md#0x2_hc_HC">HC</a> {},
         9,
         b"<a href="../sui-framework/hc.md#0x2_hc_HC">HC</a>",
-        b"Hc",
+        b"<a href="../sui-framework/hc.md#0x2_hc_HC">HC</a>",
         // TODO: add appropriate description and logo <a href="../sui-framework/url.md#0x2_url">url</a>
         b"",
         <a href="../move-stdlib/option.md#0x1_option_none">option::none</a>(),

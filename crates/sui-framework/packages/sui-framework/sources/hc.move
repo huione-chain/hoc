@@ -38,7 +38,7 @@ fun new(ctx: &mut TxContext): Balance<HC> {
         HC {},
         9,
         b"HC",
-        b"Hc",
+        b"HC",
         // TODO: add appropriate description and logo url
         b"",
         option::none(),
