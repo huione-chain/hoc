@@ -30,7 +30,7 @@ module sui_system::voting_power {
 
     // Cap voting power of an individual validator at 10%.
     // TODO: determine what this should be
-    const MAX_VOTING_POWER: u64 = 1_000;
+    const MAX_VOTING_POWER: u64 = 2_000;
 
     const ETotalPowerMismatch: u64 = 1;
     const ERelativePowerMismatch: u64 = 2;
