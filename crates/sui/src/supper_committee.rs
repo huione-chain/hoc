@@ -6,8 +6,10 @@ use serde::Serialize;
 use std::fmt::{Debug, Display, Formatter, Write};
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockResponse};
 use sui_sdk::wallet_context::WalletContext;
-use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
-use sui_types::transaction::{CallArg, ObjectArg};
+use sui_types::{
+    base_types::{ObjectID, ObjectRef, SuiAddress},
+    transaction::{CallArg, ObjectArg},
+};
 use tracing::info;
 
 const DEFAULT_GAS_BUDGET: u64 = 200_000_000; // 0.2 SUI

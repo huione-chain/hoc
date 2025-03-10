@@ -27,12 +27,9 @@ use serde::{Deserialize, Serialize};
 use super::{
     epoch_start_sui_system_state::EpochStartValidatorInfoV1,
     get_validators_from_table_vec,
-    sui_system_state_summary::{
-        SuiSupperCommitteeSummary,
-        SuiSystemStateSummary,
-        SuiValidatorSummary,
-    },
-    AdvanceEpochParams, SuiSystemStateTrait,
+    sui_system_state_summary::{SuiSupperCommitteeSummary, SuiSystemStateSummary, SuiValidatorSummary},
+    AdvanceEpochParams,
+    SuiSystemStateTrait,
 };
 
 const E_METADATA_INVALID_POP: u64 = 0;
@@ -407,7 +404,6 @@ pub struct StakingPoolV1 {
     pub extra_fields: Bag,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct SuiSupperCommittee {
     pub committee_validators: VecSet<SuiAddress>,
@@ -419,7 +415,7 @@ impl SuiSupperCommittee {
     pub fn into_supper_committee_summary(self) -> SuiSupperCommitteeSummary {
         SuiSupperCommitteeSummary {
             committee_validators: self.committee_validators.contents,
-            proposal_list: self.proposal_list
+            proposal_list: self.proposal_list,
         }
     }
 }
@@ -616,7 +612,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                     validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
                     at_risk_validators: VecMap { contents: at_risk_validators },
                     validator_only_staking,
-                    trusted_validators: VecSet{ contents: trusted_validators},
+                    trusted_validators: VecSet { contents: trusted_validators },
                     extra_fields: _,
                 },
             storage_fund,

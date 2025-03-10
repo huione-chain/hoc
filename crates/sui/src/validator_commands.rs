@@ -45,16 +45,25 @@ use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockResponse, SuiT
 use sui_keys::{
     key_derive::generate_new_key,
     keypair_file::{
-        read_authority_keypair_from_file, read_key, read_keypair_from_file, read_network_keypair_from_file,
-        write_authority_keypair_to_file, write_keypair_to_file,
+        read_authority_keypair_from_file,
+        read_key,
+        read_keypair_from_file,
+        read_network_keypair_from_file,
+        write_authority_keypair_to_file,
+        write_keypair_to_file,
     },
     keystore::AccountKeystore,
 };
 use sui_sdk::{wallet_context::WalletContext, SuiClient};
 use sui_types::{
     crypto::{
-        generate_proof_of_possession, get_authority_key_pair, AuthorityKeyPair, AuthorityPublicKeyBytes, NetworkKeyPair,
-        SignatureScheme, SuiKeyPair,
+        generate_proof_of_possession,
+        get_authority_key_pair,
+        AuthorityKeyPair,
+        AuthorityPublicKeyBytes,
+        NetworkKeyPair,
+        SignatureScheme,
+        SuiKeyPair,
     },
     transaction::{CallArg, ObjectArg, Transaction, TransactionData},
 };
@@ -463,7 +472,7 @@ impl SuiValidatorCommand {
                     gas_price,
                     gas_budget,
                 )
-                    .map_err(|e| anyhow!("{e:?}"))?;
+                .map_err(|e| anyhow!("{e:?}"))?;
                 if print_unsigned_transaction_only {
                     let serialized_data = Base64::encode(bcs::to_bytes(&tx_data)?);
                     SuiValidatorCommandResponse::RegisterBridgeCommittee {
@@ -520,7 +529,7 @@ impl SuiValidatorCommand {
                     gas_price,
                     gas_budget,
                 )
-                    .map_err(|e| anyhow!("{e:?}"))?;
+                .map_err(|e| anyhow!("{e:?}"))?;
                 if print_unsigned_transaction_only {
                     let serialized_data = Base64::encode(bcs::to_bytes(&tx_data)?);
                     SuiValidatorCommandResponse::UpdateBridgeCommitteeURL {

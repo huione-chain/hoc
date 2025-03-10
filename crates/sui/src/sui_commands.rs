@@ -18,7 +18,8 @@ use move_analyzer::analyzer;
 use move_package::BuildConfig;
 use rand::rngs::OsRng;
 use std::{
-    fs, io,
+    fs,
+    io,
     io::{stderr, stdout, Write},
     net::{AddrParseError, IpAddr, Ipv4Addr, SocketAddr},
     num::NonZeroUsize,
@@ -26,13 +27,25 @@ use std::{
     sync::Arc,
 };
 use sui_bridge::{
-    config::BridgeCommitteeConfig, metrics::BridgeMetrics, sui_client::SuiBridgeClient,
+    config::BridgeCommitteeConfig,
+    metrics::BridgeMetrics,
+    sui_client::SuiBridgeClient,
     sui_transaction_builder::build_committee_register_transaction,
 };
 use sui_config::{
-    genesis_blob_exists, node::Genesis, p2p::SeedPeer, sui_config_dir, Config, PersistedConfig, FULL_NODE_DB_PATH,
-    SUI_BENCHMARK_GENESIS_GAS_KEYSTORE_FILENAME, SUI_CLIENT_CONFIG, SUI_FULLNODE_CONFIG, SUI_GENESIS_FILENAME,
-    SUI_KEYSTORE_FILENAME, SUI_NETWORK_CONFIG,
+    genesis_blob_exists,
+    node::Genesis,
+    p2p::SeedPeer,
+    sui_config_dir,
+    Config,
+    PersistedConfig,
+    FULL_NODE_DB_PATH,
+    SUI_BENCHMARK_GENESIS_GAS_KEYSTORE_FILENAME,
+    SUI_CLIENT_CONFIG,
+    SUI_FULLNODE_CONFIG,
+    SUI_GENESIS_FILENAME,
+    SUI_KEYSTORE_FILENAME,
+    SUI_NETWORK_CONFIG,
 };
 use sui_faucet::{create_wallet_context, start_faucet, AppState, FaucetConfig, SimpleFaucet};
 use sui_indexer::test_utils::{start_indexer_jsonrpc_for_testing, start_indexer_writer_for_testing};
@@ -474,7 +487,7 @@ impl SuiCommand {
                 }
                 Ok(())
             }
-            SuiCommand::SupperCommittee { config, cmd,json } => {
+            SuiCommand::SupperCommittee { config, cmd, json } => {
                 let config_path = config.unwrap_or(sui_config_dir()?.join(SUI_CLIENT_CONFIG));
                 let mut context = WalletContext::new(&config_path, None, None)?;
                 cmd.execute(&mut context).await?.print(!json);

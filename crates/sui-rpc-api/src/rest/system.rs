@@ -69,9 +69,9 @@ pub struct SupperCommitteeSummary {
 
 impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary> for SupperCommitteeSummary {
     fn from(value: sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary) -> Self {
-        Self{
-            committee_validators: value.committee_validators.into_iter().map(|v|v.into()).collect(),
-            proposal_list: value.proposal_list.into_iter().map(|v|v.into()).collect(),
+        Self {
+            committee_validators: value.committee_validators.into_iter().map(|v| v.into()).collect(),
+            proposal_list: value.proposal_list.into_iter().map(|v| v.into()).collect(),
         }
     }
 }
@@ -473,7 +473,7 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
             validator_candidates_size,
             at_risk_validators,
             validator_report_records,
-            validator_only_staking ,
+            validator_only_staking,
             trusted_validators,
         } = value;
 

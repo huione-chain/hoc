@@ -8,7 +8,11 @@ use serde_with::serde_as;
 use sui_types::{
     base_types::SuiAddress,
     crypto::{
-        verify_proof_of_possession, AuthorityPublicKey, AuthorityPublicKeyBytes, AuthoritySignature, NetworkPublicKey,
+        verify_proof_of_possession,
+        AuthorityPublicKey,
+        AuthorityPublicKeyBytes,
+        AuthoritySignature,
+        NetworkPublicKey,
     },
     multiaddr::Multiaddr,
 };

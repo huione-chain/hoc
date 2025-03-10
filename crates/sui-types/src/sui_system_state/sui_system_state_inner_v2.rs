@@ -18,11 +18,10 @@ use crate::{
     sui_system_state::{
         epoch_start_sui_system_state::EpochStartSystemState,
         get_validators_from_table_vec,
-        sui_system_state_inner_v1::{StakeSubsidyV1, StorageFundV1, ValidatorSetV1},
+        sui_system_state_inner_v1::{StakeSubsidyV1, StorageFundV1, SuiSupperCommittee, ValidatorSetV1},
     },
 };
 use serde::{Deserialize, Serialize};
-use crate::sui_system_state::sui_system_state_inner_v1::SuiSupperCommittee;
 
 /// Rust version of the Move sui::sui_system::SystemParametersV2 type
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
@@ -206,7 +205,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV2 {
                     validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
                     at_risk_validators: VecMap { contents: at_risk_validators },
                     validator_only_staking,
-                    trusted_validators:VecSet{ contents: trusted_validators },
+                    trusted_validators: VecSet { contents: trusted_validators },
                     extra_fields: _,
                 },
             storage_fund,
@@ -280,7 +279,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV2 {
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
             supper_committee: supper_committee.into_supper_committee_summary(),
-            validator_only_staking ,
+            validator_only_staking,
             trusted_validators,
         }
     }

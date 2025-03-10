@@ -23,7 +23,6 @@ use serde_with::serde_as;
 /// It flattens all fields to make them top-level fields such that it as minimum
 /// dependencies to the internal data structures of the SUI system state type.
 
-
 #[derive(Default, Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SuiSupperCommitteeSummary {
@@ -197,7 +196,6 @@ pub struct SuiSystemStateSummary {
 
     pub validator_only_staking: bool,
     pub trusted_validators: Vec<SuiAddress>,
-
 }
 
 impl SuiSystemStateSummary {
@@ -209,14 +207,11 @@ impl SuiSystemStateSummary {
                 let name = AuthorityName::from_bytes(&validator.protocol_pubkey_bytes).unwrap();
                 (
                     name,
-                    (
-                        validator.voting_power,
-                        NetworkMetadata {
-                            network_address: Multiaddr::try_from(validator.net_address.clone()).unwrap(),
-                            narwhal_primary_address: Multiaddr::try_from(validator.primary_address.clone()).unwrap(),
-                            network_public_key: NetworkPublicKey::from_bytes(&validator.network_pubkey_bytes).ok(),
-                        },
-                    ),
+                    (validator.voting_power, NetworkMetadata {
+                        network_address: Multiaddr::try_from(validator.net_address.clone()).unwrap(),
+                        narwhal_primary_address: Multiaddr::try_from(validator.primary_address.clone()).unwrap(),
+                        network_public_key: NetworkPublicKey::from_bytes(&validator.network_pubkey_bytes).ok(),
+                    }),
                 )
             })
             .collect();

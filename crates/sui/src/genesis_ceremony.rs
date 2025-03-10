@@ -5,8 +5,7 @@ use anyhow::Result;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use fastcrypto::encoding::{Encoding, Hex};
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 use sui_config::{genesis::UnsignedGenesis, SUI_GENESIS_FILENAME};
 use sui_genesis_builder::Builder;
 use sui_types::{
@@ -129,7 +128,7 @@ pub fn run(cmd: Ceremony) -> Result<()> {
 
             let revenue_receiving_address = if let Some(revenue_receiving_address) = revenue_receiving_address {
                 SuiAddress::from_str(&revenue_receiving_address)?
-            }else {
+            } else {
                 SuiAddress::from(&account_keypair.public())
             };
 
@@ -308,7 +307,7 @@ mod test {
                 protocol_version: None,
                 command: CeremonyCommand::AddValidator {
                     name: validator.name().to_owned(),
-                    revenue_receiving_address:None,
+                    revenue_receiving_address: None,
                     validator_key_file: key_file.into(),
                     worker_key_file: worker_key_file.into(),
                     network_key_file: network_key_file.into(),

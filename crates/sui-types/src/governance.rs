@@ -95,7 +95,9 @@ impl StakedSui {
         self.principal.value()
     }
 
-    pub fn lock(&self) -> bool { self.lock }
+    pub fn lock(&self) -> bool {
+        self.lock
+    }
 }
 
 impl TryFrom<&Object> for StakedSui {
