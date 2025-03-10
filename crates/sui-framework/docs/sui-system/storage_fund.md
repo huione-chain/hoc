@@ -12,7 +12,7 @@ title: Module `0x3::storage_fund`
 
 
 <pre><code><b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
-<b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
+<b>use</b> <a href="../sui-framework/oct.md#0x2_oct">0x2::oct</a>;
 </code></pre>
 
 
@@ -42,13 +42,13 @@ be taken out of the fund.
 
 <dl>
 <dt>
-<code>total_object_storage_rebates: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;</code>
+<code>total_object_storage_rebates: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;</code>
 </dt>
 <dd>
 
 </dd>
 <dt>
-<code>non_refundable_balance: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;</code>
+<code>non_refundable_balance: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;</code>
 </dt>
 <dd>
 
@@ -65,7 +65,7 @@ be taken out of the fund.
 Called by <code><a href="sui_system.md#0x3_sui_system">sui_system</a></code> at genesis time.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_new">new</a>(initial_fund: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;): <a href="storage_fund.md#0x3_storage_fund_StorageFund">storage_fund::StorageFund</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_new">new</a>(initial_fund: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;): <a href="storage_fund.md#0x3_storage_fund_StorageFund">storage_fund::StorageFund</a>
 </code></pre>
 
 
@@ -74,7 +74,7 @@ Called by <code><a href="sui_system.md#0x3_sui_system">sui_system</a></code> at 
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(package) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_new">new</a>(initial_fund: Balance&lt;HC&gt;) : <a href="storage_fund.md#0x3_storage_fund_StorageFund">StorageFund</a> {
+<pre><code><b>public</b>(package) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_new">new</a>(initial_fund: Balance&lt;OCT&gt;) : <a href="storage_fund.md#0x3_storage_fund_StorageFund">StorageFund</a> {
     <a href="storage_fund.md#0x3_storage_fund_StorageFund">StorageFund</a> {
         // At the beginning there's no <a href="../sui-framework/object.md#0x2_object">object</a> in the storage yet
         total_object_storage_rebates: <a href="../sui-framework/balance.md#0x2_balance_zero">balance::zero</a>(),
@@ -94,7 +94,7 @@ Called by <code><a href="sui_system.md#0x3_sui_system">sui_system</a></code> at 
 Called by <code><a href="sui_system.md#0x3_sui_system">sui_system</a></code> at epoch change times to process the inflows and outflows of storage fund.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_advance_epoch">advance_epoch</a>(self: &<b>mut</b> <a href="storage_fund.md#0x3_storage_fund_StorageFund">storage_fund::StorageFund</a>, storage_charges: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, storage_fund_reinvestment: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, leftover_staking_rewards: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, storage_rebate_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, non_refundable_storage_fee_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_advance_epoch">advance_epoch</a>(self: &<b>mut</b> <a href="storage_fund.md#0x3_storage_fund_StorageFund">storage_fund::StorageFund</a>, storage_charges: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, storage_fund_reinvestment: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, leftover_staking_rewards: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, storage_rebate_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, non_refundable_storage_fee_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;
 </code></pre>
 
 
@@ -105,12 +105,12 @@ Called by <code><a href="sui_system.md#0x3_sui_system">sui_system</a></code> at 
 
 <pre><code><b>public</b>(package) <b>fun</b> <a href="storage_fund.md#0x3_storage_fund_advance_epoch">advance_epoch</a>(
     self: &<b>mut</b> <a href="storage_fund.md#0x3_storage_fund_StorageFund">StorageFund</a>,
-    storage_charges: Balance&lt;HC&gt;,
-    storage_fund_reinvestment: Balance&lt;HC&gt;,
-    leftover_staking_rewards: Balance&lt;HC&gt;,
+    storage_charges: Balance&lt;OCT&gt;,
+    storage_fund_reinvestment: Balance&lt;OCT&gt;,
+    leftover_staking_rewards: Balance&lt;OCT&gt;,
     storage_rebate_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     non_refundable_storage_fee_amount: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
-) : Balance&lt;HC&gt; {
+) : Balance&lt;OCT&gt; {
     // Both the reinvestment and leftover rewards are not <b>to</b> be refunded so they go <b>to</b> the non-refundable <a href="../sui-framework/balance.md#0x2_balance">balance</a>.
     self.non_refundable_balance.join(storage_fund_reinvestment);
     self.non_refundable_balance.join(leftover_staking_rewards);

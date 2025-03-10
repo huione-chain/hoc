@@ -32,7 +32,7 @@ module sui_system::rewards_distribution_tests {
     const STAKER_ADDR_3: address = @0x44;
     const STAKER_ADDR_4: address = @0x45;
 
-    const MIST_PER_HC: u64 = 1_000_000_000;
+    const MIST_PER_OCT: u64 = 1_000_000_000;
 
     #[test]
     fun test_validator_rewards() {
@@ -46,7 +46,7 @@ module sui_system::rewards_distribution_tests {
         advance_epoch_with_reward_amounts(0, 100, scenario);
         assert_validator_total_stake_amounts(
             validator_addrs(),
-            vector[125 * MIST_PER_HC, 225 * MIST_PER_HC, 325 * MIST_PER_HC, 425 * MIST_PER_HC],
+            vector[125 * MIST_PER_OCT, 225 * MIST_PER_OCT, 325 * MIST_PER_OCT, 425 * MIST_PER_OCT],
             scenario
         );
 
@@ -58,7 +58,7 @@ module sui_system::rewards_distribution_tests {
         // the voting power is capped at 10%.
         assert_validator_total_stake_amounts(
             validator_addrs(),
-            vector[150 * MIST_PER_HC, 970 * MIST_PER_HC, 350 * MIST_PER_HC, 450 * MIST_PER_HC],
+            vector[150 * MIST_PER_OCT, 970 * MIST_PER_OCT, 350 * MIST_PER_OCT, 450 * MIST_PER_OCT],
             scenario
         );
         scenario_val.end();
@@ -74,7 +74,7 @@ module sui_system::rewards_distribution_tests {
         advance_epoch(scenario);
 
         advance_epoch_with_reward_amounts(0, 100, scenario);
-        assert_validator_total_stake_amounts(validator_addrs(), vector[100_000_025 * MIST_PER_HC, 200_000_025 * MIST_PER_HC, 300_000_025 * MIST_PER_HC, 400_000_025 * MIST_PER_HC], scenario);
+        assert_validator_total_stake_amounts(validator_addrs(), vector[100_000_025 * MIST_PER_OCT, 200_000_025 * MIST_PER_OCT, 300_000_025 * MIST_PER_OCT, 400_000_025 * MIST_PER_OCT], scenario);
         scenario_val.end();
     }
 
@@ -88,26 +88,26 @@ module sui_system::rewards_distribution_tests {
         stake_with(STAKER_ADDR_2, VALIDATOR_ADDR_2, 100, scenario);
         advance_epoch(scenario);
 
-        assert_validator_total_stake_amounts(validator_addrs(), vector[300 * MIST_PER_HC, 300 * MIST_PER_HC, 300 * MIST_PER_HC, 400 * MIST_PER_HC], scenario);
-        assert_validator_self_stake_amounts(validator_addrs(), vector[100 * MIST_PER_HC, 200 * MIST_PER_HC, 300 * MIST_PER_HC, 400 * MIST_PER_HC], scenario);
+        assert_validator_total_stake_amounts(validator_addrs(), vector[300 * MIST_PER_OCT, 300 * MIST_PER_OCT, 300 * MIST_PER_OCT, 400 * MIST_PER_OCT], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[100 * MIST_PER_OCT, 200 * MIST_PER_OCT, 300 * MIST_PER_OCT, 400 * MIST_PER_OCT], scenario);
 
         // Each pool gets 30 SUI.
         advance_epoch_with_reward_amounts(0, 120, scenario);
-        assert_validator_self_stake_amounts(validator_addrs(), vector[110 * MIST_PER_HC, 220 * MIST_PER_HC, 330 * MIST_PER_HC, 430 * MIST_PER_HC], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[110 * MIST_PER_OCT, 220 * MIST_PER_OCT, 330 * MIST_PER_OCT, 430 * MIST_PER_OCT], scenario);
         unstake(STAKER_ADDR_1, 0, scenario);
         stake_with(STAKER_ADDR_2, VALIDATOR_ADDR_1, 600, scenario);
         // Each pool gets 30 SUI.
         advance_epoch_with_reward_amounts(0, 120, scenario);
         // staker 1 receives only 20 SUI of rewards, not 40 since we are using pre-epoch exchange rate.
-        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), 220 * MIST_PER_HC);
-        assert_validator_self_stake_amounts(validator_addrs(), vector[140 * MIST_PER_HC, 240 * MIST_PER_HC, 360 * MIST_PER_HC, 460 * MIST_PER_HC], scenario);
+        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), 220 * MIST_PER_OCT);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[140 * MIST_PER_OCT, 240 * MIST_PER_OCT, 360 * MIST_PER_OCT, 460 * MIST_PER_OCT], scenario);
         unstake(STAKER_ADDR_2, 0, scenario);
-        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), 120 * MIST_PER_HC); // 20 SUI of rewards received
+        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), 120 * MIST_PER_OCT); // 20 SUI of rewards received
 
         advance_epoch_with_reward_amounts(0, 40, scenario);
 
         unstake(STAKER_ADDR_2, 0, scenario); // unstake 600 principal SUI
-        // additional 600 SUI of principal and 46 SUI of rewards withdrawn to Coin<HC>
+        // additional 600 SUI of principal and 46 SUI of rewards withdrawn to Coin<OCT>
         // For this stake, the staking exchange rate is 100 : 140 and the unstaking
         // exchange rate is 528 : 750 -ish so the total sui withdraw will be:
         // (600 * 100 / 140) * 750 / 528 = ~608. Together with the 120 SUI we already have,
@@ -157,21 +157,21 @@ module sui_system::rewards_distribution_tests {
         advance_epoch_with_reward_amounts(0, 120, scenario);
         // V1: 230, V2: 330, V3: 330, V4: 430
         // 2 SUI, or 20 % of staker_2's rewards, goes to validator_2
-        assert_validator_non_self_stake_amounts(validator_addrs(), vector[115 * MIST_PER_HC, 108 * MIST_PER_HC, 0, 0], scenario);
-        assert_validator_self_stake_amounts(validator_addrs(), vector[115 * MIST_PER_HC, 222 * MIST_PER_HC, 330 * MIST_PER_HC, 430 * MIST_PER_HC], scenario);
+        assert_validator_non_self_stake_amounts(validator_addrs(), vector[115 * MIST_PER_OCT, 108 * MIST_PER_OCT, 0, 0], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[115 * MIST_PER_OCT, 222 * MIST_PER_OCT, 330 * MIST_PER_OCT, 430 * MIST_PER_OCT], scenario);
 
         set_commission_rate_and_advance_epoch(VALIDATOR_ADDR_1, 1000, scenario); // 10% commission
 
         advance_epoch_with_reward_amounts(0, 240, scenario);
-        assert_validator_total_stake_amounts(validator_addrs(), vector[290 * MIST_PER_HC, 390 * MIST_PER_HC, 390 * MIST_PER_HC, 490 * MIST_PER_HC], scenario);
+        assert_validator_total_stake_amounts(validator_addrs(), vector[290 * MIST_PER_OCT, 390 * MIST_PER_OCT, 390 * MIST_PER_OCT, 490 * MIST_PER_OCT], scenario);
 
         // Staker 1 rewards in the recent distribution is 0.9 x 30 = 27 SUI
         // Validator 1 rewards in the recent distribution is 60 - 27 = 33 SUI
 
         // Staker 2 amounts for 0.8 * 60 * (108 / 330) + 108 = 123.709 SUI
         // Validator 2 amounts for 390 - 123.709 = 266.291 SUI
-        assert_validator_non_self_stake_amounts(validator_addrs(), vector[142 * MIST_PER_HC, 123709090909, 0, 0], scenario);
-        assert_validator_self_stake_amounts(validator_addrs(), vector[148 * MIST_PER_HC, 266290909091, 390 * MIST_PER_HC, 490 * MIST_PER_HC], scenario);
+        assert_validator_non_self_stake_amounts(validator_addrs(), vector[142 * MIST_PER_OCT, 123709090909, 0, 0], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[148 * MIST_PER_OCT, 266290909091, 390 * MIST_PER_OCT, 490 * MIST_PER_OCT], scenario);
 
         scenario_val.end();
     }
@@ -208,15 +208,15 @@ module sui_system::rewards_distribution_tests {
         // Since 60 SUI, or 10% of validator_2's rewards (600) are slashed, she only has 800 - 60 = 740 now.
         // There are in total 90 SUI of rewards slashed (60 from the validator, and 30 from her staker)
         // so the unslashed validators each get their share of additional rewards, which is 30.
-        assert_validator_self_stake_amounts(validator_addrs(), vector[565 * MIST_PER_HC, 740 * MIST_PER_HC, 1230 * MIST_PER_HC, 1330 * MIST_PER_HC], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[565 * MIST_PER_OCT, 740 * MIST_PER_OCT, 1230 * MIST_PER_OCT, 1330 * MIST_PER_OCT], scenario);
 
         // Unstake so we can check the stake rewards as well.
         unstake(STAKER_ADDR_1, 0, scenario);
         unstake(STAKER_ADDR_2, 0, scenario);
 
         // Same analysis as above. Delegator 1 has 3 additional SUI, and 10% of staker 2's rewards are slashed.
-        assert!(total_sui_balance(STAKER_ADDR_1, scenario) == 565 * MIST_PER_HC);
-        assert!(total_sui_balance(STAKER_ADDR_2, scenario) == 370 * MIST_PER_HC);
+        assert!(total_sui_balance(STAKER_ADDR_1, scenario) == 565 * MIST_PER_OCT);
+        assert!(total_sui_balance(STAKER_ADDR_2, scenario) == 370 * MIST_PER_OCT);
         scenario_val.end();
     }
 
@@ -249,15 +249,15 @@ module sui_system::rewards_distribution_tests {
         // after the last epoch advancement.
         // The entire rewards of validator 2's staking pool are slashed, which is 900 SUI.
         // so the unslashed validators each get their share of additional rewards, which is 300.
-        assert_validator_self_stake_amounts(validator_addrs(), vector[(550 + 150) * MIST_PER_HC, 200 * MIST_PER_HC, (1200 + 300) * MIST_PER_HC, (1300 + 300) * MIST_PER_HC], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[(550 + 150) * MIST_PER_OCT, 200 * MIST_PER_OCT, (1200 + 300) * MIST_PER_OCT, (1300 + 300) * MIST_PER_OCT], scenario);
 
         // Unstake so we can check the stake rewards as well.
         unstake(STAKER_ADDR_1, 0, scenario);
         unstake(STAKER_ADDR_2, 0, scenario);
 
         // Same analysis as above. Staker 1 has 150 additional SUI, and since all of staker 2's rewards are slashed she only gets back her principal.
-        assert!(total_sui_balance(STAKER_ADDR_1, scenario) == (550 + 150) * MIST_PER_HC);
-        assert!(total_sui_balance(STAKER_ADDR_2, scenario) == 100 * MIST_PER_HC);
+        assert!(total_sui_balance(STAKER_ADDR_1, scenario) == (550 + 150) * MIST_PER_OCT);
+        assert!(total_sui_balance(STAKER_ADDR_2, scenario) == 100 * MIST_PER_OCT);
         scenario_val.end();
     }
 
@@ -291,16 +291,16 @@ module sui_system::rewards_distribution_tests {
         // storage fund reward, so in total it gets 400 SUI of rewards.
         // Validator 3 has a delegator with her so she gets 320 * 3/4 + 75 + 5 = 320 SUI of rewards.
         // Validator 4's should get 300 * 4/5 * (1 - 20%) = 192 in computation rewards and 75 * (1 - 20%) = 60 in storage rewards.
-        assert_validator_self_stake_amounts(validator_addrs(), vector[500 * MIST_PER_HC, 600 * MIST_PER_HC, 620 * MIST_PER_HC, 652 * MIST_PER_HC], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[500 * MIST_PER_OCT, 600 * MIST_PER_OCT, 620 * MIST_PER_OCT, 652 * MIST_PER_OCT], scenario);
 
         // Unstake so we can check the stake rewards as well.
         unstake(STAKER_ADDR_1, 0, scenario);
         unstake(STAKER_ADDR_2, 0, scenario);
 
         // Staker 1 gets 320 * 1/4 = 80 SUI of rewards.
-        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), (100 + 80) * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), (100 + 80) * MIST_PER_OCT);
         // Staker 2 gets 300 * 1/5 * (1 - 20%) = 48 SUI of rewards.
-        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), (100 + 48) * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), (100 + 48) * MIST_PER_OCT);
 
         scenario_val.end();
     }
@@ -331,15 +331,15 @@ module sui_system::rewards_distribution_tests {
         );
 
         // All validators should have 0 rewards added so their stake stays the same.
-        assert_validator_self_stake_amounts(validator_addrs(), vector[100 * MIST_PER_HC, 200 * MIST_PER_HC, 300 * MIST_PER_HC, 400 * MIST_PER_HC], scenario);
+        assert_validator_self_stake_amounts(validator_addrs(), vector[100 * MIST_PER_OCT, 200 * MIST_PER_OCT, 300 * MIST_PER_OCT, 400 * MIST_PER_OCT], scenario);
 
         scenario.next_tx(@0x0);
         // Storage fund balance should increase by 4000 SUI.
         let mut system_state = scenario.take_shared<SuiSystemState>();
-        assert_eq(system_state.get_storage_fund_total_balance(), 4000 * MIST_PER_HC);
+        assert_eq(system_state.get_storage_fund_total_balance(), 4000 * MIST_PER_OCT);
 
         // The entire 1000 SUI of storage rewards should go to the object rebate portion of the storage fund.
-        assert_eq(system_state.get_storage_fund_object_rebates(), 1000 * MIST_PER_HC);
+        assert_eq(system_state.get_storage_fund_object_rebates(), 1000 * MIST_PER_OCT);
 
         test_scenario::return_shared(system_state);
         scenario_val.end();
@@ -374,7 +374,7 @@ module sui_system::rewards_distribution_tests {
         scenario.next_tx(@0x0);
         let mut system_state = scenario.take_shared<SuiSystemState>();
         // Check that we have the right amount of SUI in the staking pool.
-        assert_eq(system_state.validator_stake_amount(VALIDATOR_ADDR_1), 140 * 23 * MIST_PER_HC);
+        assert_eq(system_state.validator_stake_amount(VALIDATOR_ADDR_1), 140 * 23 * MIST_PER_OCT);
         test_scenario::return_shared(system_state);
 
         // Withdraw all stakes at once.
@@ -387,21 +387,21 @@ module sui_system::rewards_distribution_tests {
 
         // staker 1's first stake was active for 3 epochs so got 20 * 3 = 60 SUI of rewards
         // and her second stake was active for only one epoch and got 10 SUI of rewards.
-        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), (220 + 130 + 20 * 3 + 10) * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_1, scenario), (220 + 130 + 20 * 3 + 10) * MIST_PER_OCT);
         // staker 2's stake was active for 2 epochs so got 40 * 2 = 80 SUI of rewards
-        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), (480 + 40 * 2) * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_2, scenario), (480 + 40 * 2) * MIST_PER_OCT);
         // staker 3's first stake was active for 1 epoch and got 30 SUI of rewards
         // and her second stake didn't get any rewards.
-        assert_eq(total_sui_balance(STAKER_ADDR_3, scenario), (390 + 280 + 30) * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_3, scenario), (390 + 280 + 30) * MIST_PER_OCT);
         // staker 4 joined and left in an epoch where no rewards were earned so she got no rewards.
-        assert_eq(total_sui_balance(STAKER_ADDR_4, scenario), 1400 * MIST_PER_HC);
+        assert_eq(total_sui_balance(STAKER_ADDR_4, scenario), 1400 * MIST_PER_OCT);
 
         advance_epoch_with_reward_amounts(0, 0, scenario);
 
         scenario.next_tx(@0x0);
         let mut system_state = scenario.take_shared<SuiSystemState>();
         // Since all the stakes are gone the pool is empty except for the validator's original stake.
-        assert_eq(system_state.validator_stake_amount(VALIDATOR_ADDR_1), 140 * MIST_PER_HC);
+        assert_eq(system_state.validator_stake_amount(VALIDATOR_ADDR_1), 140 * MIST_PER_OCT);
         test_scenario::return_shared(system_state);
         scenario_val.end();
     }
@@ -434,7 +434,7 @@ module sui_system::rewards_distribution_tests {
         let mut system_state = scenario.take_shared<SuiSystemState>();
         while (i < num_validators) {
             let addr = address::from_u256(i as u256);
-            assert_eq(system_state.validator_stake_amount(addr), (962 + i * 4) * MIST_PER_HC);
+            assert_eq(system_state.validator_stake_amount(addr), (962 + i * 4) * MIST_PER_OCT);
             i = i + 1;
         };
         test_scenario::return_shared(system_state);

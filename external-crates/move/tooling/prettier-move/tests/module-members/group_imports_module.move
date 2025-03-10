@@ -14,7 +14,7 @@ use sui::coin::{Self, Coin};
 use sui::dynamic_field as df;
 use sui::dynamic_object_field as dof;
 use sui::event;
-use sui::hc::HC;
+use sui::oct::OCT;
 use sui::transfer_policy::{Self, TransferPolicy, TransferRequest};
 
 use std::{

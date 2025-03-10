@@ -5,7 +5,7 @@ module sui_system::genesis {
     use std::vector;
     use sui::balance::{Self, Balance};
     use sui::object::UID;
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::tx_context::{Self, TxContext};
     use std::option::Option;
 
@@ -65,7 +65,7 @@ module sui_system::genesis {
 
     fun create(
         sui_system_state_id: UID,
-        mut sui_supply: Balance<HC>,
+        mut sui_supply: Balance<OCT>,
         genesis_chain_parameters: GenesisChainParameters,
         genesis_validators: vector<GenesisValidatorMetadata>,
         _token_distribution_schedule: TokenDistributionSchedule,

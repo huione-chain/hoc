@@ -17,7 +17,7 @@ use sui::{
     clock::Clock,
     coin::Coin,
     dynamic_field as df,
-    hc::HC,
+    oct::OCT,
     table::{Self, Table}
 };
 

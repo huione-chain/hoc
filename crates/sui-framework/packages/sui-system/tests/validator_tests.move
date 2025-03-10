@@ -6,7 +6,7 @@ module sui_system::validator_tests {
     use sui::bag;
     use sui::balance;
     use sui::coin::{Self, Coin};
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::test_scenario;
     use sui::test_utils;
     use sui::url;
@@ -132,8 +132,8 @@ module sui_system::validator_tests {
 
         scenario.next_tx(sender);
         {
-            let coin_ids = scenario.ids_for_sender<Coin<HC>>();
-            let withdraw = scenario.take_from_sender_by_id<Coin<HC>>(coin_ids[0]);
+            let coin_ids = scenario.ids_for_sender<Coin<OCT>>();
+            let withdraw = scenario.take_from_sender_by_id<Coin<OCT>>(coin_ids[0]);
             assert!(withdraw.value() == 10_000_000_000);
             scenario.return_to_sender(withdraw);
         };

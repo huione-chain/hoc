@@ -4567,7 +4567,7 @@
         "title": "StructTag",
         "description": "A Move StructTag",
         "examples": [
-          "0x2::coin::Coin<0x2::hc::HC>"
+          "0x2::coin::Coin<0x2::oct::OCT>"
         ],
         "type": "string"
       },

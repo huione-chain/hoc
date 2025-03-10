@@ -17,8 +17,8 @@ Checkout the [Sui source code](https://github.com/MystenLabs/sui) and compile us
 
 #### 1. Genesis
 
-`./hoc genesis -f`  
-The Sui genesis process will create configs and coins for testing, the config files are stored in `~/.hoc/hoc_config` by
+`./one_chain genesis -f`  
+The Sui genesis process will create configs and coins for testing, the config files are stored in `~/.one/one_config` by
 default.
 
 #### 2. Start local network

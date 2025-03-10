@@ -46,5 +46,5 @@ mysten-network.workspace = true
 test-cluster.workspace = true
 
 [[bin]]
-name = "hoc-faucet"
-path = "src/bin/hoc-faucet.rs"
+name = "one-faucet"
+path = "src/bin/one-faucet.rs"

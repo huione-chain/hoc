@@ -103,8 +103,8 @@ title: Module `0x3::validator`
 <b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
 <b>use</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">0x2::coin_vesting</a>;
 <b>use</b> <a href="../sui-framework/event.md#0x2_event">0x2::event</a>;
-<b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
+<b>use</b> <a href="../sui-framework/oct.md#0x2_oct">0x2::oct</a>;
 <b>use</b> <a href="../sui-framework/transfer.md#0x2_transfer">0x2::transfer</a>;
 <b>use</b> <a href="../sui-framework/tx_context.md#0x2_tx_context">0x2::tx_context</a>;
 <b>use</b> <a href="../sui-framework/url.md#0x2_url">0x2::url</a>;
@@ -1062,7 +1062,7 @@ Process pending stake and pending withdraws, and update the gas price.
 Request to add stake to the validator's staking pool, processed at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, staker_address: <b>address</b>, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, staker_address: <b>address</b>, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
 </code></pre>
 
 
@@ -1073,7 +1073,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
 
 <pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
-    stake: Balance&lt;HC&gt;,
+    stake: Balance&lt;OCT&gt;,
     staker_address: <b>address</b>,
     lock: bool,
     ctx: &<b>mut</b> TxContext,
@@ -1154,7 +1154,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_redeem_fungible_staked_sui">redeem_fungible_staked_sui</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, fungible_staked_sui: <a href="staking_pool.md#0x3_staking_pool_FungibleStakedSui">staking_pool::FungibleStakedSui</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_redeem_fungible_staked_sui">redeem_fungible_staked_sui</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, fungible_staked_sui: <a href="staking_pool.md#0x3_staking_pool_FungibleStakedSui">staking_pool::FungibleStakedSui</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;
 </code></pre>
 
 
@@ -1167,7 +1167,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     fungible_staked_sui: FungibleStakedSui,
     ctx: &TxContext,
-) : Balance&lt;HC&gt; {
+) : Balance&lt;OCT&gt; {
     <b>let</b> fungible_staked_sui_amount = fungible_staked_sui.value();
 
     <b>let</b> sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_redeem_fungible_staked_sui">redeem_fungible_staked_sui</a>(fungible_staked_sui, ctx);
@@ -1197,7 +1197,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
 Request to add stake to the validator's staking pool at genesis
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake_at_genesis">request_add_stake_at_genesis</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, staker_address: <b>address</b>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake_at_genesis">request_add_stake_at_genesis</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, staker_address: <b>address</b>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -1208,7 +1208,7 @@ Request to add stake to the validator's staking pool at genesis
 
 <pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake_at_genesis">request_add_stake_at_genesis</a>(
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
-    stake: Balance&lt;HC&gt;,
+    stake: Balance&lt;OCT&gt;,
     staker_address: <b>address</b>,
     ctx: &<b>mut</b> TxContext,
 ) {
@@ -1242,7 +1242,7 @@ Request to add stake to the validator's staking pool at genesis
 Request to withdraw stake from the validator's staking pool, processed at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;
 </code></pre>
 
 
@@ -1255,7 +1255,7 @@ Request to withdraw stake from the validator's staking pool, processed at the en
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     staked_sui: StakedSui,
     ctx: &TxContext,
-) : Balance&lt;HC&gt; {
+) : Balance&lt;OCT&gt; {
     <b>assert</b>!(!staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
     <b>let</b> principal_amount = staked_sui.staked_sui_amount();
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
@@ -1288,7 +1288,7 @@ Request to withdraw stake from the validator's staking pool, processed at the en
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;)
 </code></pre>
 
 
@@ -1301,7 +1301,7 @@ Request to withdraw stake from the validator's staking pool, processed at the en
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     staked_sui: StakedSui,
     ctx: &<b>mut</b> TxContext,
-):(Balance&lt;HC&gt;,CoinVesting&lt;HC&gt;){
+):(Balance&lt;OCT&gt;,CoinVesting&lt;OCT&gt;){
     <b>assert</b>!(staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>);
     <b>let</b> principal_amount = staked_sui.staked_sui_amount();
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
@@ -1467,7 +1467,7 @@ Set new commission rate for the candidate validator.
 Deposit stakes rewards into the validator's staking pool, called at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_deposit_stake_rewards">deposit_stake_rewards</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, reward: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_deposit_stake_rewards">deposit_stake_rewards</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, reward: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;)
 </code></pre>
 
 
@@ -1476,7 +1476,7 @@ Deposit stakes rewards into the validator's staking pool, called at the end of t
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_deposit_stake_rewards">deposit_stake_rewards</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>, reward: Balance&lt;HC&gt;) {
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_deposit_stake_rewards">deposit_stake_rewards</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>, reward: Balance&lt;OCT&gt;) {
     self.next_epoch_stake = self.next_epoch_stake + reward.value();
     self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.deposit_rewards(reward);
 }

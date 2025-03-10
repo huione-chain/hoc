@@ -23,7 +23,7 @@ use sui_types::{
     base_types::{ObjectID, ObjectRef, SequenceNumber, SuiAddress},
     crypto::get_key_pair,
     digests::ObjectDigest,
-    gas_coin::MIST_PER_HC,
+    gas_coin::MIST_PER_OCT,
     object::Owner,
     transaction::Transaction,
 };
@@ -32,7 +32,7 @@ use tracing::{debug, error};
 /// Value of each address's "primary coin" in mist. The first transaction gives
 /// each address a coin worth PRIMARY_COIN_VALUE, and all subsequent transfers
 /// send TRANSFER_AMOUNT coins each time
-const PRIMARY_COIN_VALUE: u64 = 100 * MIST_PER_HC;
+const PRIMARY_COIN_VALUE: u64 = 100 * MIST_PER_OCT;
 
 /// Number of mist sent to each address on each batch transfer
 const BATCH_TRANSFER_AMOUNT: u64 = 1;

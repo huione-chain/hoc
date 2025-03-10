@@ -11,8 +11,8 @@ bin_version::bin_version!();
 
 #[derive(Parser)]
 #[command(
-    name = "hoc-tool",
-    about = "Debugging utilities for hoc",
+    name = "one-tool",
+    about = "Debugging utilities for one",
     rename_all = "kebab-case",
     author,
     version = VERSION,

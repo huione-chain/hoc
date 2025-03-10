@@ -1234,7 +1234,7 @@
                 "objectId": "0x53e4567ccafa5f36ce84c80aa8bc9be64e0d5ae796884274aef3005ae6733809",
                 "version": "1",
                 "digest": "33K5ZXJ3RyubvYaHuEnQ1QXmmbhgtrFwp199dnEbL4n7",
-                "type": "0x2::coin::Coin<0x2::hc::HC>",
+                "type": "0x2::coin::Coin<0x2::oct::OCT>",
                 "owner": {
                   "AddressOwner": "0xc8ec1d5b84dd6289e193b9f88de4a994358c9f856135236c3e75a925e1c77ac3"
                 },
@@ -1242,7 +1242,7 @@
                 "storageRebate": "100",
                 "content": {
                   "dataType": "moveObject",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "hasPublicTransfer": true,
                   "fields": {
                     "balance": "100000000",
@@ -2240,7 +2240,7 @@
                   "objectId": "0x504d411325e3c7f89d412044fe99007efb0f94f1e64d2e8090c619a39299d87e",
                   "version": "1",
                   "digest": "AibMqH69gKT5t7rVTsDZFy2X5iHtoNDobKaZ62mg3FCU",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0xe8070b5f56bb10bafa0e2261d819b2582f82ab308bf9c96dfb22ec7345db1b5f"
                   },
@@ -2248,7 +2248,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "100000000",
@@ -2264,7 +2264,7 @@
                   "objectId": "0x23618df6438d21a48040e6bb568cafc13246bd847c60448160e0358cac4a1134",
                   "version": "1",
                   "digest": "D5W76mT1A3tqCmE1Z5MdV5obNzesMXLfLKpRDHSp1fyz",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0x5594d02890c986dbf328d28d21acece356d10d89e75f565b0934851ba8d5bc59"
                   },
@@ -2272,7 +2272,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "100000000",
@@ -2288,7 +2288,7 @@
                   "objectId": "0x8b95b4eaa9fd3b22b43f6b2c8e92090bd6d16522a6fd4fa83ec70a5f197ad656",
                   "version": "1",
                   "digest": "H2o2pWgceQgTtYrMacR4xnCi4vqGiuozDA6k2rBc4m3q",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0xda104dde1de9880be827a1a753e502ebcdfec53f33e745e3f021366b7bc47c2b"
                   },
@@ -2296,7 +2296,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "100000000",
@@ -2312,7 +2312,7 @@
                   "objectId": "0x3fbbd3ebef7dbcc7b02346cdf05674452cc61f316af5d5d7c02b94b023242685",
                   "version": "1",
                   "digest": "3ovR1s3bZt6AN1AQ7QhGUfX9BSwgjJPvL6XaczgeSKXU",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0x00a65bf5fdccb50582333b61721e6963a25f25ac8ead5916a83f49a7b372eae7"
                   },
@@ -2320,7 +2320,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "100000000",
@@ -2336,7 +2336,7 @@
                   "objectId": "0x9b5cd5df0df2a168259b7115a41ccc0a372b6fd0026e0c63043492ce4d0c19a6",
                   "version": "1",
                   "digest": "25QdFqrh9FgxhGQyAxZsNEakYmHezqmU3FMPud7JGRB5",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0x3e7f360c51d035a6470f09c8d23716e4085025b89d176840d61dde92a452a72f"
                   },
@@ -2344,7 +2344,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "100000000",
@@ -2852,7 +2852,7 @@
                 "objectId": "0x11af4b844ff94b3fbef6e36b518da3ad4c5856fa686464524a876b463d129760",
                 "version": "4",
                 "digest": "5VPAwDXy3BL72ehFc7gSJoz27ahMd6spUg5YwYc4ibcv",
-                "type": "0x2::coin::Coin<0x2::hc::HC>",
+                "type": "0x2::coin::Coin<0x2::oct::OCT>",
                 "owner": {
                   "AddressOwner": "0x3568c40e814d9d5396d23087a0fd641e91e0e00df6c012cded9ef9ba5e5bf042"
                 },
@@ -2860,7 +2860,7 @@
                 "storageRebate": "100",
                 "content": {
                   "dataType": "moveObject",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "hasPublicTransfer": true,
                   "fields": {
                     "balance": "10000",
@@ -2952,7 +2952,7 @@
                   "objectId": "0xceaf9ee4582d3a233101e322a22cb2a5bea2e681ea5af4e59bd1abb0bb4fcb27",
                   "version": "4",
                   "digest": "CE9bNT96Sa2BxQQH2id4PRxTgW5TW7zm6VVhDeRNBegW",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0x54b3c61936f77fcfdaa213c2f7b4fb1b51ef9f3ed66000c0e45697dbee095479"
                   },
@@ -2960,7 +2960,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "10000",
@@ -2977,7 +2977,7 @@
                   "objectId": "0x47866ff92885a3c21a7703f564721c198308aa0c71b771ada6b96c16fc9c0fa7",
                   "version": "12",
                   "digest": "3pRSYsCdrDkfMDwecvKZ1zgSEpwUo52VcLE95iK9ap1N",
-                  "type": "0x2::coin::Coin<0x2::hc::HC>",
+                  "type": "0x2::coin::Coin<0x2::oct::OCT>",
                   "owner": {
                     "AddressOwner": "0x998aaf3d11da24c49e014d4ccb1d7d0cd09d3cc1679290f1df2803b32b76ba03"
                   },
@@ -2985,7 +2985,7 @@
                   "storageRebate": "100",
                   "content": {
                     "dataType": "moveObject",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "hasPublicTransfer": true,
                     "fields": {
                       "balance": "20000",
@@ -3042,7 +3042,7 @@
             "name": "Result",
             "value": [
               {
-                "coinType": "0x2::hc::HC",
+                "coinType": "0x2::oct::OCT",
                 "coinObjectCount": 15,
                 "totalBalance": "3000000000",
                 "lockedBalance": {}
@@ -3115,7 +3115,7 @@
             "value": {
               "data": [
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0x91825debff541cf4e08b5c5f7296ff9840e6f0b185af93984cde8cf3870302c0",
                   "version": "103626",
                   "digest": "7dp5WtTmtGp83EXYYFMzjBJRFeSgR67AzqMETLrfgeFx",
@@ -3123,7 +3123,7 @@
                   "previousTransaction": "9WfFUVhjbbh4tWkyUse1QxzbKX952cyXScH7xJNPB2vQ"
                 },
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0x48a53f22e2e901ea2a5bf44fdd5bb94a1d83b6efc4dd779f0890ca3b1f6ba997",
                   "version": "103626",
                   "digest": "9xLdMXezY8d1yRA2TtN6pYjapyy2EVKHWNriGPFGCFvd",
@@ -3131,7 +3131,7 @@
                   "previousTransaction": "Byq9SyV7x6fvzaf88YRA9JM8vLbVLJAqUX8pESDmKcgw"
                 },
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0x6867fcc63161269c5c0c73b02229486bbaff319209dfb8299ced3b8609037997",
                   "version": "103626",
                   "digest": "5xexWFq6QpGHBQyC9P2cbAJXq9qm2EjzfuRM9NwS1uyG",
@@ -3165,7 +3165,7 @@
         },
         {
           "name": "coin_type",
-          "description": "optional type names for the coin (e.g., 0x168da5bf1f48dafc111b0a488fa454aca95e0b5e::usdc::USDC), default to 0x2::hc::HC if not specified.",
+          "description": "optional type names for the coin (e.g., 0x168da5bf1f48dafc111b0a488fa454aca95e0b5e::usdc::USDC), default to 0x2::oct::OCT if not specified.",
           "schema": {
             "type": "string"
           }
@@ -3269,7 +3269,7 @@
         },
         {
           "name": "coin_type",
-          "description": "optional type name for the coin (e.g., 0x168da5bf1f48dafc111b0a488fa454aca95e0b5e::usdc::USDC), default to 0x2::hc::HC if not specified.",
+          "description": "optional type name for the coin (e.g., 0x168da5bf1f48dafc111b0a488fa454aca95e0b5e::usdc::USDC), default to 0x2::oct::OCT if not specified.",
           "schema": {
             "type": "string"
           }
@@ -3308,7 +3308,7 @@
             },
             {
               "name": "coin_type",
-              "value": "0x2::hc::HC"
+              "value": "0x2::oct::OCT"
             },
             {
               "name": "cursor",
@@ -3324,7 +3324,7 @@
             "value": {
               "data": [
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0xa5a8e30db5a798a7354340b6ea78a66f50921841ab5359ec7a3dc01f282420ae",
                   "version": "103626",
                   "digest": "tw5DzJTfdxTn4f3rekFrhN7dQTUezBgsEhycDobTBLb",
@@ -3332,7 +3332,7 @@
                   "previousTransaction": "HSein75AFXgdsnbABWLQ5mvjFmPFWrBFi9CMVsNn7gJr"
                 },
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0x47dfa99496428c65b2054ad7db1872b87ff05b1047bb5e3adf5257cceb08ecb4",
                   "version": "103626",
                   "digest": "AfgFe7ZfjJ5dWV6VAy2LbtvBFhcABkvdvwEjLrRcFqtr",
@@ -3340,7 +3340,7 @@
                   "previousTransaction": "5WHnm9jUZEtDvSvsj7HBrP5BoxA3UY6R57qqumXJXboV"
                 },
                 {
-                  "coinType": "0x2::hc::HC",
+                  "coinType": "0x2::oct::OCT",
                   "coinObjectId": "0xd4f062dbcfc3bf73f5861945592222ff7b090ac21c8a3cf840abdc5b743da778",
                   "version": "103626",
                   "digest": "9er6jxigfuQEKsn9gtPV2oW1zGQRcFtKNijHVe88GUJD",
@@ -3687,7 +3687,7 @@
                 "filter": {
                   "MatchAll": [
                     {
-                      "StructType": "0x2::coin::Coin<0x2::hc::HC>"
+                      "StructType": "0x2::coin::Coin<0x2::oct::OCT>"
                     },
                     {
                       "AddressOwner": "0x0cd4bb4d4f520fe9bbf0cf1cebe3f2549412826c3c9261bff9786c240123749f"
@@ -3726,7 +3726,7 @@
                     "objectId": "0xd87765d1aadec2db8cc24c312542c8359b6b5e3bfeab524e5edaad3a204b4053",
                     "version": "13488",
                     "digest": "8qCvxDHh5LtDfF95Ci9G7vvQN2P6y4v55S9xoKBYp7FM",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "owner": {
                       "AddressOwner": "0x0cd4bb4d4f520fe9bbf0cf1cebe3f2549412826c3c9261bff9786c240123749f"
                     },
@@ -3739,7 +3739,7 @@
                     "objectId": "0x26ed170e0427f9416a614d23284116375c16bd317738fd2c7a885362e04923f5",
                     "version": "13488",
                     "digest": "5Ka3vDaDy9h5UYk3Maz3vssWHrhbcGXQgwg8fL2ygyTi",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "owner": {
                       "AddressOwner": "0x0cd4bb4d4f520fe9bbf0cf1cebe3f2549412826c3c9261bff9786c240123749f"
                     },
@@ -3752,7 +3752,7 @@
                     "objectId": "0x2aea16d6fb49b7d1ae51f33b01ed8e1ac66916858610c124bb6fd73bb13e141c",
                     "version": "13488",
                     "digest": "D3hfhfecVcmRcqNEkxkoFMzbuXvBqWj1JkCNU9zbnYMo",
-                    "type": "0x2::coin::Coin<0x2::hc::HC>",
+                    "type": "0x2::coin::Coin<0x2::oct::OCT>",
                     "owner": {
                       "AddressOwner": "0x0cd4bb4d4f520fe9bbf0cf1cebe3f2549412826c3c9261bff9786c240123749f"
                     },
@@ -4928,7 +4928,7 @@
         },
         {
           "name": "coins",
-          "description": "Coin<HC> object to stake",
+          "description": "Coin<OCT> object to stake",
           "required": true,
           "schema": {
             "type": "array",

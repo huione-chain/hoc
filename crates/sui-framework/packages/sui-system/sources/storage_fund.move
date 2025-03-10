@@ -3,7 +3,7 @@
 
 module sui_system::storage_fund {
     use sui::balance::{Self, Balance};
-    use sui::hc::HC;
+    use sui::oct::OCT;
 
     /// Struct representing the storage fund, containing two `Balance`s:
     /// - `total_object_storage_rebates` has the invariant that it's the sum of `storage_rebate` of
@@ -14,12 +14,12 @@ module sui_system::storage_fund {
     /// - `non_refundable_balance` contains any remaining inflow of the storage fund that should not
     ///    be taken out of the fund.
     public struct StorageFund has store {
-        total_object_storage_rebates: Balance<HC>,
-        non_refundable_balance: Balance<HC>,
+        total_object_storage_rebates: Balance<OCT>,
+        non_refundable_balance: Balance<OCT>,
     }
 
     /// Called by `sui_system` at genesis time.
-    public(package) fun new(initial_fund: Balance<HC>) : StorageFund {
+    public(package) fun new(initial_fund: Balance<OCT>) : StorageFund {
         StorageFund {
             // At the beginning there's no object in the storage yet
             total_object_storage_rebates: balance::zero(),
@@ -30,12 +30,12 @@ module sui_system::storage_fund {
     /// Called by `sui_system` at epoch change times to process the inflows and outflows of storage fund.
     public(package) fun advance_epoch(
         self: &mut StorageFund,
-        storage_charges: Balance<HC>,
-        storage_fund_reinvestment: Balance<HC>,
-        leftover_staking_rewards: Balance<HC>,
+        storage_charges: Balance<OCT>,
+        storage_fund_reinvestment: Balance<OCT>,
+        leftover_staking_rewards: Balance<OCT>,
         storage_rebate_amount: u64,
         non_refundable_storage_fee_amount: u64,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         // Both the reinvestment and leftover rewards are not to be refunded so they go to the non-refundable balance.
         self.non_refundable_balance.join(storage_fund_reinvestment);
         self.non_refundable_balance.join(leftover_staking_rewards);

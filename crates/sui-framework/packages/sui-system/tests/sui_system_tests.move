@@ -8,7 +8,7 @@
 #[test_only]
 module sui_system::sui_system_tests {
     use sui::test_scenario::{Self, Scenario};
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::coin::Self;
     use sui_system::governance_test_utils::{add_validator_full_flow, advance_epoch, remove_validator, set_up_sui_system_state, create_sui_system_state_for_testing, stake_with, unstake};
     use sui_system::sui_system::SuiSystemState;
@@ -616,7 +616,7 @@ module sui_system::sui_system_tests {
             b"/ip4/127.0.0.1/udp/80",
             b"/ip4/127.0.0.1/udp/80",
             b"/ip4/127.0.0.1/udp/80",
-            option::some(balance::create_for_testing<HC>(100_000_000_000)),
+            option::some(balance::create_for_testing<OCT>(100_000_000_000)),
             1,
             0,
             true,
@@ -961,7 +961,7 @@ module sui_system::sui_system_tests {
             b"/ip4/127.0.0.1/udp/80",
             b"/ip4/127.0.0.1/udp/80",
             b"/ip4/127.0.0.1/udp/80",
-            option::some(balance::create_for_testing<HC>(100_000_000_000)),
+            option::some(balance::create_for_testing<OCT>(100_000_000_000)),
             1,
             0,
             true,

@@ -22,13 +22,13 @@ pub mod verifier_signing_config;
 pub use node::{ConsensusConfig, ExecutionCacheConfig, NodeConfig};
 use sui_types::multiaddr::Multiaddr;
 
-const SUI_DIR: &str = ".hoc";
-pub const SUI_CONFIG_DIR: &str = "hoc_config";
+const SUI_DIR: &str = ".one";
+pub const SUI_CONFIG_DIR: &str = "one_config";
 pub const SUI_NETWORK_CONFIG: &str = "network.yaml";
 pub const SUI_FULLNODE_CONFIG: &str = "fullnode.yaml";
 pub const SUI_CLIENT_CONFIG: &str = "client.yaml";
-pub const SUI_KEYSTORE_FILENAME: &str = "hoc.keystore";
-pub const SUI_KEYSTORE_ALIASES_FILENAME: &str = "hoc.aliases";
+pub const SUI_KEYSTORE_FILENAME: &str = "one.keystore";
+pub const SUI_KEYSTORE_ALIASES_FILENAME: &str = "one.aliases";
 pub const SUI_BENCHMARK_GENESIS_GAS_KEYSTORE_FILENAME: &str = "benchmark.keystore";
 pub const SUI_GENESIS_FILENAME: &str = "genesis.blob";
 pub const SUI_DEV_NET_URL: &str = "https://fullnode.devnet.huione.org:443";

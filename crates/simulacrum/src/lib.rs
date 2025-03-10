@@ -34,7 +34,7 @@ use sui_types::{
     digests::ConsensusCommitDigest,
     effects::TransactionEffects,
     error::ExecutionError,
-    gas_coin::MIST_PER_HC,
+    gas_coin::MIST_PER_OCT,
     inner_temporary_store::InnerTemporaryStore,
     messages_checkpoint::{EndOfEpochData, VerifiedCheckpoint},
     object::Object,
@@ -318,14 +318,14 @@ impl<R, S: store::SimulatorStore> Simulacrum<R, S> {
     /// ```
     /// use simulacrum::Simulacrum;
     /// use sui_types::base_types::SuiAddress;
-    /// use sui_types::gas_coin::MIST_PER_HC;
+    /// use sui_types::gas_coin::MIST_PER_OCT;
     ///
     /// # fn main() {
     /// let mut simulacrum = Simulacrum::new();
     /// let address = SuiAddress::generate(simulacrum.rng());
-    /// simulacrum.request_gas(address, MIST_PER_HC).unwrap();
+    /// simulacrum.request_gas(address, MIST_PER_OCT).unwrap();
     ///
-    /// // `account` now has a Coin<HC> object with single SUI in it.
+    /// // `account` now has a Coin<OCT> object with single SUI in it.
     /// // ...
     /// # }
     /// ```
@@ -336,14 +336,14 @@ impl<R, S: store::SimulatorStore> Simulacrum<R, S> {
         let object = self
             .store()
             .owned_objects(*sender)
-            .find(|object| object.is_gas_coin() && object.get_coin_value_unsafe() > amount + MIST_PER_HC)
+            .find(|object| object.is_gas_coin() && object.get_coin_value_unsafe() > amount + MIST_PER_OCT)
             .ok_or_else(|| anyhow!("unable to find a coin with enough to satisfy request for {amount} Mist"))?;
 
         let gas_data = sui_types::transaction::GasData {
             payment: vec![object.compute_object_reference()],
             owner: *sender,
             price: self.reference_gas_price(),
-            budget: MIST_PER_HC,
+            budget: MIST_PER_OCT,
         };
 
         let pt = {

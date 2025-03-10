@@ -455,7 +455,7 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 const client = new SuiClient({
 	url: getFullnodeUrl('testnet'),
 });
-// If coin type is not specified, it defaults to 0x2::hc::HC
+// If coin type is not specified, it defaults to 0x2::oct::OCT
 const coinBalance = await client.getBalance({
 	owner: '0xcc2bd176a478baea9a0de7a24cd927661cc6e860d5bacecb9a138ef20dbab231',
 	coinType: '0x65b0553a591d7b13376e03a408e112c706dc0909a79080c810b93b06f922c458::usdc::USDC',

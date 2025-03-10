@@ -3,13 +3,13 @@
 
 module sui_system::stake_subsidy {
     use sui::balance::Balance;
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::bag::Bag;
     use sui::bag;
 
     public struct StakeSubsidy has store {
-        /// Balance of HC set aside for stake subsidies that will be drawn down over time.
-        balance: Balance<HC>,
+        /// Balance of OCT set aside for stake subsidies that will be drawn down over time.
+        balance: Balance<OCT>,
 
         /// Count of the number of times stake subsidies have been distributed.
         distribution_counter: u64,
@@ -34,7 +34,7 @@ module sui_system::stake_subsidy {
     const ESubsidyDecreaseRateTooLarge: u64 = 0;
 
     public(package) fun create(
-        balance: Balance<HC>,
+        balance: Balance<OCT>,
         initial_distribution_amount: u64,
         stake_subsidy_period_length: u64,
         stake_subsidy_decrease_rate: u16,
@@ -57,7 +57,7 @@ module sui_system::stake_subsidy {
     }
 
     /// Advance the epoch counter and draw down the subsidy for the epoch.
-    public(package) fun advance_epoch(self: &mut StakeSubsidy): Balance<HC> {
+    public(package) fun advance_epoch(self: &mut StakeSubsidy): Balance<OCT> {
         // Take the minimum of the reward amount and the remaining balance in
         // order to ensure we don't overdraft the remaining stake subsidy
         // balance

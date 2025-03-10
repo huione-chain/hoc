@@ -88,9 +88,9 @@
 }
 
 //# run-graphql
-# Fetch coins of 0x2::hc::HC inner type
+# Fetch coins of 0x2::oct::OCT inner type
 {
-  objects(filter: {type: "0x2::coin::Coin<0x2::hc::HC>"}) {
+  objects(filter: {type: "0x2::coin::Coin<0x2::oct::OCT>"}) {
     edges {
       node {
         asMoveObject {

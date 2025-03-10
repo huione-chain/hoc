@@ -6,10 +6,10 @@ module move_benchmark::benchmark {
     use std::ascii::String;
     use sui::coin::Coin;
     use sui::dynamic_field;
-    use sui::hc::HC;
+    use sui::oct::OCT;
 
     #[allow(lint(self_transfer))]
-    public fun transfer_coin(coin: Coin<HC>, ctx: &TxContext) {
+    public fun transfer_coin(coin: Coin<OCT>, ctx: &TxContext) {
         transfer::public_transfer(coin, tx_context::sender(ctx));
     }
 

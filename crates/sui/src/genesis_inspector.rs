@@ -7,7 +7,7 @@ use sui_config::genesis::UnsignedGenesis;
 use sui_types::{
     base_types::ObjectID,
     coin::CoinMetadata,
-    gas_coin::{GasCoin, MIST_PER_HC, TOTAL_SUPPLY_MIST},
+    gas_coin::{GasCoin, MIST_PER_OCT, TOTAL_SUPPLY_MIST},
     governance::StakedSui,
     move_package::MovePackage,
     object::{MoveObject, Owner},
@@ -223,14 +223,14 @@ fn examine_total_supply(sui_distribution: &BTreeMap<String, BTreeMap<String, (&s
         total_sui += amount_sum;
         if print {
             println!("Owner {:?}", owner);
-            println!("Total Amount of Sui/StakedSui Owned: {amount_sum} MIST or {} SUI:", amount_sum / MIST_PER_HC);
+            println!("Total Amount of Sui/StakedSui Owned: {amount_sum} MIST or {} SUI:", amount_sum / MIST_PER_OCT);
             println!("{:#?}\n", coins);
         }
     }
     assert_eq!(total_sui, TOTAL_SUPPLY_MIST);
     // Always print this.
-    println!("Total Supply of Sui: {total_sui} MIST or {} SUI", total_sui / MIST_PER_HC);
-    println!("Total Amount of StakedSui: {total_staked_sui} MIST or {} SUI\n", total_staked_sui / MIST_PER_HC);
+    println!("Total Supply of Sui: {total_sui} MIST or {} SUI", total_sui / MIST_PER_OCT);
+    println!("Total Amount of StakedSui: {total_staked_sui} MIST or {} SUI\n", total_staked_sui / MIST_PER_OCT);
     if print {
         print_divider("Sui Distribution");
     }

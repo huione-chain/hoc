@@ -6,7 +6,7 @@ module sui_system::validator {
     use std::bcs;
 
     use sui::balance::Balance;
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui_system::validator_cap::{Self, ValidatorOperationCap};
     use sui_system::staking_pool::{Self, PoolTokenExchangeRate, StakedSui, StakingPool, FungibleStakedSui};
     use std::string::String;
@@ -319,7 +319,7 @@ module sui_system::validator {
     /// Request to add stake to the validator's staking pool, processed at the end of the epoch.
     public(package) fun request_add_stake(
         self: &mut Validator,
-        stake: Balance<HC>,
+        stake: Balance<OCT>,
         staker_address: address,
         lock: bool,
         ctx: &mut TxContext,
@@ -373,7 +373,7 @@ module sui_system::validator {
         self: &mut Validator,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         let fungible_staked_sui_amount = fungible_staked_sui.value();
 
         let sui = self.staking_pool.redeem_fungible_staked_sui(fungible_staked_sui, ctx);
@@ -394,7 +394,7 @@ module sui_system::validator {
     /// Request to add stake to the validator's staking pool at genesis
     public(package) fun request_add_stake_at_genesis(
         self: &mut Validator,
-        stake: Balance<HC>,
+        stake: Balance<OCT>,
         staker_address: address,
         ctx: &mut TxContext,
     ) {
@@ -421,7 +421,7 @@ module sui_system::validator {
         self: &mut Validator,
         staked_sui: StakedSui,
         ctx: &TxContext,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         assert!(!staked_sui.lock(),EStakedSuiIsLock);
         let principal_amount = staked_sui.staked_sui_amount();
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
@@ -447,7 +447,7 @@ module sui_system::validator {
         self: &mut Validator,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ):(Balance<HC>,CoinVesting<HC>){
+    ):(Balance<OCT>,CoinVesting<OCT>){
         assert!(staked_sui.lock(),EStakedSuiNotLock);
         let principal_amount = staked_sui.staked_sui_amount();
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
@@ -523,7 +523,7 @@ module sui_system::validator {
     }
 
     /// Deposit stakes rewards into the validator's staking pool, called at the end of the epoch.
-    public(package) fun deposit_stake_rewards(self: &mut Validator, reward: Balance<HC>) {
+    public(package) fun deposit_stake_rewards(self: &mut Validator, reward: Balance<OCT>) {
         self.next_epoch_stake = self.next_epoch_stake + reward.value();
         self.staking_pool.deposit_rewards(reward);
     }
@@ -1027,7 +1027,7 @@ module sui_system::validator {
         p2p_address: vector<u8>,
         primary_address: vector<u8>,
         worker_address: vector<u8>,
-        mut initial_stake_option: Option<Balance<HC>>,
+        mut initial_stake_option: Option<Balance<OCT>>,
         gas_price: u64,
         commission_rate: u64,
         is_active_at_genesis: bool,

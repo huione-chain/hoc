@@ -304,9 +304,9 @@ module sui_system::staking_pool_tests {
     ): u64 {
         use sui::tx_context::{epoch};
         use sui::coin::{Self};
-        use sui::hc::HC;
+        use sui::oct::OCT;
 
-        let rewards = coin::mint_for_testing<HC>(reward_amount, scenario.ctx());
+        let rewards = coin::mint_for_testing<OCT>(reward_amount, scenario.ctx());
         staking_pool.deposit_rewards(coin::into_balance(rewards));
 
         staking_pool.process_pending_stakes_and_withdraws(scenario.ctx());

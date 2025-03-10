@@ -2581,15 +2581,15 @@ verify_groth16_proof
 verify_groth16_proof_internal
 	fun
 	0x2::groth16
-HC
+OCT
 	public struct
-	0x2::hc
+	0x2::oct
 new
 	fun
-	0x2::hc
+	0x2::oct
 transfer
 	public entry fun
-	0x2::hc
+	0x2::oct
 TransferRequest
 	public struct
 	0x2::transfer_policy

@@ -23,7 +23,7 @@ use crate::{connection::ScanConnection, data::Db, error::Error};
 use async_graphql::{connection::Connection, *};
 use sui_types::{
     coin::{CoinMetadata as NativeCoinMetadata, TreasuryCap},
-    gas_coin::{GAS, TOTAL_SUPPLY_HC},
+    gas_coin::{GAS, TOTAL_SUPPLY_OCT},
     TypeTag,
 };
 
@@ -58,7 +58,7 @@ impl CoinMetadata {
     }
 
     /// Total balance of all coins with marker type owned by this object. If type is not supplied,
-    /// it defaults to `0x2::hc::HC`.
+    /// it defaults to `0x2::oct::OCT`.
     pub(crate) async fn balance(&self, ctx: &Context<'_>, type_: Option<ExactTypeFilter>) -> Result<Option<Balance>> {
         OwnerImpl::from(&self.super_.super_).balance(ctx, type_).await
     }
@@ -77,7 +77,7 @@ impl CoinMetadata {
 
     /// The coin objects for this object.
     ///
-    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::hc::HC`.
+    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::oct::OCT`.
     pub(crate) async fn coins(
         &self,
         ctx: &Context<'_>,
@@ -343,7 +343,7 @@ impl CoinMetadata {
         };
 
         Ok(Some(if GAS::is_gas(coin_struct.as_ref()) {
-            TOTAL_SUPPLY_HC
+            TOTAL_SUPPLY_OCT
         } else {
             let cap_type = TreasuryCap::type_(*coin_struct);
             let Some(object) = Object::query_singleton(db, cap_type, checkpoint_viewed_at).await? else {

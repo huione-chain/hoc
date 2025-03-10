@@ -8,7 +8,7 @@ module examples::coffee;
 use sui::{
     balance::{Self, Balance},
     coin::{Self, TreasuryCap, Coin},
-    hc::HC,
+    oct::OCT,
     token::{Self, Token},
     tx_context::sender
 };
@@ -32,7 +32,7 @@ public struct CoffeeShop has key {
     /// The treasury cap for the `COFFEE` points.
     coffee_points: TreasuryCap<COFFEE>,
     /// The SUI balance of the shop; the shop can sell Coffee for SUI.
-    balance: Balance<HC>,
+    balance: Balance<OCT>,
 }
 
 /// Event marking that a Coffee was purchased; transaction sender serves as
@@ -61,7 +61,7 @@ fun init(otw: COFFEE, ctx: &mut TxContext) {
 
 /// Buy a coffee from the shop. Emitted event is tracked by the real coffee
 /// shop and the customer gets a free coffee after 4 purchases.
-public fun buy_coffee(app: &mut CoffeeShop, payment: Coin<HC>, ctx: &mut TxContext) {
+public fun buy_coffee(app: &mut CoffeeShop, payment: Coin<OCT>, ctx: &mut TxContext) {
     // Check if the customer has enough SUI to pay for the coffee.
     assert!(coin::value(&payment) > COFFEE_PRICE, EIncorrectAmount);
 

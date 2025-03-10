@@ -54,7 +54,7 @@ Create a new `index.js` file in the root of your project with the following code
 ```js
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { getFaucetHost, requestSuiFromFaucetV1 } from '@mysten/sui/faucet';
-import { MIST_PER_HC } from '@mysten/sui/utils';
+import { MIST_PER_OCT } from '@mysten/sui/utils';
 
 // replace <YOUR_SUI_ADDRESS> with your actual address, which is in the form 0x123...
 const MY_ADDRESS = '<YOUR_SUI_ADDRESS>';
@@ -64,7 +64,7 @@ const suiClient = new SuiClient({ url: getFullnodeUrl('devnet') });
 
 // Convert MIST to Sui
 const balance = (balance) => {
-	return Number.parseInt(balance.totalBalance) / Number(MIST_PER_HC);
+	return Number.parseInt(balance.totalBalance) / Number(MIST_PER_OCT);
 };
 
 // store the JSON representation for the SUI the address owns before using faucet

@@ -275,7 +275,7 @@ impl Query {
     /// The coin objects that exist in the network.
     ///
     /// The type field is a string of the inner type of the coin by which to filter (e.g.
-    /// `0x2::hc::HC`). If no type is provided, it will default to `0x2::hc::HC`.
+    /// `0x2::oct::OCT`). If no type is provided, it will default to `0x2::oct::OCT`.
     async fn coins(
         &self,
         ctx: &Context<'_>,

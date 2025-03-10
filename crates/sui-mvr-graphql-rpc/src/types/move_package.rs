@@ -195,7 +195,7 @@ impl MovePackage {
     }
 
     /// Total balance of all coins with marker type owned by this package. If type is not supplied,
-    /// it defaults to `0x2::hc::HC`.
+    /// it defaults to `0x2::oct::OCT`.
     ///
     /// Note that coins owned by a package are inaccessible, because packages are immutable and
     /// cannot be owned by an address.
@@ -220,7 +220,7 @@ impl MovePackage {
 
     /// The coin objects owned by this package.
     ///
-    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::hc::HC`.
+    ///`type` is a filter on the coin's type parameter, defaulting to `0x2::oct::OCT`.
     ///
     /// Note that coins owned by a package are inaccessible, because packages are immutable and
     /// cannot be owned by an address.

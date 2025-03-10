@@ -8,7 +8,7 @@ use crate::{
     base_types::ObjectID,
     committee::EpochId,
     error::SuiError,
-    gas_coin::MIST_PER_HC,
+    gas_coin::MIST_PER_OCT,
     id::{ID, UID},
     object::{Data, Object},
     SUI_SYSTEM_ADDRESS,
@@ -22,20 +22,20 @@ pub const MAX_VALIDATOR_COUNT: u64 = 150;
 /// Lower-bound on the amount of stake required to become a validator.
 ///
 /// 30 million SUI
-pub const MIN_VALIDATOR_JOINING_STAKE_MIST: u64 = 30_000_000 * MIST_PER_HC;
+pub const MIN_VALIDATOR_JOINING_STAKE_MIST: u64 = 30_000_000 * MIST_PER_OCT;
 
 /// Validators with stake amount below `validator_low_stake_threshold` are considered to
 /// have low stake and will be escorted out of the validator set after being below this
 /// threshold for more than `validator_low_stake_grace_period` number of epochs.
 ///
 /// 20 million SUI
-pub const VALIDATOR_LOW_STAKE_THRESHOLD_MIST: u64 = 20_000_000 * MIST_PER_HC;
+pub const VALIDATOR_LOW_STAKE_THRESHOLD_MIST: u64 = 20_000_000 * MIST_PER_OCT;
 
 /// Validators with stake below `validator_very_low_stake_threshold` will be removed
 /// immediately at epoch change, no grace period.
 ///
 /// 15 million SUI
-pub const VALIDATOR_VERY_LOW_STAKE_THRESHOLD_MIST: u64 = 15_000_000 * MIST_PER_HC;
+pub const VALIDATOR_VERY_LOW_STAKE_THRESHOLD_MIST: u64 = 15_000_000 * MIST_PER_OCT;
 
 /// A validator can have stake below `validator_low_stake_threshold`
 /// for this many epochs before being kicked out.

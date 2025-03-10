@@ -21,7 +21,7 @@ import { useCoinMetadata, useGetDelegatedStake } from '@mysten/core';
 import { useSuiClientQuery } from '@mysten/dapp-kit';
 import { ArrowLeft16 } from '@mysten/icons';
 import type { StakeObject } from '@mysten/sui/client';
-import { MIST_PER_HC, SUI_TYPE_ARG } from '@mysten/sui/utils';
+import { MIST_PER_OCT, SUI_TYPE_ARG } from '@mysten/sui/utils';
 import * as Sentry from '@sentry/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Formik } from 'formik';
@@ -153,7 +153,7 @@ function StakingCard() {
 		},
 		onSuccess: (_, { amount, validatorAddress }) => {
 			ampli.stakedSui({
-				stakedAmount: Number(amount / MIST_PER_HC),
+				stakedAmount: Number(amount / MIST_PER_OCT),
 				validatorAddress: validatorAddress,
 			});
 		},

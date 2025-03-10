@@ -30,7 +30,7 @@ use sui_test_transaction_builder::TestTransactionBuilder;
 use sui_types::{
     base_types::{ObjectRef, SuiAddress},
     crypto::{get_key_pair, AccountKeyPair},
-    gas_coin::MIST_PER_HC,
+    gas_coin::MIST_PER_OCT,
     transaction::Transaction,
 };
 use tracing::error;
@@ -81,7 +81,7 @@ impl Payload for DelegationTestPayload {
             None => make_transfer_sui_transaction(
                 self.gas,
                 self.sender,
-                Some(MIST_PER_HC),
+                Some(MIST_PER_OCT),
                 self.sender,
                 &self.keypair,
                 self.system_state_observer.state.borrow().reference_gas_price,

@@ -44,7 +44,7 @@ module sui_system::sui_system {
     use sui::coin::Coin;
     use sui::clock::Clock;
     use sui_system::staking_pool::{StakedSui, FungibleStakedSui};
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::table::Table;
     use sui_system::validator::Validator;
     use sui_system::validator_cap::UnverifiedValidatorOperationCap;
@@ -75,7 +75,7 @@ module sui_system::sui_system {
     public(package) fun create(
         id: UID,
         validators: vector<Validator>,
-        storage_fund: Balance<HC>,
+        storage_fund: Balance<OCT>,
         protocol_version: u64,
         epoch_start_timestamp_ms: u64,
         parameters: SystemParameters,
@@ -281,7 +281,7 @@ module sui_system::sui_system {
     /// Add stake to a validator's staking pool.
     public entry fun request_add_stake(
         wrapper: &mut SuiSystemState,
-        stake: Coin<HC>,
+        stake: Coin<OCT>,
         validator_address: address,
         ctx: &mut TxContext,
     ) {
@@ -292,7 +292,7 @@ module sui_system::sui_system {
     public entry fun request_add_val_stake(
         wrapper: &mut SuiSystemState,
         cap: &UnverifiedValidatorOperationCap,
-        stake: Coin<HC>,
+        stake: Coin<OCT>,
         ctx: &mut TxContext,
     ){
         let staked_sui = request_add_val_stake_non_entry(wrapper, cap, stake, ctx);
@@ -302,7 +302,7 @@ module sui_system::sui_system {
     /// The non-entry version of `request_add_stake`, which returns the staked SUI instead of transferring it to the sender.
     public fun request_add_stake_non_entry(
         wrapper: &mut SuiSystemState,
-        stake: Coin<HC>,
+        stake: Coin<OCT>,
         validator_address: address,
         ctx: &mut TxContext,
     ): StakedSui {
@@ -313,7 +313,7 @@ module sui_system::sui_system {
     public fun request_add_val_stake_non_entry(
         wrapper: &mut SuiSystemState,
         cap: &UnverifiedValidatorOperationCap,
-        stake: Coin<HC>,
+        stake: Coin<OCT>,
         ctx: &mut TxContext,
     ): StakedSui{
         let self = load_system_state_mut(wrapper);
@@ -323,7 +323,7 @@ module sui_system::sui_system {
     /// Add stake to a validator's staking pool using multiple coins.
     public entry fun request_add_stake_mul_coin(
         wrapper: &mut SuiSystemState,
-        stakes: vector<Coin<HC>>,
+        stakes: vector<Coin<OCT>>,
         stake_amount: option::Option<u64>,
         validator_address: address,
         ctx: &mut TxContext,
@@ -336,7 +336,7 @@ module sui_system::sui_system {
     public entry fun request_add_val_stake_mul_coin(
         wrapper: &mut SuiSystemState,
         cap: &UnverifiedValidatorOperationCap,
-        stakes: vector<Coin<HC>>,
+        stakes: vector<Coin<OCT>>,
         stake_amount: option::Option<u64>,
         ctx: &mut TxContext,
     ){
@@ -381,7 +381,7 @@ module sui_system::sui_system {
         wrapper: &mut SuiSystemState,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext,
-    ): Balance<HC> {
+    ): Balance<OCT> {
         let self = load_system_state_mut(wrapper);
         self.redeem_fungible_staked_sui(fungible_staked_sui, ctx)
     }
@@ -391,7 +391,7 @@ module sui_system::sui_system {
         wrapper: &mut SuiSystemState,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         let self = load_system_state_mut(wrapper);
         self.request_withdraw_stake(staked_sui, ctx)
     }
@@ -400,7 +400,7 @@ module sui_system::sui_system {
         wrapper: &mut SuiSystemState,
         staked_sui: StakedSui,
         ctx: &mut TxContext, 
-    ):(Balance<HC>,CoinVesting<HC>){
+    ):(Balance<OCT>,CoinVesting<OCT>){
         let self = load_system_state_mut(wrapper);
         self.request_withdraw_stake_lock(staked_sui, ctx)
     }
@@ -664,8 +664,8 @@ module sui_system::sui_system {
     /// 3. Distribute computation charge to validator stake.
     /// 4. Update all validators.
     fun advance_epoch(
-        storage_reward: Balance<HC>,
-        computation_reward: Balance<HC>,
+        storage_reward: Balance<OCT>,
+        computation_reward: Balance<OCT>,
         wrapper: &mut SuiSystemState,
         new_epoch: u64,
         next_protocol_version: u64,
@@ -676,7 +676,7 @@ module sui_system::sui_system {
         reward_slashing_rate: u64, // how much rewards are slashed to punish a validator, in bps.
         epoch_start_timestamp_ms: u64, // Timestamp of the epoch start
         ctx: &mut TxContext,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         let self = load_system_state_mut(wrapper);
         // Validator will make a special system call with sender set as 0x0.
         assert!(ctx.sender() == @0x0, ENotSystemAddress);
@@ -903,7 +903,7 @@ module sui_system::sui_system {
         reward_slashing_rate: u64,
         epoch_start_timestamp_ms: u64,
         ctx: &mut TxContext,
-    ): Balance<HC> {
+    ): Balance<OCT> {
         let storage_reward = balance::create_for_testing(storage_charge);
         let computation_reward = balance::create_for_testing(computation_charge);
         let storage_rebate = advance_epoch(

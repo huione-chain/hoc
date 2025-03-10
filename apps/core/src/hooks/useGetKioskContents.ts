@@ -10,7 +10,7 @@ import { getKioskIdFromOwnerCap, ORIGINBYTE_KIOSK_OWNER_TOKEN } from '../utils/k
 import { useKioskClient } from './useKioskClient';
 
 export enum KioskTypes {
-	HC = 'hc',
+	OCT = 'oct',
 	ORIGINBYTE = 'originByte',
 }
 
@@ -90,7 +90,7 @@ async function getSuiKioskContents(address: string, kioskClient: KioskClient) {
 				itemIds: kiosk.itemIds,
 				items: kiosk.items,
 				kioskId: id,
-				type: KioskTypes.HC,
+				type: KioskTypes.OCT,
 				ownerCap: ownedKiosks.kioskOwnerCaps.find((k) => k.kioskId === id),
 			};
 		}),

@@ -8,7 +8,7 @@ module sui_system::validator {
     use std::string::{Self, String};
     use sui::bag::{Self, Bag};
     use sui::balance::{Self, Balance};
-    use sui::hc::HC;
+    use sui::oct::OCT;
 
     public struct ValidatorMetadata has store {
         sui_address: address,
@@ -25,7 +25,7 @@ module sui_system::validator {
     public struct Validator has store {
         metadata: ValidatorMetadata,
         voting_power: u64,
-        stake: Balance<HC>,
+        stake: Balance<OCT>,
         extra_fields: Bag,
     }
 
@@ -33,7 +33,7 @@ module sui_system::validator {
         new_dummy_field: u64,
         metadata: ValidatorMetadata,
         voting_power: u64,
-        stake: Balance<HC>,
+        stake: Balance<OCT>,
         extra_fields: Bag,
     }
 
@@ -46,7 +46,7 @@ module sui_system::validator {
         p2p_address: vector<u8>,
         primary_address: vector<u8>,
         worker_address: vector<u8>,
-        init_stake: Balance<HC>,
+        init_stake: Balance<OCT>,
         ctx: &mut TxContext
     ): Validator {
         let metadata = ValidatorMetadata {

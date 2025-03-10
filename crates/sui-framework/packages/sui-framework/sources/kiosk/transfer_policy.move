@@ -29,7 +29,7 @@ use sui::coin::{Self, Coin};
 use sui::dynamic_field as df;
 use sui::event;
 use sui::package::{Self, Publisher};
-use sui::hc::HC;
+use sui::oct::OCT;
 use sui::vec_set::{Self, VecSet};
 
 /// The number of receipts does not match the `TransferPolicy` requirement.
@@ -74,7 +74,7 @@ public struct TransferPolicy<phantom T> has key, store {
     /// By default, transfer policy does not collect anything , and it's
     /// a matter of an implementation of a specific rule - whether to add
     /// to balance and how much.
-    balance: Balance<HC>,
+    balance: Balance<OCT>,
     /// Set of types of attached rules - used to verify `receipts` when
     /// a `TransferRequest` is received in `confirm_request` function.
     ///
@@ -142,7 +142,7 @@ public fun withdraw<T>(
     cap: &TransferPolicyCap<T>,
     amount: Option<u64>,
     ctx: &mut TxContext,
-): Coin<HC> {
+): Coin<OCT> {
     assert!(object::id(self) == cap.policy_id, ENotOwner);
 
     let amount = if (amount.is_some()) {
@@ -162,7 +162,7 @@ public fun destroy_and_withdraw<T>(
     self: TransferPolicy<T>,
     cap: TransferPolicyCap<T>,
     ctx: &mut TxContext,
-): Coin<HC> {
+): Coin<OCT> {
     assert!(object::id(&self) == cap.policy_id, ENotOwner);
 
     let TransferPolicyCap { id: cap_id, policy_id } = cap;
@@ -231,7 +231,7 @@ public fun get_rule<T, Rule: drop, Config: store + drop>(
 }
 
 /// Add some `SUI` to the balance of a `TransferPolicy`.
-public fun add_to_balance<T, Rule: drop>(_: Rule, policy: &mut TransferPolicy<T>, coin: Coin<HC>) {
+public fun add_to_balance<T, Rule: drop>(_: Rule, policy: &mut TransferPolicy<T>, coin: Coin<OCT>) {
     assert!(has_rule<T, Rule>(policy), EUnknownRequirement);
     coin::put(&mut policy.balance, coin)
 }

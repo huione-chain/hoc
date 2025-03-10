@@ -7,7 +7,7 @@ module sui::coin_balance_tests {
     use sui::pay;
     use sui::coin;
     use sui::balance;
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::test_utils;
 
 
@@ -15,13 +15,13 @@ module sui::coin_balance_tests {
     fun type_morphing() {
         let mut scenario = test_scenario::begin(@0x1);
 
-        let balance = balance::zero<HC>();
+        let balance = balance::zero<OCT>();
         let coin = balance.into_coin(scenario.ctx());
         let balance = coin.into_balance();
 
         balance.destroy_zero();
 
-        let mut coin = coin::mint_for_testing<HC>(100, scenario.ctx());
+        let mut coin = coin::mint_for_testing<OCT>(100, scenario.ctx());
         let balance_mut = coin::balance_mut(&mut coin);
         let sub_balance = balance_mut.split(50);
 
@@ -40,7 +40,7 @@ module sui::coin_balance_tests {
 
     #[test]
     fun test_balance() {
-        let mut balance = balance::zero<HC>();
+        let mut balance = balance::zero<OCT>();
         let another = balance::create_for_testing(1000);
 
         balance.join(another);

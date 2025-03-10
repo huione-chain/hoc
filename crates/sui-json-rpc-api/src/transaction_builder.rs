@@ -228,7 +228,7 @@ pub trait TransactionBuilder {
         &self,
         /// the transaction signer's Sui address
         signer: SuiAddress,
-        /// Coin<HC> object to stake
+        /// Coin<OCT> object to stake
         coins: Vec<ObjectID>,
         /// stake amount
         amount: Option<BigInt<u64>>,

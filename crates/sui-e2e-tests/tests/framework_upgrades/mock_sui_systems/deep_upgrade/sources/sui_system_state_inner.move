@@ -5,7 +5,7 @@ module sui_system::sui_system_state_inner {
     use std::vector;
 
     use sui::balance::{Self, Balance};
-    use sui::hc::HC;
+    use sui::oct::OCT;
     use sui::tx_context::TxContext;
     use sui::bag::{Self, Bag};
     use sui::table::{Self, Table};
@@ -43,7 +43,7 @@ module sui_system::sui_system_state_inner {
         protocol_version: u64,
         system_state_version: u64,
         validators: ValidatorSet,
-        storage_fund: Balance<HC>,
+        storage_fund: Balance<OCT>,
         parameters: SystemParameters,
         reference_gas_price: u64,
         safe_mode: bool,
@@ -57,7 +57,7 @@ module sui_system::sui_system_state_inner {
         protocol_version: u64,
         system_state_version: u64,
         validators: ValidatorSetV2,
-        storage_fund: Balance<HC>,
+        storage_fund: Balance<OCT>,
         parameters: SystemParameters,
         reference_gas_price: u64,
         safe_mode: bool,
@@ -67,7 +67,7 @@ module sui_system::sui_system_state_inner {
 
     public(package) fun create(
         validators: vector<Validator>,
-        storage_fund: Balance<HC>,
+        storage_fund: Balance<OCT>,
         protocol_version: u64,
         epoch_start_timestamp_ms: u64,
         epoch_duration_ms: u64,
@@ -96,11 +96,11 @@ module sui_system::sui_system_state_inner {
         self: &mut SuiSystemStateInnerV2,
         new_epoch: u64,
         next_protocol_version: u64,
-        storage_reward: Balance<HC>,
-        computation_reward: Balance<HC>,
+        storage_reward: Balance<OCT>,
+        computation_reward: Balance<OCT>,
         storage_rebate_amount: u64,
         epoch_start_timestamp_ms: u64,
-    ) : Balance<HC> {
+    ) : Balance<OCT> {
         touch_dummy_inactive_validator(self);
 
         self.epoch_start_timestamp_ms = epoch_start_timestamp_ms;

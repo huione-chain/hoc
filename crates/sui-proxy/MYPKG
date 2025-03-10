@@ -1,16 +1,16 @@
 rust_binary(
-    name="hoc-proxy",
+    name="one-proxy",
     command="cargo build",
     profile="release",
 )
 mypkg(
-    name="hoc-proxy",
+    name="one-proxy",
     version="77007d47482d76f49ed5326807b6f2a0",
 )
 podman_build(
-    name="hoc-proxy-image",
-    registry="docker//us-central1-docker.pkg.dev/cryptic-bolt-398315/hoc-proxy",
-    dockerfile="hoc_proxy_dockerfile",
-    resources=[":hoc-proxy"],
+    name="one-proxy-image",
+    registry="docker//us-central1-docker.pkg.dev/cryptic-bolt-398315/one-proxy",
+    dockerfile="one_proxy_dockerfile",
+    resources=[":one-proxy"],
     tag="testnet"
 )

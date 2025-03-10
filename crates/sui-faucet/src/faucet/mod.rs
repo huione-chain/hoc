@@ -57,10 +57,10 @@ impl<F> AppState<F> {
 
 #[async_trait]
 pub trait Faucet {
-    /// Send `Coin<HC>` of the specified amount to the recipient
+    /// Send `Coin<OCT>` of the specified amount to the recipient
     async fn send(&self, id: Uuid, recipient: SuiAddress, amounts: &[u64]) -> Result<FaucetReceipt, FaucetError>;
 
-    /// Send `Coin<HC>` of the specified amount to the recipient in a batch request
+    /// Send `Coin<OCT>` of the specified amount to the recipient in a batch request
     async fn batch_send(
         &self,
         id: Uuid,

@@ -23,7 +23,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .read_api()
         .subscribe_transaction(TransactionFilter::MoveFunction {
             package: "0x2".parse()?,
-            module: Some("hoc".to_owned()),
+            module: Some("one".to_owned()),
             function: Some("transfer".to_owned()),
         })
         .await?;

@@ -310,7 +310,7 @@ pub fn ptb_description() -> clap::Command {
             \n --make-move-vec <u64> []\
             \n --make-move-vec <u64> [1, 2, 3, 4]\
             \n --make-move-vec <std::option::Option<u64>> [none,none]\
-            \n --make-move-vec <sui::coin::Coin<sui::hc::HC>> [gas]",
+            \n --make-move-vec <sui::coin::Coin<sui::oct::OCT>> [gas]",
             )
             .value_names(["TYPE", "[VALUES]"]),
         )
