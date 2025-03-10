@@ -28,9 +28,9 @@ module sui_system::voting_power {
     /// up to BFT assumptions
     const QUORUM_THRESHOLD: u64 = 6_667;
 
-    // Cap voting power of an individual validator at 10%.
+    // Cap voting power of an individual validator at 40%.
     // TODO: determine what this should be
-    const MAX_VOTING_POWER: u64 = 1_000;
+    const MAX_VOTING_POWER: u64 = 4_000;
 
     const ETotalPowerMismatch: u64 = 1;
     const ERelativePowerMismatch: u64 = 2;

@@ -18,6 +18,7 @@ module sui_system::genesis {
         project_url: vector<u8>,
 
         sui_address: address,
+        revenue_receiving_address:address,
 
         gas_price: u64,
         commission_rate: u64,
@@ -106,6 +107,7 @@ module sui_system::genesis {
                 image_url,
                 project_url,
                 sui_address,
+                revenue_receiving_address,
                 gas_price,
                 commission_rate,
                 protocol_public_key,
@@ -120,6 +122,7 @@ module sui_system::genesis {
 
             let validator = validator::new(
                 sui_address,
+                revenue_receiving_address,
                 protocol_public_key,
                 network_public_key,
                 worker_public_key,

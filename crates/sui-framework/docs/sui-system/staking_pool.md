@@ -30,6 +30,7 @@ title: Module `0x3::staking_pool`
 -  [Function `pool_id`](#0x3_staking_pool_pool_id)
 -  [Function `fungible_staked_sui_pool_id`](#0x3_staking_pool_fungible_staked_sui_pool_id)
 -  [Function `staked_sui_amount`](#0x3_staking_pool_staked_sui_amount)
+-  [Function `lock`](#0x3_staking_pool_lock)
 -  [Function `stake_activation_epoch`](#0x3_staking_pool_stake_activation_epoch)
 -  [Function `is_preactive`](#0x3_staking_pool_is_preactive)
 -  [Function `is_inactive`](#0x3_staking_pool_is_inactive)
@@ -234,6 +235,12 @@ A self-custodial object holding the staked SUI tokens.
 </dt>
 <dd>
  The staked SUI tokens.
+</dd>
+<dt>
+<code>lock: bool</code>
+</dt>
+<dd>
+ coin lock
 </dd>
 </dl>
 
@@ -599,7 +606,7 @@ Create a new, empty staking pool.
 Request to stake to a staking pool. The stake starts counting at the beginning of the next epoch,
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="staking_pool.md#0x3_staking_pool_request_add_stake">request_add_stake</a>(pool: &<b>mut</b> <a href="staking_pool.md#0x3_staking_pool_StakingPool">staking_pool::StakingPool</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, stake_activation_epoch: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="staking_pool.md#0x3_staking_pool_request_add_stake">request_add_stake</a>(pool: &<b>mut</b> <a href="staking_pool.md#0x3_staking_pool_StakingPool">staking_pool::StakingPool</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, stake_activation_epoch: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
 </code></pre>
 
 
@@ -612,6 +619,7 @@ Request to stake to a staking pool. The stake starts counting at the beginning o
     pool: &<b>mut</b> <a href="staking_pool.md#0x3_staking_pool_StakingPool">StakingPool</a>,
     stake: Balance&lt;HC&gt;,
     stake_activation_epoch: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
+    lock: bool,
     ctx: &<b>mut</b> TxContext
 ) : <a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a> {
     <b>let</b> sui_amount = stake.value();
@@ -622,6 +630,7 @@ Request to stake to a staking pool. The stake starts counting at the beginning o
         pool_id: <a href="../sui-framework/object.md#0x2_object_id">object::id</a>(pool),
         stake_activation_epoch,
         principal: stake,
+        lock,
     };
     pool.pending_stake = pool.pending_stake + sui_amount;
     staked_sui
@@ -822,7 +831,7 @@ Convert the given staked SUI to an FungibleStakedSui object
     staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a>,
     ctx: &<b>mut</b> TxContext
 ) : <a href="staking_pool.md#0x3_staking_pool_FungibleStakedSui">FungibleStakedSui</a> {
-    <b>let</b> <a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a> { id, pool_id, stake_activation_epoch, principal } = staked_sui;
+    <b>let</b> <a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a> { id, pool_id, stake_activation_epoch, principal ,lock:_} = staked_sui;
 
     <b>assert</b>!(pool_id == <a href="../sui-framework/object.md#0x2_object_id">object::id</a>(pool), <a href="staking_pool.md#0x3_staking_pool_EWrongPool">EWrongPool</a>);
     <b>assert</b>!(
@@ -940,6 +949,7 @@ Returns values are amount of pool tokens withdrawn and withdrawn principal porti
         pool_id: _,
         stake_activation_epoch: _,
         principal,
+        lock: _,
     } = staked_sui;
     <a href="../sui-framework/object.md#0x2_object_delete">object::delete</a>(id);
     principal
@@ -1263,6 +1273,28 @@ withdraws can be made to the pool.
 
 </details>
 
+<a name="0x3_staking_pool_lock"></a>
+
+## Function `lock`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="staking_pool.md#0x3_staking_pool_lock">lock</a>(staked_sui: &<a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="staking_pool.md#0x3_staking_pool_lock">lock</a>(staked_sui:&<a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a>):bool{staked_sui.lock}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x3_staking_pool_stake_activation_epoch"></a>
 
 ## Function `stake_activation_epoch`
@@ -1454,6 +1486,7 @@ All the other parameters of the StakedSui like <code>stake_activation_epoch</cod
         pool_id: self.pool_id,
         stake_activation_epoch: self.stake_activation_epoch,
         principal: self.principal.<a href="staking_pool.md#0x3_staking_pool_split">split</a>(split_amount),
+        lock:self.lock,
     }
 }
 </code></pre>
@@ -1512,6 +1545,7 @@ Aborts if some of the staking parameters are incompatible (pool id, stake activa
         pool_id: _,
         stake_activation_epoch: _,
         principal,
+        lock:_
     } = other;
 
     id.delete();
@@ -1541,7 +1575,8 @@ Returns true if all the staking parameters of the staked sui except the principa
 
 <pre><code><b>public</b> <b>fun</b> <a href="staking_pool.md#0x3_staking_pool_is_equal_staking_metadata">is_equal_staking_metadata</a>(self: &<a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a>, other: &<a href="staking_pool.md#0x3_staking_pool_StakedSui">StakedSui</a>): bool {
     (self.pool_id == other.pool_id) &&
-    (self.stake_activation_epoch == other.stake_activation_epoch)
+    (self.stake_activation_epoch == other.stake_activation_epoch) &&
+    (self.lock == other.lock)
 }
 </code></pre>
 

@@ -5,19 +5,28 @@ title: Module `0x3::validator_set`
 
 
 -  [Struct `ValidatorSet`](#0x3_validator_set_ValidatorSet)
+-  [Struct `UpdateValidatorOnlyStakingAction`](#0x3_validator_set_UpdateValidatorOnlyStakingAction)
+-  [Struct `UpdateTrustedValidatorsAction`](#0x3_validator_set_UpdateTrustedValidatorsAction)
 -  [Struct `ValidatorEpochInfoEvent`](#0x3_validator_set_ValidatorEpochInfoEvent)
 -  [Struct `ValidatorEpochInfoEventV2`](#0x3_validator_set_ValidatorEpochInfoEventV2)
 -  [Struct `ValidatorJoinEvent`](#0x3_validator_set_ValidatorJoinEvent)
 -  [Struct `ValidatorLeaveEvent`](#0x3_validator_set_ValidatorLeaveEvent)
+-  [Struct `DistributeRewardEvent`](#0x3_validator_set_DistributeRewardEvent)
 -  [Constants](#@Constants_0)
 -  [Function `new`](#0x3_validator_set_new)
+-  [Function `create_update_validator_only_staking_action`](#0x3_validator_set_create_update_validator_only_staking_action)
+-  [Function `execute_update_validator_only_staking_action`](#0x3_validator_set_execute_update_validator_only_staking_action)
+-  [Function `create_update_trusted_validator_action`](#0x3_validator_set_create_update_trusted_validator_action)
+-  [Function `execute_update_trusted_validators_action`](#0x3_validator_set_execute_update_trusted_validators_action)
 -  [Function `request_add_validator_candidate`](#0x3_validator_set_request_add_validator_candidate)
 -  [Function `request_remove_validator_candidate`](#0x3_validator_set_request_remove_validator_candidate)
 -  [Function `request_add_validator`](#0x3_validator_set_request_add_validator)
 -  [Function `assert_no_pending_or_active_duplicates`](#0x3_validator_set_assert_no_pending_or_active_duplicates)
 -  [Function `request_remove_validator`](#0x3_validator_set_request_remove_validator)
+-  [Function `remove_validator`](#0x3_validator_set_remove_validator)
 -  [Function `request_add_stake`](#0x3_validator_set_request_add_stake)
 -  [Function `request_withdraw_stake`](#0x3_validator_set_request_withdraw_stake)
+-  [Function `request_withdraw_stake_lock`](#0x3_validator_set_request_withdraw_stake_lock)
 -  [Function `convert_to_fungible_staked_sui`](#0x3_validator_set_convert_to_fungible_staked_sui)
 -  [Function `redeem_fungible_staked_sui`](#0x3_validator_set_redeem_fungible_staked_sui)
 -  [Function `request_set_commission_rate`](#0x3_validator_set_request_set_commission_rate)
@@ -79,6 +88,8 @@ title: Module `0x3::validator_set`
 <b>use</b> <a href="../move-stdlib/vector.md#0x1_vector">0x1::vector</a>;
 <b>use</b> <a href="../sui-framework/bag.md#0x2_bag">0x2::bag</a>;
 <b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
+<b>use</b> <a href="../sui-framework/coin.md#0x2_coin">0x2::coin</a>;
+<b>use</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">0x2::coin_vesting</a>;
 <b>use</b> <a href="../sui-framework/event.md#0x2_event">0x2::event</a>;
 <b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
@@ -171,10 +182,82 @@ title: Module `0x3::validator_set`
  Table storing the number of epochs during which a validator's stake has been below the low stake threshold.
 </dd>
 <dt>
+<code>validator_only_staking: bool</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>trusted_validators: <a href="../sui-framework/vec_set.md#0x2_vec_set_VecSet">vec_set::VecSet</a>&lt;<b>address</b>&gt;</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
 <code>extra_fields: <a href="../sui-framework/bag.md#0x2_bag_Bag">bag::Bag</a></code>
 </dt>
 <dd>
  Any extra fields that's not defined statically.
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x3_validator_set_UpdateValidatorOnlyStakingAction"></a>
+
+## Struct `UpdateValidatorOnlyStakingAction`
+
+
+
+<pre><code><b>struct</b> <a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">UpdateValidatorOnlyStakingAction</a> <b>has</b> <b>copy</b>, drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>validator_only_staking: bool</code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
+<a name="0x3_validator_set_UpdateTrustedValidatorsAction"></a>
+
+## Struct `UpdateTrustedValidatorsAction`
+
+
+
+<pre><code><b>struct</b> <a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">UpdateTrustedValidatorsAction</a> <b>has</b> <b>copy</b>, drop, store
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>operate: bool</code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code><a href="validator.md#0x3_validator">validator</a>: <b>address</b></code>
+</dt>
+<dd>
+
 </dd>
 </dl>
 
@@ -440,6 +523,51 @@ The epoch value corresponds to the first epoch this change takes place.
 
 </details>
 
+<a name="0x3_validator_set_DistributeRewardEvent"></a>
+
+## Struct `DistributeRewardEvent`
+
+
+
+<pre><code><b>struct</b> <a href="validator_set.md#0x3_validator_set_DistributeRewardEvent">DistributeRewardEvent</a> <b>has</b> <b>copy</b>, drop
+</code></pre>
+
+
+
+<details>
+<summary>Fields</summary>
+
+
+<dl>
+<dt>
+<code>epoch: <a href="../move-stdlib/u64.md#0x1_u64">u64</a></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>validator_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>revenue_receiving_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>reward: <a href="../move-stdlib/u64.md#0x1_u64">u64</a></code>
+</dt>
+<dd>
+
+</dd>
+</dl>
+
+
+</details>
+
 <a name="@Constants_0"></a>
 
 ## Constants
@@ -598,6 +726,24 @@ The epoch value corresponds to the first epoch this change takes place.
 
 
 
+<a name="0x3_validator_set_ETrustValidatorExist"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator_set.md#0x3_validator_set_ETrustValidatorExist">ETrustValidatorExist</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 203;
+</code></pre>
+
+
+
+<a name="0x3_validator_set_ETrustValidatorNotExist"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator_set.md#0x3_validator_set_ETrustValidatorNotExist">ETrustValidatorNotExist</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 204;
+</code></pre>
+
+
+
 <a name="0x3_validator_set_EValidatorAlreadyRemoved"></a>
 
 
@@ -612,6 +758,24 @@ The epoch value corresponds to the first epoch this change takes place.
 
 
 <pre><code><b>const</b> <a href="validator_set.md#0x3_validator_set_EValidatorNotCandidate">EValidatorNotCandidate</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 7;
+</code></pre>
+
+
+
+<a name="0x3_validator_set_EValidatorOnlyStaking"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator_set.md#0x3_validator_set_EValidatorOnlyStaking">EValidatorOnlyStaking</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 201;
+</code></pre>
+
+
+
+<a name="0x3_validator_set_EValidatorOnlyStakingSame"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator_set.md#0x3_validator_set_EValidatorOnlyStakingSame">EValidatorOnlyStakingSame</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 202;
 </code></pre>
 
 
@@ -650,6 +814,10 @@ The epoch value corresponds to the first epoch this change takes place.
         staking_pool_mappings.add(staking_pool_id(<a href="validator.md#0x3_validator">validator</a>), sui_address(<a href="validator.md#0x3_validator">validator</a>));
         i = i + 1;
     };
+
+    <b>let</b> <b>mut</b> trusted_validators = <a href="../sui-framework/vec_set.md#0x2_vec_set_empty">vec_set::empty</a>&lt;<b>address</b>&gt;();
+    init_active_validators.do_ref!(|val|trusted_validators.insert(val.sui_address()) );
+
     <b>let</b> <b>mut</b> validators = <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a> {
         total_stake,
         active_validators: init_active_validators,
@@ -659,10 +827,140 @@ The epoch value corresponds to the first epoch this change takes place.
         inactive_validators: <a href="../sui-framework/table.md#0x2_table_new">table::new</a>(ctx),
         validator_candidates: <a href="../sui-framework/table.md#0x2_table_new">table::new</a>(ctx),
         at_risk_validators: <a href="../sui-framework/vec_map.md#0x2_vec_map_empty">vec_map::empty</a>(),
+        validator_only_staking: <b>true</b>,
+        trusted_validators,
         extra_fields: <a href="../sui-framework/bag.md#0x2_bag_new">bag::new</a>(ctx),
     };
     <a href="voting_power.md#0x3_voting_power_set_voting_power">voting_power::set_voting_power</a>(&<b>mut</b> validators.active_validators);
     validators
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_create_update_validator_only_staking_action"></a>
+
+## Function `create_update_validator_only_staking_action`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_create_update_validator_only_staking_action">create_update_validator_only_staking_action</a>(self: &<a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, validator_only_staking: bool): <a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">validator_set::UpdateValidatorOnlyStakingAction</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator_set.md#0x3_validator_set_create_update_validator_only_staking_action">create_update_validator_only_staking_action</a>(
+    self: &<a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    validator_only_staking: bool,
+):<a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">UpdateValidatorOnlyStakingAction</a>{
+    <b>assert</b>!(self.validator_only_staking != validator_only_staking,<a href="validator_set.md#0x3_validator_set_EValidatorOnlyStakingSame">EValidatorOnlyStakingSame</a>);
+    <a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">UpdateValidatorOnlyStakingAction</a>{
+        validator_only_staking
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_execute_update_validator_only_staking_action"></a>
+
+## Function `execute_update_validator_only_staking_action`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_execute_update_validator_only_staking_action">execute_update_validator_only_staking_action</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, action: &<a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">validator_set::UpdateValidatorOnlyStakingAction</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator_set.md#0x3_validator_set_execute_update_validator_only_staking_action">execute_update_validator_only_staking_action</a>(
+    self:&<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    action: &<a href="validator_set.md#0x3_validator_set_UpdateValidatorOnlyStakingAction">UpdateValidatorOnlyStakingAction</a>,
+){
+    self.validator_only_staking = action.validator_only_staking;
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_create_update_trusted_validator_action"></a>
+
+## Function `create_update_trusted_validator_action`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_create_update_trusted_validator_action">create_update_trusted_validator_action</a>(self: &<a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, operate: bool, <a href="validator.md#0x3_validator">validator</a>: <b>address</b>): <a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">validator_set::UpdateTrustedValidatorsAction</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator_set.md#0x3_validator_set_create_update_trusted_validator_action">create_update_trusted_validator_action</a>(
+    self: &<a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    operate: bool,
+    <a href="validator.md#0x3_validator">validator</a>: <b>address</b>
+):<a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">UpdateTrustedValidatorsAction</a>{
+    <b>if</b>(operate){
+        <b>assert</b>!(!self.trusted_validators.contains(&<a href="validator.md#0x3_validator">validator</a>),<a href="validator_set.md#0x3_validator_set_ETrustValidatorExist">ETrustValidatorExist</a>);
+    }<b>else</b> {
+        <b>assert</b>!(self.trusted_validators.contains(&<a href="validator.md#0x3_validator">validator</a>),<a href="validator_set.md#0x3_validator_set_ETrustValidatorNotExist">ETrustValidatorNotExist</a>);
+    };
+    <a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">UpdateTrustedValidatorsAction</a>{
+        operate,
+        <a href="validator.md#0x3_validator">validator</a>
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_execute_update_trusted_validators_action"></a>
+
+## Function `execute_update_trusted_validators_action`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_execute_update_trusted_validators_action">execute_update_trusted_validators_action</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, action: &<a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">validator_set::UpdateTrustedValidatorsAction</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator_set.md#0x3_validator_set_execute_update_trusted_validators_action">execute_update_trusted_validators_action</a>(
+    self:&<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    action: &<a href="validator_set.md#0x3_validator_set_UpdateTrustedValidatorsAction">UpdateTrustedValidatorsAction</a>,
+){
+    <b>if</b>(action.operate && !self.trusted_validators.contains(&action.<a href="validator.md#0x3_validator">validator</a>)){
+        self.trusted_validators.insert(action.<a href="validator.md#0x3_validator">validator</a>);
+    }<b>else</b> <b>if</b>(!action.operate && self.trusted_validators.contains(&action.<a href="validator.md#0x3_validator">validator</a>)){
+        self.trusted_validators.remove(&action.<a href="validator.md#0x3_validator">validator</a>);
+        <b>if</b> (<a href="validator_set.md#0x3_validator_set_find_validator">find_validator</a>(&self.active_validators, action.<a href="validator.md#0x3_validator">validator</a>).is_some()){
+            // remove valdiator
+            self.<a href="validator_set.md#0x3_validator_set_remove_validator">remove_validator</a>(action.<a href="validator.md#0x3_validator">validator</a>);
+        }
+    }
 }
 </code></pre>
 
@@ -787,6 +1085,8 @@ processed at the end of epoch.
         self.validator_candidates.contains(validator_address),
         <a href="validator_set.md#0x3_validator_set_ENotValidatorCandidate">ENotValidatorCandidate</a>
     );
+    <b>assert</b>!(self.trusted_validators.contains(&validator_address),0);
+
     <b>let</b> wrapper = self.validator_candidates.remove(validator_address);
     <b>let</b> <a href="validator.md#0x3_validator">validator</a> = wrapper.destroy();
     <b>assert</b>!(
@@ -858,6 +1158,33 @@ Only an active validator can request to be removed.
     ctx: &TxContext,
 ) {
     <b>let</b> validator_address = ctx.sender();
+    self.<a href="validator_set.md#0x3_validator_set_remove_validator">remove_validator</a>(validator_address)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_remove_validator"></a>
+
+## Function `remove_validator`
+
+
+
+<pre><code><b>fun</b> <a href="validator_set.md#0x3_validator_set_remove_validator">remove_validator</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, validator_address: <b>address</b>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>fun</b> <a href="validator_set.md#0x3_validator_set_remove_validator">remove_validator</a>(
+    self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    validator_address:<b>address</b>,
+){
     <b>let</b> <b>mut</b> validator_index_opt = <a href="validator_set.md#0x3_validator_set_find_validator">find_validator</a>(&self.active_validators, validator_address);
     <b>assert</b>!(validator_index_opt.is_some(), <a href="validator_set.md#0x3_validator_set_ENotAValidator">ENotAValidator</a>);
     <b>let</b> validator_index = validator_index_opt.extract();
@@ -883,7 +1210,7 @@ of the epoch.
 Aborts in case the staking amount is smaller than MIN_STAKING_THRESHOLD
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, validator_address: <b>address</b>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, validator_address: <b>address</b>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
 </code></pre>
 
 
@@ -896,12 +1223,14 @@ Aborts in case the staking amount is smaller than MIN_STAKING_THRESHOLD
     self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
     validator_address: <b>address</b>,
     stake: Balance&lt;HC&gt;,
+    lock: bool,
     ctx: &<b>mut</b> TxContext,
 ) : StakedSui {
+    <b>assert</b>!(!self.validator_only_staking,<a href="validator_set.md#0x3_validator_set_EValidatorOnlyStaking">EValidatorOnlyStaking</a>);
     <b>let</b> sui_amount = stake.value();
     <b>assert</b>!(sui_amount &gt;= <a href="validator_set.md#0x3_validator_set_MIN_STAKING_THRESHOLD">MIN_STAKING_THRESHOLD</a>, <a href="validator_set.md#0x3_validator_set_EStakingBelowThreshold">EStakingBelowThreshold</a>);
     <b>let</b> <a href="validator.md#0x3_validator">validator</a> = <a href="validator_set.md#0x3_validator_set_get_candidate_or_active_validator_mut">get_candidate_or_active_validator_mut</a>(self, validator_address);
-    <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(stake, ctx.sender(), ctx)
+    <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(stake, ctx.sender(),lock, ctx)
 }
 </code></pre>
 
@@ -946,6 +1275,44 @@ the stake and any rewards corresponding to it will be immediately processed.
             wrapper.load_validator_maybe_upgrade()
         };
     <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_request_withdraw_stake_lock"></a>
+
+## Function `request_withdraw_stake_lock`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x3_validator_set_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator_set.md#0x3_validator_set_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(
+    self: &<b>mut</b> <a href="validator_set.md#0x3_validator_set_ValidatorSet">ValidatorSet</a>,
+    staked_sui: StakedSui,
+    ctx: &<b>mut</b> TxContext,
+): (Balance&lt;HC&gt;,CoinVesting&lt;HC&gt;) {
+    <b>let</b> staking_pool_id = pool_id(&staked_sui);
+    <b>let</b> <a href="validator.md#0x3_validator">validator</a> =
+        <b>if</b> (self.staking_pool_mappings.contains(staking_pool_id)) { // This is an active <a href="validator.md#0x3_validator">validator</a>.
+            <b>let</b> validator_address = self.staking_pool_mappings[pool_id(&staked_sui)];
+            <a href="validator_set.md#0x3_validator_set_get_candidate_or_active_validator_mut">get_candidate_or_active_validator_mut</a>(self, validator_address)
+        } <b>else</b> { // This is an inactive pool.
+            <b>assert</b>!(self.inactive_validators.contains(staking_pool_id), <a href="validator_set.md#0x3_validator_set_ENoPoolFound">ENoPoolFound</a>);
+            <b>let</b> wrapper = &<b>mut</b> self.inactive_validators[staking_pool_id];
+            wrapper.load_validator_maybe_upgrade()
+        };
+    <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(staked_sui, ctx)
 }
 </code></pre>
 
@@ -2810,8 +3177,16 @@ The staking rewards are shared with the stakers while the storage fund ones are 
         // Add rewards <b>to</b> the <a href="validator.md#0x3_validator">validator</a>. Don't try and distribute rewards though <b>if</b> the payout is zero.
         <b>if</b> (validator_reward.value() &gt; 0) {
             <b>let</b> validator_address = <a href="validator.md#0x3_validator">validator</a>.sui_address();
-            <b>let</b> rewards_stake = <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(validator_reward, validator_address, ctx);
-            <a href="../sui-framework/transfer.md#0x2_transfer_public_transfer">transfer::public_transfer</a>(rewards_stake, validator_address);
+            <b>let</b> distribute_reward_event = <a href="validator_set.md#0x3_validator_set_DistributeRewardEvent">DistributeRewardEvent</a>{
+                epoch: ctx.epoch(),
+                validator_address,
+                revenue_receiving_address: <a href="validator.md#0x3_validator">validator</a>.revenue_receiving_address(),
+                reward: validator_reward.value()
+            };
+            <a href="../sui-framework/event.md#0x2_event_emit">event::emit</a>(distribute_reward_event);
+            <a href="../sui-framework/transfer.md#0x2_transfer_public_transfer">transfer::public_transfer</a>(<a href="../sui-framework/coin.md#0x2_coin_from_balance">coin::from_balance</a>(validator_reward,ctx),<a href="validator.md#0x3_validator">validator</a>.revenue_receiving_address());
+            // <b>let</b> rewards_stake = <a href="validator.md#0x3_validator">validator</a>.<a href="validator_set.md#0x3_validator_set_request_add_stake">request_add_stake</a>(validator_reward, validator_address,<b>false</b>, ctx);
+            // <a href="../sui-framework/transfer.md#0x2_transfer_public_transfer">transfer::public_transfer</a>(rewards_stake, validator_address);
         } <b>else</b> {
             validator_reward.destroy_zero();
         };

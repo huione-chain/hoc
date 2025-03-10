@@ -20,16 +20,24 @@ title: Module `0x3::sui_system_state_inner`
 -  [Function `request_set_gas_price`](#0x3_sui_system_state_inner_request_set_gas_price)
 -  [Function `set_candidate_validator_gas_price`](#0x3_sui_system_state_inner_set_candidate_validator_gas_price)
 -  [Function `request_set_commission_rate`](#0x3_sui_system_state_inner_request_set_commission_rate)
+-  [Function `request_set_revenue_receiving_address`](#0x3_sui_system_state_inner_request_set_revenue_receiving_address)
 -  [Function `set_candidate_validator_commission_rate`](#0x3_sui_system_state_inner_set_candidate_validator_commission_rate)
 -  [Function `request_add_stake`](#0x3_sui_system_state_inner_request_add_stake)
+-  [Function `request_add_val_stake`](#0x3_sui_system_state_inner_request_add_val_stake)
 -  [Function `request_add_stake_mul_coin`](#0x3_sui_system_state_inner_request_add_stake_mul_coin)
+-  [Function `request_add_val_stake_mul_coin`](#0x3_sui_system_state_inner_request_add_val_stake_mul_coin)
 -  [Function `request_withdraw_stake`](#0x3_sui_system_state_inner_request_withdraw_stake)
+-  [Function `request_withdraw_stake_lock`](#0x3_sui_system_state_inner_request_withdraw_stake_lock)
 -  [Function `convert_to_fungible_staked_sui`](#0x3_sui_system_state_inner_convert_to_fungible_staked_sui)
 -  [Function `redeem_fungible_staked_sui`](#0x3_sui_system_state_inner_redeem_fungible_staked_sui)
 -  [Function `report_validator`](#0x3_sui_system_state_inner_report_validator)
 -  [Function `undo_report_validator`](#0x3_sui_system_state_inner_undo_report_validator)
 -  [Function `report_validator_impl`](#0x3_sui_system_state_inner_report_validator_impl)
 -  [Function `undo_report_validator_impl`](#0x3_sui_system_state_inner_undo_report_validator_impl)
+-  [Function `create_update_committee_validator_proposal`](#0x3_sui_system_state_inner_create_update_committee_validator_proposal)
+-  [Function `create_update_trusted_validator_proposal`](#0x3_sui_system_state_inner_create_update_trusted_validator_proposal)
+-  [Function `create_update_validator_only_staking_proposal`](#0x3_sui_system_state_inner_create_update_validator_only_staking_proposal)
+-  [Function `vote_proposal`](#0x3_sui_system_state_inner_vote_proposal)
 -  [Function `rotate_operation_cap`](#0x3_sui_system_state_inner_rotate_operation_cap)
 -  [Function `update_validator_name`](#0x3_sui_system_state_inner_update_validator_name)
 -  [Function `update_validator_description`](#0x3_sui_system_state_inner_update_validator_description)
@@ -68,11 +76,15 @@ title: Module `0x3::sui_system_state_inner`
 -  [Function `extract_coin_balance`](#0x3_sui_system_state_inner_extract_coin_balance)
 
 
-<pre><code><b>use</b> <a href="../move-stdlib/option.md#0x1_option">0x1::option</a>;
+<pre><code><b>use</b> <a href="../move-stdlib/ascii.md#0x1_ascii">0x1::ascii</a>;
+<b>use</b> <a href="../move-stdlib/option.md#0x1_option">0x1::option</a>;
+<b>use</b> <a href="../move-stdlib/type_name.md#0x1_type_name">0x1::type_name</a>;
 <b>use</b> <a href="../move-stdlib/vector.md#0x1_vector">0x1::vector</a>;
 <b>use</b> <a href="../sui-framework/bag.md#0x2_bag">0x2::bag</a>;
 <b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
+<b>use</b> <a href="../sui-framework/clock.md#0x2_clock">0x2::clock</a>;
 <b>use</b> <a href="../sui-framework/coin.md#0x2_coin">0x2::coin</a>;
+<b>use</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">0x2::coin_vesting</a>;
 <b>use</b> <a href="../sui-framework/event.md#0x2_event">0x2::event</a>;
 <b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
@@ -85,6 +97,7 @@ title: Module `0x3::sui_system_state_inner`
 <b>use</b> <a href="stake_subsidy.md#0x3_stake_subsidy">0x3::stake_subsidy</a>;
 <b>use</b> <a href="staking_pool.md#0x3_staking_pool">0x3::staking_pool</a>;
 <b>use</b> <a href="storage_fund.md#0x3_storage_fund">0x3::storage_fund</a>;
+<b>use</b> <a href="supper_committee.md#0x3_supper_committee">0x3::supper_committee</a>;
 <b>use</b> <a href="validator.md#0x3_validator">0x3::validator</a>;
 <b>use</b> <a href="validator_cap.md#0x3_validator_cap">0x3::validator_cap</a>;
 <b>use</b> <a href="validator_set.md#0x3_validator_set">0x3::validator_set</a>;
@@ -286,6 +299,12 @@ The top-level object containing all information of the Sui system.
  we know what version it is by inspecting SuiSystemStateInner as well.
 </dd>
 <dt>
+<code><a href="supper_committee.md#0x3_supper_committee">supper_committee</a>: <a href="supper_committee.md#0x3_supper_committee_SupperCommittee">supper_committee::SupperCommittee</a></code>
+</dt>
+<dd>
+ Supper committee
+</dd>
+<dt>
 <code>validators: <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a></code>
 </dt>
 <dd>
@@ -416,6 +435,12 @@ Uses SystemParametersV2 as the parameters.
  The current version of the system state data structure type.
  This is always the same as SuiSystemState.version. Keeping a copy here so that
  we know what version it is by inspecting SuiSystemStateInner as well.
+</dd>
+<dt>
+<code><a href="supper_committee.md#0x3_supper_committee">supper_committee</a>: <a href="supper_committee.md#0x3_supper_committee_SupperCommittee">supper_committee::SupperCommittee</a></code>
+</dt>
+<dd>
+ Supper committee
 </dd>
 <dt>
 <code>validators: <a href="validator_set.md#0x3_validator_set_ValidatorSet">validator_set::ValidatorSet</a></code>
@@ -720,6 +745,15 @@ the epoch advancement transaction.
 
 
 
+<a name="0x3_sui_system_state_inner_EUnsupportedActionType"></a>
+
+
+
+<pre><code><b>const</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_EUnsupportedActionType">EUnsupportedActionType</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 1;
+</code></pre>
+
+
+
 <a name="0x3_sui_system_state_inner_SYSTEM_STATE_VERSION_V1"></a>
 
 
@@ -755,6 +789,8 @@ This function will be called only once in genesis.
     <a href="stake_subsidy.md#0x3_stake_subsidy">stake_subsidy</a>: StakeSubsidy,
     ctx: &<b>mut</b> TxContext,
 ): <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInner">SuiSystemStateInner</a> {
+    <b>let</b> <b>mut</b> init_supper_committee_vec = <a href="../move-stdlib/vector.md#0x1_vector_empty">vector::empty</a>&lt;<b>address</b>&gt;();
+    validators.do_ref!(|<a href="validator.md#0x3_validator">validator</a>|init_supper_committee_vec.push_back(<a href="validator.md#0x3_validator">validator</a>.sui_address()));
     <b>let</b> validators = <a href="validator_set.md#0x3_validator_set_new">validator_set::new</a>(validators, ctx);
     <b>let</b> reference_gas_price = validators.derive_reference_gas_price();
     // This type is fixed <b>as</b> it's created at <a href="genesis.md#0x3_genesis">genesis</a>. It should not be updated during type upgrade.
@@ -762,6 +798,7 @@ This function will be called only once in genesis.
         epoch: 0,
         protocol_version,
         system_state_version: <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_genesis_system_state_version">genesis_system_state_version</a>(),
+        <a href="supper_committee.md#0x3_supper_committee">supper_committee</a>: <a href="supper_committee.md#0x3_supper_committee_new">supper_committee::new</a>(init_supper_committee_vec,ctx),
         validators,
         <a href="storage_fund.md#0x3_storage_fund">storage_fund</a>: <a href="storage_fund.md#0x3_storage_fund_new">storage_fund::new</a>(initial_storage_fund),
         parameters,
@@ -848,6 +885,7 @@ This function will be called only once in genesis.
         epoch,
         protocol_version,
         system_state_version: _,
+        <a href="supper_committee.md#0x3_supper_committee">supper_committee</a>,
         validators,
         <a href="storage_fund.md#0x3_storage_fund">storage_fund</a>,
         parameters,
@@ -876,6 +914,7 @@ This function will be called only once in genesis.
         epoch,
         protocol_version,
         system_state_version: 2,
+        <a href="supper_committee.md#0x3_supper_committee">supper_committee</a>,
         validators,
         <a href="storage_fund.md#0x3_storage_fund">storage_fund</a>,
         parameters: <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SystemParametersV2">SystemParametersV2</a> {
@@ -919,7 +958,7 @@ Note: <code>proof_of_possession</code> MUST be a valid signature using sui_addre
 To produce a valid PoP, run [fn test_proof_of_possession].
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_validator_candidate">request_add_validator_candidate</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, network_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, name: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, description: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, image_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, project_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, net_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, p2p_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, primary_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_validator_candidate">request_add_validator_candidate</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, network_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, name: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, description: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, image_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, project_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, net_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, p2p_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, primary_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, revenue_receiving_address: <b>address</b>, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -942,12 +981,14 @@ To produce a valid PoP, run [fn test_proof_of_possession].
     p2p_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
     primary_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
     worker_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    revenue_receiving_address:<b>address</b>,
     gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     ctx: &<b>mut</b> TxContext,
 ) {
     <b>let</b> <a href="validator.md#0x3_validator">validator</a> = <a href="validator.md#0x3_validator_new">validator::new</a>(
         ctx.sender(),
+        revenue_receiving_address,
         pubkey_bytes,
         network_pubkey_bytes,
         worker_pubkey_bytes,
@@ -1179,6 +1220,37 @@ the epoch.
 
 </details>
 
+<a name="0x3_sui_system_state_inner_request_set_revenue_receiving_address"></a>
+
+## Function `request_set_revenue_receiving_address`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, revenue_receiving_address: <b>address</b>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(
+    self:&<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    cap: &UnverifiedValidatorOperationCap,
+    revenue_receiving_address:<b>address</b>,
+){
+    // Verify the represented <b>address</b> is an active or pending <a href="validator.md#0x3_validator">validator</a>, and the capability is still valid.
+    <b>let</b> verified_cap = self.validators.verify_cap(cap, <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_ANY_VALIDATOR">ANY_VALIDATOR</a>);
+    <b>let</b> <a href="validator.md#0x3_validator">validator</a> = self.validators.get_validator_mut_with_verified_cap(&verified_cap, <b>false</b> /* include_candidate */);
+    <a href="validator.md#0x3_validator">validator</a>.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(verified_cap,revenue_receiving_address);
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x3_sui_system_state_inner_set_candidate_validator_commission_rate"></a>
 
 ## Function `set_candidate_validator_commission_rate`
@@ -1234,8 +1306,45 @@ Add stake to a validator's staking pool.
     self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_stake">request_add_stake</a>(
         validator_address,
         stake.into_balance(),
+        <b>false</b>,
         ctx,
     )
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_request_add_val_stake"></a>
+
+## Function `request_add_val_stake`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_val_stake">request_add_val_stake</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, stake: <a href="../sui-framework/coin.md#0x2_coin_Coin">coin::Coin</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_val_stake">request_add_val_stake</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    cap: &UnverifiedValidatorOperationCap,
+    stake: Coin&lt;HC&gt;,
+    ctx: &<b>mut</b> TxContext,
+) : StakedSui{
+
+    self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_stake">request_add_stake</a>(
+        *cap.unverified_operation_cap_address(),
+        stake.into_balance(),
+        <b>true</b>,
+         ctx,
+    )
+
 }
 </code></pre>
 
@@ -1267,7 +1376,38 @@ Add stake to a validator's staking pool using multiple coins.
     ctx: &<b>mut</b> TxContext,
 ) : StakedSui {
     <b>let</b> <a href="../sui-framework/balance.md#0x2_balance">balance</a> = <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_extract_coin_balance">extract_coin_balance</a>(stakes, stake_amount, ctx);
-    self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_stake">request_add_stake</a>(validator_address, <a href="../sui-framework/balance.md#0x2_balance">balance</a>, ctx)
+    self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_stake">request_add_stake</a>(validator_address, <a href="../sui-framework/balance.md#0x2_balance">balance</a>, <b>false</b>,ctx)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_request_add_val_stake_mul_coin"></a>
+
+## Function `request_add_val_stake_mul_coin`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_val_stake_mul_coin">request_add_val_stake_mul_coin</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, stakes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;<a href="../sui-framework/coin.md#0x2_coin_Coin">coin::Coin</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;&gt;, stake_amount: <a href="../move-stdlib/option.md#0x1_option_Option">option::Option</a>&lt;<a href="../move-stdlib/u64.md#0x1_u64">u64</a>&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_val_stake_mul_coin">request_add_val_stake_mul_coin</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    cap: &UnverifiedValidatorOperationCap,
+    stakes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;Coin&lt;HC&gt;&gt;,
+    stake_amount: <a href="../move-stdlib/option.md#0x1_option_Option">option::Option</a>&lt;<a href="../move-stdlib/u64.md#0x1_u64">u64</a>&gt;,
+    ctx: &<b>mut</b> TxContext,
+) : StakedSui {
+    <b>let</b> <a href="../sui-framework/balance.md#0x2_balance">balance</a> = <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_extract_coin_balance">extract_coin_balance</a>(stakes, stake_amount, ctx);
+    self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_add_stake">request_add_stake</a>(*cap.unverified_operation_cap_address(), <a href="../sui-framework/balance.md#0x2_balance">balance</a>, <b>false</b>,ctx)
 }
 </code></pre>
 
@@ -1297,6 +1437,34 @@ Withdraw some portion of a stake from a validator's staking pool.
     ctx: &TxContext,
 ) : Balance&lt;HC&gt; {
     self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_request_withdraw_stake_lock"></a>
+
+## Function `request_withdraw_stake_lock`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    staked_sui: StakedSui,
+    ctx: &<b>mut</b> TxContext,
+):(Balance&lt;HC&gt;,CoinVesting&lt;HC&gt;){
+    self.validators.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(staked_sui, ctx)
 }
 </code></pre>
 
@@ -1497,6 +1665,148 @@ Undo a <code>report_validator</code> action. Aborts if
     reporters.remove(&reporter_addr);
     <b>if</b> (reporters.is_empty()) {
         validator_report_records.remove(&reportee_addr);
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_create_update_committee_validator_proposal"></a>
+
+## Function `create_update_committee_validator_proposal`
+
+create update supper committee validator  proposal
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, operate: bool, committee_validator: <b>address</b>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(
+    self:&<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    operate:bool,
+    committee_validator: <b>address</b> ,
+    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
+    ctx: &<b>mut</b> TxContext
+){
+    self.<a href="supper_committee.md#0x3_supper_committee">supper_committee</a>.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(
+        operate,
+        committee_validator,
+        <a href="../sui-framework/clock.md#0x2_clock">clock</a>,
+         ctx,
+    );
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_create_update_trusted_validator_proposal"></a>
+
+## Function `create_update_trusted_validator_proposal`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, operate: bool, <a href="validator.md#0x3_validator">validator</a>: <b>address</b>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    operate: bool,
+    <a href="validator.md#0x3_validator">validator</a>: <b>address</b>,
+    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
+    ctx:&<b>mut</b> TxContext
+){
+    <b>let</b> action  = self.validators.create_update_trusted_validator_action(operate, <a href="validator.md#0x3_validator">validator</a>);
+    self.<a href="supper_committee.md#0x3_supper_committee">supper_committee</a>.create_proposal(action, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_create_update_validator_only_staking_proposal"></a>
+
+## Function `create_update_validator_only_staking_proposal`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_validator_only_staking_proposal">create_update_validator_only_staking_proposal</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, validator_only_staking: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_create_update_validator_only_staking_proposal">create_update_validator_only_staking_proposal</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    validator_only_staking:bool,
+    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
+    ctx: &<b>mut</b> TxContext
+){
+    <b>let</b> action = self.validators.create_update_validator_only_staking_action(validator_only_staking);
+    self.<a href="supper_committee.md#0x3_supper_committee">supper_committee</a>.create_proposal(action, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_state_inner_vote_proposal"></a>
+
+## Function `vote_proposal`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_vote_proposal">vote_proposal</a>(self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">sui_system_state_inner::SuiSystemStateInnerV2</a>, proposal: &<b>mut</b> <a href="supper_committee.md#0x3_supper_committee_Proposal">supper_committee::Proposal</a>, agree: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_vote_proposal">vote_proposal</a>(
+    self: &<b>mut</b> <a href="sui_system_state_inner.md#0x3_sui_system_state_inner_SuiSystemStateInnerV2">SuiSystemStateInnerV2</a>,
+    proposal: &<b>mut</b> Proposal,
+    agree: bool,
+    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
+    ctx: &TxContext
+){
+    self.<a href="supper_committee.md#0x3_supper_committee">supper_committee</a>.<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_vote_proposal">vote_proposal</a>(proposal, agree, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+    <b>if</b>(proposal.proposal_status(<a href="../sui-framework/clock.md#0x2_clock">clock</a>) == <a href="supper_committee.md#0x3_supper_committee_proposal_status_pass">supper_committee::proposal_status_pass</a>()){
+        <b>let</b> action_type = proposal.proposal_action_type();
+        <b>if</b>(action_type == <a href="../move-stdlib/type_name.md#0x1_type_name_get">type_name::get</a>&lt;UpdateCommitteeValidatorAction&gt;().into_string()){
+            <b>let</b> action = proposal.action&lt;UpdateCommitteeValidatorAction&gt;();
+            self.<a href="supper_committee.md#0x3_supper_committee">supper_committee</a>.execute_update_committee_validator_action(action);
+        }<b>else</b> <b>if</b> (action_type == <a href="../move-stdlib/type_name.md#0x1_type_name_get">type_name::get</a>&lt;UpdateValidatorOnlyStakingAction&gt;().into_string()){
+            <b>let</b> action = proposal.action&lt;UpdateValidatorOnlyStakingAction&gt;();
+            self.validators.execute_update_validator_only_staking_action(action);
+        }<b>else</b> <b>if</b> (action_type == <a href="../move-stdlib/type_name.md#0x1_type_name_get">type_name::get</a>&lt;UpdateTrustedValidatorsAction&gt;().into_string()){
+            <b>let</b> action = proposal.action&lt;UpdateTrustedValidatorsAction&gt;();
+            self.validators.execute_update_trusted_validators_action(action);
+        }<b>else</b> {
+            <b>assert</b>!(<b>false</b>,<a href="sui_system_state_inner.md#0x3_sui_system_state_inner_EUnsupportedActionType">EUnsupportedActionType</a>);
+        }
     }
 }
 </code></pre>

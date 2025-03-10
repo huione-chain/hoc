@@ -7,17 +7,23 @@ module sui_system::sui_system_state_inner {
     use sui_system::staking_pool::{StakedSui, FungibleStakedSui};
     use sui::hc::HC;
     use sui_system::validator::{Self, Validator};
-    use sui_system::validator_set::{Self, ValidatorSet};
+    use sui_system::validator_set::{Self, ValidatorSet,UpdateTrustedValidatorsAction,UpdateValidatorOnlyStakingAction};
     use sui_system::validator_cap::{UnverifiedValidatorOperationCap, ValidatorOperationCap};
     use sui_system::stake_subsidy::StakeSubsidy;
     use sui_system::storage_fund::{Self, StorageFund};
     use sui_system::staking_pool::PoolTokenExchangeRate;
+    use sui_system::supper_committee::{Self,SupperCommittee,Proposal,UpdateCommitteeValidatorAction};
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
     use sui::event;
     use sui::table::Table;
     use sui::bag::Bag;
     use sui::bag;
+    use sui::clock::Clock;
+    use sui::coin_vesting::CoinVesting;
+    use std::type_name;
+
+    const EUnsupportedActionType:u64 = 1;
 
     // same as in validator_set
     const ACTIVE_VALIDATOR_ONLY: u8 = 1;
@@ -103,6 +109,8 @@ module sui_system::sui_system_state_inner {
         /// This is always the same as SuiSystemState.version. Keeping a copy here so that
         /// we know what version it is by inspecting SuiSystemStateInner as well.
         system_state_version: u64,
+        /// Supper committee
+        supper_committee: SupperCommittee,
         /// Contains all information about the validators.
         validators: ValidatorSet,
         /// The storage fund.
@@ -151,6 +159,8 @@ module sui_system::sui_system_state_inner {
         /// This is always the same as SuiSystemState.version. Keeping a copy here so that
         /// we know what version it is by inspecting SuiSystemStateInner as well.
         system_state_version: u64,
+        /// Supper committee
+        supper_committee: SupperCommittee,
         /// Contains all information about the validators.
         validators: ValidatorSet,
         /// The storage fund.
@@ -232,6 +242,8 @@ module sui_system::sui_system_state_inner {
         stake_subsidy: StakeSubsidy,
         ctx: &mut TxContext,
     ): SuiSystemStateInner {
+        let mut init_supper_committee_vec = vector::empty<address>();
+        validators.do_ref!(|validator|init_supper_committee_vec.push_back(validator.sui_address()));
         let validators = validator_set::new(validators, ctx);
         let reference_gas_price = validators.derive_reference_gas_price();
         // This type is fixed as it's created at genesis. It should not be updated during type upgrade.
@@ -239,6 +251,7 @@ module sui_system::sui_system_state_inner {
             epoch: 0,
             protocol_version,
             system_state_version: genesis_system_state_version(),
+            supper_committee: supper_committee::new(init_supper_committee_vec,ctx),
             validators,
             storage_fund: storage_fund::new(initial_storage_fund),
             parameters,
@@ -285,6 +298,7 @@ module sui_system::sui_system_state_inner {
             epoch,
             protocol_version,
             system_state_version: _,
+            supper_committee,
             validators,
             storage_fund,
             parameters,
@@ -313,6 +327,7 @@ module sui_system::sui_system_state_inner {
             epoch,
             protocol_version,
             system_state_version: 2,
+            supper_committee,
             validators,
             storage_fund,
             parameters: SystemParametersV2 {
@@ -361,12 +376,14 @@ module sui_system::sui_system_state_inner {
         p2p_address: vector<u8>,
         primary_address: vector<u8>,
         worker_address: vector<u8>,
+        revenue_receiving_address:address,
         gas_price: u64,
         commission_rate: u64,
         ctx: &mut TxContext,
     ) {
         let validator = validator::new(
             ctx.sender(),
+            revenue_receiving_address,
             pubkey_bytes,
             network_pubkey_bytes,
             worker_pubkey_bytes,
@@ -473,6 +490,17 @@ module sui_system::sui_system_state_inner {
         )
     }
 
+    public(package) fun request_set_revenue_receiving_address(
+        self:&mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
+        revenue_receiving_address:address,
+    ){
+        // Verify the represented address is an active or pending validator, and the capability is still valid.
+        let verified_cap = self.validators.verify_cap(cap, ANY_VALIDATOR);
+        let validator = self.validators.get_validator_mut_with_verified_cap(&verified_cap, false /* include_candidate */);
+        validator.request_set_revenue_receiving_address(verified_cap,revenue_receiving_address);
+    }
+
     /// This function is used to set new commission rate for candidate validators
     public(package) fun set_candidate_validator_commission_rate(
         self: &mut SuiSystemStateInnerV2,
@@ -493,8 +521,25 @@ module sui_system::sui_system_state_inner {
         self.validators.request_add_stake(
             validator_address,
             stake.into_balance(),
+            false,
             ctx,
         )
+    }
+
+    public(package) fun request_add_val_stake(
+        self: &mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
+        stake: Coin<HC>,
+        ctx: &mut TxContext, 
+    ) : StakedSui{
+
+        self.validators.request_add_stake(
+            *cap.unverified_operation_cap_address(), 
+            stake.into_balance(), 
+            true,
+             ctx,
+        )
+
     }
 
     /// Add stake to a validator's staking pool using multiple coins.
@@ -506,8 +551,20 @@ module sui_system::sui_system_state_inner {
         ctx: &mut TxContext,
     ) : StakedSui {
         let balance = extract_coin_balance(stakes, stake_amount, ctx);
-        self.validators.request_add_stake(validator_address, balance, ctx)
+        self.validators.request_add_stake(validator_address, balance, false,ctx)
     }
+
+    public(package) fun request_add_val_stake_mul_coin(
+        self: &mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
+        stakes: vector<Coin<HC>>,
+        stake_amount: option::Option<u64>,
+        ctx: &mut TxContext,
+    ) : StakedSui {
+        let balance = extract_coin_balance(stakes, stake_amount, ctx);
+        self.validators.request_add_stake(*cap.unverified_operation_cap_address(), balance, false,ctx)
+    }
+
 
     /// Withdraw some portion of a stake from a validator's staking pool.
     public(package) fun request_withdraw_stake(
@@ -517,6 +574,15 @@ module sui_system::sui_system_state_inner {
     ) : Balance<HC> {
         self.validators.request_withdraw_stake(staked_sui, ctx)
     }
+
+    public(package) fun request_withdraw_stake_lock(
+        self: &mut SuiSystemStateInnerV2,
+        staked_sui: StakedSui,
+        ctx: &mut TxContext,
+    ):(Balance<HC>,CoinVesting<HC>){
+        self.validators.request_withdraw_stake_lock(staked_sui, ctx)
+    }
+
 
     public(package) fun convert_to_fungible_staked_sui(
         self: &mut SuiSystemStateInnerV2,
@@ -599,6 +665,71 @@ module sui_system::sui_system_state_inner {
             validator_report_records.remove(&reportee_addr);
         }
     }
+
+    // ==== supper committer proposal functions ====
+
+    /// create update supper committee validator  proposal
+    public(package) fun create_update_committee_validator_proposal(
+        self:&mut SuiSystemStateInnerV2,
+        operate:bool,
+        committee_validator: address ,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+        self.supper_committee.create_update_committee_validator_proposal(
+            operate, 
+            committee_validator,
+            clock,
+             ctx,
+        );
+    }
+
+    public(package) fun create_update_trusted_validator_proposal(
+        self: &mut SuiSystemStateInnerV2,
+        operate: bool,
+        validator: address,
+        clock: &Clock,
+        ctx:&mut TxContext
+    ){
+        let action  = self.validators.create_update_trusted_validator_action(operate, validator);
+        self.supper_committee.create_proposal(action, clock, ctx);
+    }
+
+    public(package) fun create_update_validator_only_staking_proposal(
+        self: &mut SuiSystemStateInnerV2,
+        validator_only_staking:bool,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+        let action = self.validators.create_update_validator_only_staking_action(validator_only_staking);
+        self.supper_committee.create_proposal(action, clock, ctx);
+    }
+
+    public(package) fun vote_proposal(
+        self: &mut SuiSystemStateInnerV2,
+        proposal: &mut Proposal,
+        agree: bool,
+        clock: &Clock,
+        ctx: &TxContext
+    ){
+        self.supper_committee.vote_proposal(proposal, agree, clock, ctx);
+        if(proposal.proposal_status(clock) == supper_committee::proposal_status_pass()){
+            let action_type = proposal.proposal_action_type();
+            if(action_type == type_name::get<UpdateCommitteeValidatorAction>().into_string()){
+                let action = proposal.action<UpdateCommitteeValidatorAction>();
+                self.supper_committee.execute_update_committee_validator_action(action);
+            }else if (action_type == type_name::get<UpdateValidatorOnlyStakingAction>().into_string()){
+                let action = proposal.action<UpdateValidatorOnlyStakingAction>();
+                self.validators.execute_update_validator_only_staking_action(action);
+            }else if (action_type == type_name::get<UpdateTrustedValidatorsAction>().into_string()){
+                let action = proposal.action<UpdateTrustedValidatorsAction>();
+                self.validators.execute_update_trusted_validators_action(action);
+            }else {
+                assert!(false,EUnsupportedActionType);
+            }
+        }
+    }
+
 
     // ==== validator metadata management functions ====
 

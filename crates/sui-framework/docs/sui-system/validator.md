@@ -16,11 +16,13 @@ title: Module `0x3::validator`
 -  [Function `deactivate`](#0x3_validator_deactivate)
 -  [Function `activate`](#0x3_validator_activate)
 -  [Function `adjust_stake_and_gas_price`](#0x3_validator_adjust_stake_and_gas_price)
+-  [Function `request_set_revenue_receiving_address`](#0x3_validator_request_set_revenue_receiving_address)
 -  [Function `request_add_stake`](#0x3_validator_request_add_stake)
 -  [Function `convert_to_fungible_staked_sui`](#0x3_validator_convert_to_fungible_staked_sui)
 -  [Function `redeem_fungible_staked_sui`](#0x3_validator_redeem_fungible_staked_sui)
 -  [Function `request_add_stake_at_genesis`](#0x3_validator_request_add_stake_at_genesis)
 -  [Function `request_withdraw_stake`](#0x3_validator_request_withdraw_stake)
+-  [Function `request_withdraw_stake_lock`](#0x3_validator_request_withdraw_stake_lock)
 -  [Function `request_set_gas_price`](#0x3_validator_request_set_gas_price)
 -  [Function `set_candidate_gas_price`](#0x3_validator_set_candidate_gas_price)
 -  [Function `request_set_commission_rate`](#0x3_validator_request_set_commission_rate)
@@ -59,6 +61,7 @@ title: Module `0x3::validator`
 -  [Function `set_voting_power`](#0x3_validator_set_voting_power)
 -  [Function `pending_stake_amount`](#0x3_validator_pending_stake_amount)
 -  [Function `pending_stake_withdraw_amount`](#0x3_validator_pending_stake_withdraw_amount)
+-  [Function `revenue_receiving_address`](#0x3_validator_revenue_receiving_address)
 -  [Function `gas_price`](#0x3_validator_gas_price)
 -  [Function `commission_rate`](#0x3_validator_commission_rate)
 -  [Function `pool_token_exchange_rate_at_epoch`](#0x3_validator_pool_token_exchange_rate_at_epoch)
@@ -98,6 +101,7 @@ title: Module `0x3::validator`
 <b>use</b> <a href="../move-stdlib/string.md#0x1_string">0x1::string</a>;
 <b>use</b> <a href="../sui-framework/bag.md#0x2_bag">0x2::bag</a>;
 <b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
+<b>use</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">0x2::coin_vesting</a>;
 <b>use</b> <a href="../sui-framework/event.md#0x2_event">0x2::event</a>;
 <b>use</b> <a href="../sui-framework/hc.md#0x2_hc">0x2::hc</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
@@ -290,6 +294,12 @@ title: Module `0x3::validator`
  Summary of the validator.
 </dd>
 <dt>
+<code>revenue_receiving_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
 <code><a href="voting_power.md#0x3_voting_power">voting_power</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a></code>
 </dt>
 <dd>
@@ -386,6 +396,12 @@ Event emitted when a new stake request is received.
 </dd>
 <dt>
 <code>epoch: <a href="../move-stdlib/u64.md#0x1_u64">u64</a></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>lock: bool</code>
 </dt>
 <dd>
 
@@ -706,6 +722,24 @@ Intended validator is not a candidate one.
 
 
 
+<a name="0x3_validator_EStakedSuiIsLock"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 201;
+</code></pre>
+
+
+
+<a name="0x3_validator_EStakedSuiNotLock"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 202;
+</code></pre>
+
+
+
 <a name="0x3_validator_EValidatorMetadataExceedingLengthLimit"></a>
 
 Validator Metadata is too long
@@ -716,11 +750,38 @@ Validator Metadata is too long
 
 
 
+<a name="0x3_validator_LOCK_CLIFF_EPOCH"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_LOCK_CLIFF_EPOCH">LOCK_CLIFF_EPOCH</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 180;
+</code></pre>
+
+
+
+<a name="0x3_validator_LOCK_INTERVAL_EPOCHL"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_LOCK_INTERVAL_EPOCHL">LOCK_INTERVAL_EPOCHL</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 24;
+</code></pre>
+
+
+
+<a name="0x3_validator_LOCK_PERIOD"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_LOCK_PERIOD">LOCK_PERIOD</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 24;
+</code></pre>
+
+
+
 <a name="0x3_validator_MAX_COMMISSION_RATE"></a>
 
 
 
-<pre><code><b>const</b> <a href="validator.md#0x3_validator_MAX_COMMISSION_RATE">MAX_COMMISSION_RATE</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 2000;
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_MAX_COMMISSION_RATE">MAX_COMMISSION_RATE</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 10000;
 </code></pre>
 
 
@@ -813,7 +874,7 @@ Max gas price a validator can set is 100K MIST.
 
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_new">new</a>(sui_address: <b>address</b>, protocol_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, network_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, name: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, description: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, image_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, project_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, net_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, p2p_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, primary_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="validator.md#0x3_validator_Validator">validator::Validator</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_new">new</a>(sui_address: <b>address</b>, revenue_receiving_address: <b>address</b>, protocol_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, network_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, name: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, description: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, image_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, project_url: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, net_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, p2p_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, primary_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, worker_address: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="validator.md#0x3_validator_Validator">validator::Validator</a>
 </code></pre>
 
 
@@ -824,6 +885,7 @@ Max gas price a validator can set is 100K MIST.
 
 <pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_new">new</a>(
     sui_address: <b>address</b>,
+    revenue_receiving_address: <b>address</b>,
     protocol_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
     network_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
     worker_pubkey_bytes: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
@@ -876,6 +938,7 @@ Max gas price a validator can set is 100K MIST.
 
     <a href="validator.md#0x3_validator_new_from_metadata">new_from_metadata</a>(
         metadata,
+        revenue_receiving_address,
         gas_price,
         commission_rate,
         ctx
@@ -962,6 +1025,36 @@ Process pending stake and pending withdraws, and update the gas price.
 
 </details>
 
+<a name="0x3_validator_request_set_revenue_receiving_address"></a>
+
+## Function `request_set_revenue_receiving_address`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, verified_cap: <a href="validator_cap.md#0x3_validator_cap_ValidatorOperationCap">validator_cap::ValidatorOperationCap</a>, revenue_receiving_address: <b>address</b>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(
+    self:&<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    verified_cap: ValidatorOperationCap,
+    revenue_receiving_address:<b>address</b>,
+) {
+    <b>let</b> validator_address = *verified_cap.verified_operation_cap_address();
+    <b>assert</b>!(validator_address == self.metadata.sui_address, <a href="validator.md#0x3_validator_EInvalidCap">EInvalidCap</a>);
+    self.revenue_receiving_address = revenue_receiving_address;
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x3_validator_request_add_stake"></a>
 
 ## Function `request_add_stake`
@@ -969,7 +1062,7 @@ Process pending stake and pending withdraws, and update the gas price.
 Request to add stake to the validator's staking pool, processed at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, staker_address: <b>address</b>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, staker_address: <b>address</b>, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
 </code></pre>
 
 
@@ -982,12 +1075,13 @@ Request to add stake to the validator's staking pool, processed at the end of th
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     stake: Balance&lt;HC&gt;,
     staker_address: <b>address</b>,
+    lock: bool,
     ctx: &<b>mut</b> TxContext,
 ) : StakedSui {
     <b>let</b> stake_amount = stake.value();
     <b>assert</b>!(stake_amount &gt; 0, <a href="validator.md#0x3_validator_EInvalidStakeAmount">EInvalidStakeAmount</a>);
     <b>let</b> stake_epoch = ctx.epoch() + 1;
-    <b>let</b> staked_sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(stake, stake_epoch, ctx);
+    <b>let</b> staked_sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(stake, stake_epoch, lock,ctx);
     // Process stake right away <b>if</b> staking pool is preactive.
     <b>if</b> (self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_is_preactive">is_preactive</a>()) {
         self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.process_pending_stake();
@@ -999,6 +1093,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
             validator_address: self.metadata.sui_address,
             staker_address,
             epoch: ctx.epoch(),
+            lock,
             amount: stake_amount,
         }
     );
@@ -1030,6 +1125,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
     staked_sui: StakedSui,
     ctx: &<b>mut</b> TxContext,
 ) : FungibleStakedSui {
+    <b>assert</b>!(!staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
     <b>let</b> staked_sui_principal_amount = staked_sui.staked_sui_amount();
 
@@ -1123,6 +1219,7 @@ Request to add stake to the validator's staking pool at genesis
     <b>let</b> staked_sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(
         stake,
         0, // epoch 0 -- <a href="genesis.md#0x3_genesis">genesis</a>
+        <b>true</b>,
         ctx
     );
 
@@ -1159,6 +1256,7 @@ Request to withdraw stake from the validator's staking pool, processed at the en
     staked_sui: StakedSui,
     ctx: &TxContext,
 ) : Balance&lt;HC&gt; {
+    <b>assert</b>!(!staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
     <b>let</b> principal_amount = staked_sui.staked_sui_amount();
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
     <b>let</b> withdrawn_stake = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx);
@@ -1177,6 +1275,64 @@ Request to withdraw stake from the validator's staking pool, processed at the en
         }
     );
     withdrawn_stake
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_request_withdraw_stake_lock"></a>
+
+## Function `request_withdraw_stake_lock`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/hc.md#0x2_hc_HC">hc::HC</a>&gt;)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(
+    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    staked_sui: StakedSui,
+    ctx: &<b>mut</b> TxContext,
+):(Balance&lt;HC&gt;,CoinVesting&lt;HC&gt;){
+    <b>assert</b>!(staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>);
+    <b>let</b> principal_amount = staked_sui.staked_sui_amount();
+    <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
+    <b>let</b> <b>mut</b> withdrawn_stake = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx);
+    <b>let</b> withdraw_amount = withdrawn_stake.value();
+    <b>let</b> reward_amount = withdraw_amount - principal_amount;
+    self.next_epoch_stake = self.next_epoch_stake - withdraw_amount;
+    <a href="../sui-framework/event.md#0x2_event_emit">event::emit</a>(
+        <a href="validator.md#0x3_validator_UnstakingRequestEvent">UnstakingRequestEvent</a> {
+            pool_id: <a href="validator.md#0x3_validator_staking_pool_id">staking_pool_id</a>(self),
+            validator_address: self.metadata.sui_address,
+            staker_address: ctx.sender(),
+            stake_activation_epoch,
+            unstaking_epoch: ctx.epoch(),
+            principal_amount,
+            reward_amount,
+        }
+    );
+
+    <b>let</b> withdrawn_reward = withdrawn_stake.split(reward_amount);
+
+    <b>let</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a> = <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_new_form_balance">coin_vesting::new_form_balance</a>(
+        withdrawn_stake,
+        stake_activation_epoch,
+        <a href="validator.md#0x3_validator_LOCK_CLIFF_EPOCH">LOCK_CLIFF_EPOCH</a>,
+        <a href="validator.md#0x3_validator_LOCK_INTERVAL_EPOCHL">LOCK_INTERVAL_EPOCHL</a>,
+        <a href="validator.md#0x3_validator_LOCK_PERIOD">LOCK_PERIOD</a>,
+        ctx,
+    );
+
+    (withdrawn_reward,<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a>)
 }
 </code></pre>
 
@@ -2129,6 +2285,30 @@ Set the voting power of this validator, called only from validator_set.
 
 </details>
 
+<a name="0x3_validator_revenue_receiving_address"></a>
+
+## Function `revenue_receiving_address`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_revenue_receiving_address">revenue_receiving_address</a>(self: &<a href="validator.md#0x3_validator_Validator">validator::Validator</a>): <b>address</b>
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_revenue_receiving_address">revenue_receiving_address</a>(self:&<a href="validator.md#0x3_validator_Validator">Validator</a>):<b>address</b>{
+    self.revenue_receiving_address
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x3_validator_gas_price"></a>
 
 ## Function `gas_price`
@@ -3035,7 +3215,7 @@ Aborts if validator metadata is valid
 Create a new validator from the given <code><a href="validator.md#0x3_validator_ValidatorMetadata">ValidatorMetadata</a></code>, called by both <code>new</code> and <code>new_for_testing</code>.
 
 
-<pre><code><b>fun</b> <a href="validator.md#0x3_validator_new_from_metadata">new_from_metadata</a>(metadata: <a href="validator.md#0x3_validator_ValidatorMetadata">validator::ValidatorMetadata</a>, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="validator.md#0x3_validator_Validator">validator::Validator</a>
+<pre><code><b>fun</b> <a href="validator.md#0x3_validator_new_from_metadata">new_from_metadata</a>(metadata: <a href="validator.md#0x3_validator_ValidatorMetadata">validator::ValidatorMetadata</a>, revenue_receiving_address: <b>address</b>, gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="validator.md#0x3_validator_Validator">validator::Validator</a>
 </code></pre>
 
 
@@ -3046,6 +3226,7 @@ Create a new validator from the given <code><a href="validator.md#0x3_validator_
 
 <pre><code><b>fun</b> <a href="validator.md#0x3_validator_new_from_metadata">new_from_metadata</a>(
     metadata: <a href="validator.md#0x3_validator_ValidatorMetadata">ValidatorMetadata</a>,
+    revenue_receiving_address:<b>address</b>,
     gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     ctx: &<b>mut</b> TxContext
@@ -3061,6 +3242,7 @@ Create a new validator from the given <code><a href="validator.md#0x3_validator_
         // At the epoch change <b>where</b> this <a href="validator.md#0x3_validator">validator</a> is actually added <b>to</b> the
         // active <a href="validator.md#0x3_validator">validator</a> set, the voting power will be updated accordingly.
         <a href="voting_power.md#0x3_voting_power">voting_power</a>: 0,
+        revenue_receiving_address,
         operation_cap_id,
         gas_price,
         <a href="staking_pool.md#0x3_staking_pool">staking_pool</a>,

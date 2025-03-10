@@ -45,25 +45,16 @@ use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockResponse, SuiT
 use sui_keys::{
     key_derive::generate_new_key,
     keypair_file::{
-        read_authority_keypair_from_file,
-        read_key,
-        read_keypair_from_file,
-        read_network_keypair_from_file,
-        write_authority_keypair_to_file,
-        write_keypair_to_file,
+        read_authority_keypair_from_file, read_key, read_keypair_from_file, read_network_keypair_from_file,
+        write_authority_keypair_to_file, write_keypair_to_file,
     },
     keystore::AccountKeystore,
 };
 use sui_sdk::{wallet_context::WalletContext, SuiClient};
 use sui_types::{
     crypto::{
-        generate_proof_of_possession,
-        get_authority_key_pair,
-        AuthorityKeyPair,
-        AuthorityPublicKeyBytes,
-        NetworkKeyPair,
-        SignatureScheme,
-        SuiKeyPair,
+        generate_proof_of_possession, get_authority_key_pair, AuthorityKeyPair, AuthorityPublicKeyBytes, NetworkKeyPair,
+        SignatureScheme, SuiKeyPair,
     },
     transaction::{CallArg, ObjectArg, Transaction, TransactionData},
 };
@@ -305,6 +296,7 @@ impl SuiValidatorCommand {
                         protocol_key: keypair.public().into(),
                         worker_key: worker_keypair.public().clone(),
                         account_address: SuiAddress::from(&account_keypair.public()),
+                        revenue_receiving_address: SuiAddress::from(&account_keypair.public()),
                         network_key: network_keypair.public().clone(),
                         gas_price,
                         commission_rate: sui_config::node::DEFAULT_COMMISSION_RATE,
@@ -348,6 +340,7 @@ impl SuiValidatorCommand {
                     CallArg::Pure(bcs::to_bytes(validator.p2p_address()).unwrap()),
                     CallArg::Pure(bcs::to_bytes(validator.narwhal_primary_address()).unwrap()),
                     CallArg::Pure(bcs::to_bytes(validator.narwhal_worker_address()).unwrap()),
+                    CallArg::Pure(bcs::to_bytes(&validator.revenue_receiving_address()).unwrap()),
                     CallArg::Pure(bcs::to_bytes(&validator.gas_price()).unwrap()),
                     CallArg::Pure(bcs::to_bytes(&validator.commission_rate()).unwrap()),
                 ];
@@ -382,7 +375,6 @@ impl SuiValidatorCommand {
                 let resp = update_metadata(context, metadata, gas_budget).await?;
                 SuiValidatorCommandResponse::UpdateMetadata(resp)
             }
-
             SuiValidatorCommand::UpdateGasPrice { operation_cap_id, gas_price, gas_budget } => {
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
                 let resp = update_gas_price(context, operation_cap_id, gas_price, gas_budget).await?;
@@ -471,7 +463,7 @@ impl SuiValidatorCommand {
                     gas_price,
                     gas_budget,
                 )
-                .map_err(|e| anyhow!("{e:?}"))?;
+                    .map_err(|e| anyhow!("{e:?}"))?;
                 if print_unsigned_transaction_only {
                     let serialized_data = Base64::encode(bcs::to_bytes(&tx_data)?);
                     SuiValidatorCommandResponse::RegisterBridgeCommittee {
@@ -528,7 +520,7 @@ impl SuiValidatorCommand {
                     gas_price,
                     gas_budget,
                 )
-                .map_err(|e| anyhow!("{e:?}"))?;
+                    .map_err(|e| anyhow!("{e:?}"))?;
                 if print_unsigned_transaction_only {
                     let serialized_data = Base64::encode(bcs::to_bytes(&tx_data)?);
                     SuiValidatorCommandResponse::UpdateBridgeCommitteeURL {
@@ -682,7 +674,7 @@ async fn get_validator_summary_from_cap_id(
     Ok((status, summary))
 }
 
-async fn construct_unsigned_0x5_txn(
+pub async fn construct_unsigned_0x5_txn(
     context: &mut WalletContext,
     sender: SuiAddress,
     function: &'static str,
@@ -708,7 +700,7 @@ async fn construct_unsigned_0x5_txn(
     )
 }
 
-async fn call_0x5(
+pub async fn call_0x5(
     context: &mut WalletContext,
     function: &'static str,
     call_args: Vec<CallArg>,
@@ -801,10 +793,7 @@ pub fn write_transaction_response(response: &SuiTransactionBlockResponse) -> Res
 impl Debug for SuiValidatorCommandResponse {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let string = serde_json::to_string_pretty(self);
-        let s = match string {
-            Ok(s) => s,
-            Err(err) => format!("{err}").red().to_string(),
-        };
+        let s = string.unwrap_or_else(|err| format!("{err}").red().to_string());
         write!(f, "{}", s)
     }
 }

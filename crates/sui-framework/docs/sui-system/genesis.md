@@ -77,6 +77,12 @@ title: Module `0x3::genesis`
 
 </dd>
 <dt>
+<code>revenue_receiving_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
 <code>gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a></code>
 </dt>
 <dd>
@@ -379,6 +385,7 @@ all the information we need in the system.
             image_url,
             project_url,
             sui_address,
+            revenue_receiving_address,
             gas_price,
             commission_rate,
             protocol_public_key,
@@ -393,6 +400,7 @@ all the information we need in the system.
 
         <b>let</b> <a href="validator.md#0x3_validator">validator</a> = <a href="validator.md#0x3_validator_new">validator::new</a>(
             sui_address,
+            revenue_receiving_address,
             protocol_public_key,
             network_public_key,
             worker_public_key,

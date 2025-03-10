@@ -91,6 +91,9 @@ fungible_staked_sui_pool_id
 staked_sui_amount
 	public fun
 	0x3::staking_pool
+lock
+	public fun
+	0x3::staking_pool
 stake_activation_epoch
 	public fun
 	0x3::staking_pool
@@ -187,6 +190,9 @@ activate
 adjust_stake_and_gas_price
 	public(package) fun
 	0x3::validator
+request_set_revenue_receiving_address
+	public(package) fun
+	0x3::validator
 request_add_stake
 	public(package) fun
 	0x3::validator
@@ -200,6 +206,9 @@ request_add_stake_at_genesis
 	public(package) fun
 	0x3::validator
 request_withdraw_stake
+	public(package) fun
+	0x3::validator
+request_withdraw_stake_lock
 	public(package) fun
 	0x3::validator
 request_set_gas_price
@@ -314,6 +323,9 @@ pending_stake_amount
 	public fun
 	0x3::validator
 pending_stake_withdraw_amount
+	public fun
+	0x3::validator
+revenue_receiving_address
 	public fun
 	0x3::validator
 gas_price
@@ -463,6 +475,12 @@ version
 ValidatorSet
 	public struct
 	0x3::validator_set
+UpdateValidatorOnlyStakingAction
+	public struct
+	0x3::validator_set
+UpdateTrustedValidatorsAction
+	public struct
+	0x3::validator_set
 ValidatorEpochInfoEvent
 	public struct
 	0x3::validator_set
@@ -475,7 +493,22 @@ ValidatorJoinEvent
 ValidatorLeaveEvent
 	public struct
 	0x3::validator_set
+DistributeRewardEvent
+	public struct
+	0x3::validator_set
 new
+	public(package) fun
+	0x3::validator_set
+create_update_validator_only_staking_action
+	public(package) fun
+	0x3::validator_set
+execute_update_validator_only_staking_action
+	public(package) fun
+	0x3::validator_set
+create_update_trusted_validator_action
+	public(package) fun
+	0x3::validator_set
+execute_update_trusted_validators_action
 	public(package) fun
 	0x3::validator_set
 request_add_validator_candidate
@@ -493,10 +526,16 @@ assert_no_pending_or_active_duplicates
 request_remove_validator
 	public(package) fun
 	0x3::validator_set
+remove_validator
+	fun
+	0x3::validator_set
 request_add_stake
 	public(package) fun
 	0x3::validator_set
 request_withdraw_stake
+	public(package) fun
+	0x3::validator_set
+request_withdraw_stake_lock
 	public(package) fun
 	0x3::validator_set
 convert_to_fungible_staked_sui
@@ -664,6 +703,54 @@ is_inactive_validator
 active_validator_addresses
 	public(package) fun
 	0x3::validator_set
+ActionKey
+	public struct
+	0x3::supper_committee
+UpdateCommitteeValidatorAction
+	public struct
+	0x3::supper_committee
+SupperCommittee
+	public struct
+	0x3::supper_committee
+Proposal
+	public struct
+	0x3::supper_committee
+CreateProposalEvent
+	public struct
+	0x3::supper_committee
+VoteProposalEvent
+	public struct
+	0x3::supper_committee
+new
+	public(package) fun
+	0x3::supper_committee
+create_update_committee_validator_proposal
+	public(package) fun
+	0x3::supper_committee
+execute_update_committee_validator_action
+	public(package) fun
+	0x3::supper_committee
+vote_proposal
+	public(package) fun
+	0x3::supper_committee
+is_committee_validator
+	public fun
+	0x3::supper_committee
+proposal_status
+	public fun
+	0x3::supper_committee
+proposal_action_type
+	public fun
+	0x3::supper_committee
+proposal_status_pass
+	public fun
+	0x3::supper_committee
+action
+	public fun
+	0x3::supper_committee
+create_proposal
+	public(package) fun
+	0x3::supper_committee
 StorageFund
 	public struct
 	0x3::storage_fund
@@ -739,16 +826,28 @@ set_candidate_validator_gas_price
 request_set_commission_rate
 	public(package) fun
 	0x3::sui_system_state_inner
+request_set_revenue_receiving_address
+	public(package) fun
+	0x3::sui_system_state_inner
 set_candidate_validator_commission_rate
 	public(package) fun
 	0x3::sui_system_state_inner
 request_add_stake
 	public(package) fun
 	0x3::sui_system_state_inner
+request_add_val_stake
+	public(package) fun
+	0x3::sui_system_state_inner
 request_add_stake_mul_coin
 	public(package) fun
 	0x3::sui_system_state_inner
+request_add_val_stake_mul_coin
+	public(package) fun
+	0x3::sui_system_state_inner
 request_withdraw_stake
+	public(package) fun
+	0x3::sui_system_state_inner
+request_withdraw_stake_lock
 	public(package) fun
 	0x3::sui_system_state_inner
 convert_to_fungible_staked_sui
@@ -768,6 +867,18 @@ report_validator_impl
 	0x3::sui_system_state_inner
 undo_report_validator_impl
 	fun
+	0x3::sui_system_state_inner
+create_update_committee_validator_proposal
+	public(package) fun
+	0x3::sui_system_state_inner
+create_update_trusted_validator_proposal
+	public(package) fun
+	0x3::sui_system_state_inner
+create_update_validator_only_staking_proposal
+	public(package) fun
+	0x3::sui_system_state_inner
+vote_proposal
+	public(package) fun
 	0x3::sui_system_state_inner
 rotate_operation_cap
 	public(package) fun
@@ -883,6 +994,18 @@ SuiSystemState
 create
 	public(package) fun
 	0x3::sui_system
+create_update_committee_validator_proposal
+	public entry fun
+	0x3::sui_system
+create_update_trusted_validator_proposal
+	public entry fun
+	0x3::sui_system
+create_update_validator_only_staking_proposal
+	public entry fun
+	0x3::sui_system
+vote_proposal
+	public entry fun
+	0x3::sui_system
 request_add_validator_candidate
 	public entry fun
 	0x3::sui_system
@@ -901,6 +1024,9 @@ request_set_gas_price
 set_candidate_validator_gas_price
 	public entry fun
 	0x3::sui_system
+request_set_revenue_receiving_address
+	public entry fun
+	0x3::sui_system
 request_set_commission_rate
 	public entry fun
 	0x3::sui_system
@@ -910,13 +1036,25 @@ set_candidate_validator_commission_rate
 request_add_stake
 	public entry fun
 	0x3::sui_system
+request_add_val_stake
+	public entry fun
+	0x3::sui_system
 request_add_stake_non_entry
+	public fun
+	0x3::sui_system
+request_add_val_stake_non_entry
 	public fun
 	0x3::sui_system
 request_add_stake_mul_coin
 	public entry fun
 	0x3::sui_system
+request_add_val_stake_mul_coin
+	public entry fun
+	0x3::sui_system
 request_withdraw_stake
+	public entry fun
+	0x3::sui_system
+request_withdraw_stake_lock
 	public entry fun
 	0x3::sui_system
 convert_to_fungible_staked_sui
@@ -926,6 +1064,9 @@ redeem_fungible_staked_sui
 	public fun
 	0x3::sui_system
 request_withdraw_stake_non_entry
+	public fun
+	0x3::sui_system
+request_withdraw_stake_lock_non_entry
 	public fun
 	0x3::sui_system
 report_validator
@@ -2191,6 +2332,18 @@ deny_list_remove
 deny_list_contains
 	public fun
 	0x2::coin
+CoinVesting
+	public struct
+	0x2::coin_vesting
+new_form_balance
+	public fun
+	0x2::coin_vesting
+release
+	public fun
+	0x2::coin_vesting
+destroy_zero
+	public fun
+	0x2::coin_vesting
 VecMap
 	public struct
 	0x2::vec_map

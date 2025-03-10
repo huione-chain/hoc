@@ -23,6 +23,14 @@ use serde_with::serde_as;
 /// It flattens all fields to make them top-level fields such that it as minimum
 /// dependencies to the internal data structures of the SUI system state type.
 
+
+#[derive(Default, Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SuiSupperCommitteeSummary {
+    pub committee_validators: Vec<SuiAddress>,
+    pub proposal_list: Vec<ObjectID>,
+}
+
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -141,6 +149,9 @@ pub struct SuiSystemStateSummary {
     /// period. Expressed in basis points.
     pub stake_subsidy_decrease_rate: u16,
 
+    // Supper committee
+    pub supper_committee: SuiSupperCommitteeSummary,
+
     // Validator set
     /// Total amount of stake from all active validators at the beginning of the epoch.
     #[schemars(with = "BigInt<u64>")]
@@ -183,6 +194,10 @@ pub struct SuiSystemStateSummary {
     pub at_risk_validators: Vec<(SuiAddress, u64)>,
     /// A map storing the records of validator reporting each other.
     pub validator_report_records: Vec<(SuiAddress, Vec<SuiAddress>)>,
+
+    pub validator_only_staking: bool,
+    pub trusted_validators: Vec<SuiAddress>,
+
 }
 
 impl SuiSystemStateSummary {
@@ -194,11 +209,14 @@ impl SuiSystemStateSummary {
                 let name = AuthorityName::from_bytes(&validator.protocol_pubkey_bytes).unwrap();
                 (
                     name,
-                    (validator.voting_power, NetworkMetadata {
-                        network_address: Multiaddr::try_from(validator.net_address.clone()).unwrap(),
-                        narwhal_primary_address: Multiaddr::try_from(validator.primary_address.clone()).unwrap(),
-                        network_public_key: NetworkPublicKey::from_bytes(&validator.network_pubkey_bytes).ok(),
-                    }),
+                    (
+                        validator.voting_power,
+                        NetworkMetadata {
+                            network_address: Multiaddr::try_from(validator.net_address.clone()).unwrap(),
+                            narwhal_primary_address: Multiaddr::try_from(validator.primary_address.clone()).unwrap(),
+                            network_public_key: NetworkPublicKey::from_bytes(&validator.network_pubkey_bytes).ok(),
+                        },
+                    ),
                 )
             })
             .collect();
@@ -214,6 +232,8 @@ impl SuiSystemStateSummary {
 pub struct SuiValidatorSummary {
     // Metadata
     pub sui_address: SuiAddress,
+    pub revenue_receiving_address: SuiAddress,
+
     #[schemars(with = "Base64")]
     #[serde_as(as = "Base64")]
     pub protocol_pubkey_bytes: Vec<u8>,
@@ -354,6 +374,9 @@ impl Default for SuiSystemStateSummary {
             validator_candidates_size: 0,
             at_risk_validators: vec![],
             validator_report_records: vec![],
+            supper_committee: SuiSupperCommitteeSummary::default(),
+            validator_only_staking: true,
+            trusted_validators: vec![],
         }
     }
 }
@@ -362,6 +385,7 @@ impl Default for SuiValidatorSummary {
     fn default() -> Self {
         Self {
             sui_address: SuiAddress::default(),
+            revenue_receiving_address: SuiAddress::default(),
             protocol_pubkey_bytes: vec![],
             network_pubkey_bytes: vec![],
             worker_pubkey_bytes: vec![],

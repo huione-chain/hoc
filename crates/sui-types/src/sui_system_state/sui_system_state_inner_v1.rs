@@ -27,9 +27,12 @@ use serde::{Deserialize, Serialize};
 use super::{
     epoch_start_sui_system_state::EpochStartValidatorInfoV1,
     get_validators_from_table_vec,
-    sui_system_state_summary::{SuiSystemStateSummary, SuiValidatorSummary},
-    AdvanceEpochParams,
-    SuiSystemStateTrait,
+    sui_system_state_summary::{
+        SuiSupperCommitteeSummary,
+        SuiSystemStateSummary,
+        SuiValidatorSummary,
+    },
+    AdvanceEpochParams, SuiSystemStateTrait,
 };
 
 const E_METADATA_INVALID_POP: u64 = 0;
@@ -272,6 +275,7 @@ pub struct ValidatorV1 {
     metadata: ValidatorMetadataV1,
     #[serde(skip)]
     verified_metadata: OnceCell<VerifiedValidatorMetadataV1>,
+    pub revenue_receiving_address: SuiAddress,
 
     pub voting_power: u64,
     pub operation_cap_id: ID,
@@ -321,6 +325,7 @@ impl ValidatorV1 {
             voting_power,
             operation_cap_id,
             gas_price,
+            revenue_receiving_address,
             staking_pool:
                 StakingPoolV1 {
                     id: staking_pool_id,
@@ -343,6 +348,7 @@ impl ValidatorV1 {
         } = self;
         SuiValidatorSummary {
             sui_address,
+            revenue_receiving_address,
             protocol_pubkey_bytes,
             network_pubkey_bytes,
             worker_pubkey_bytes,
@@ -401,6 +407,23 @@ pub struct StakingPoolV1 {
     pub extra_fields: Bag,
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
+pub struct SuiSupperCommittee {
+    pub committee_validators: VecSet<SuiAddress>,
+    pub proposal_list: Vec<ObjectID>,
+    pub extra_fields: Bag,
+}
+
+impl SuiSupperCommittee {
+    pub fn into_supper_committee_summary(self) -> SuiSupperCommitteeSummary {
+        SuiSupperCommitteeSummary {
+            committee_validators: self.committee_validators.contents,
+            proposal_list: self.proposal_list
+        }
+    }
+}
+
 /// Rust version of the Move sui_system::validator_set::ValidatorSet type
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct ValidatorSetV1 {
@@ -412,6 +435,8 @@ pub struct ValidatorSetV1 {
     pub inactive_validators: Table,
     pub validator_candidates: Table,
     pub at_risk_validators: VecMap<SuiAddress, u64>,
+    pub validator_only_staking: bool,
+    pub trusted_validators: VecSet<SuiAddress>,
     pub extra_fields: Bag,
 }
 
@@ -428,6 +453,7 @@ pub struct SuiSystemStateInnerV1 {
     pub epoch: u64,
     pub protocol_version: u64,
     pub system_state_version: u64,
+    pub supper_committee: SuiSupperCommittee,
     pub validators: ValidatorSetV1,
     pub storage_fund: StorageFundV1,
     pub parameters: SystemParametersV1,
@@ -575,6 +601,7 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             epoch,
             protocol_version,
             system_state_version,
+            supper_committee,
             validators:
                 ValidatorSetV1 {
                     total_stake,
@@ -588,6 +615,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                     inactive_validators: Table { id: inactive_pools_id, size: inactive_pools_size },
                     validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
                     at_risk_validators: VecMap { contents: at_risk_validators },
+                    validator_only_staking,
+                    trusted_validators: VecSet{ contents: trusted_validators},
                     extra_fields: _,
                 },
             storage_fund,
@@ -659,6 +688,9 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             validator_low_stake_grace_period,
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
+            supper_committee: supper_committee.into_supper_committee_summary(),
+            validator_only_staking,
+            trusted_validators,
         }
     }
 }

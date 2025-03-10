@@ -35,6 +35,7 @@ module sui_system::validator_tests {
         let init_stake = coin::mint_for_testing(10_000_000_000, ctx).into_balance();
         let mut validator = validator::new(
             VALID_ADDRESS,
+            VALID_ADDRESS,
             VALID_PUBKEY,
             VALID_NET_PUBKEY,
             VALID_WORKER_PUBKEY,

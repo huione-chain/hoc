@@ -80,6 +80,8 @@ module sui_system::staking_pool {
         stake_activation_epoch: u64,
         /// The staked SUI tokens.
         principal: Balance<HC>,
+        /// coin lock
+        lock: bool,
     }
 
     /// An alternative to `StakedSui` that holds the pool token amount instead of the SUI balance.
@@ -133,6 +135,7 @@ module sui_system::staking_pool {
         pool: &mut StakingPool,
         stake: Balance<HC>,
         stake_activation_epoch: u64,
+        lock: bool,
         ctx: &mut TxContext
     ) : StakedSui {
         let sui_amount = stake.value();
@@ -143,6 +146,7 @@ module sui_system::staking_pool {
             pool_id: object::id(pool),
             stake_activation_epoch,
             principal: stake,
+            lock,
         };
         pool.pending_stake = pool.pending_stake + sui_amount;
         staked_sui
@@ -263,7 +267,7 @@ module sui_system::staking_pool {
         staked_sui: StakedSui,
         ctx: &mut TxContext
     ) : FungibleStakedSui {
-        let StakedSui { id, pool_id, stake_activation_epoch, principal } = staked_sui;
+        let StakedSui { id, pool_id, stake_activation_epoch, principal ,lock:_} = staked_sui;
 
         assert!(pool_id == object::id(pool), EWrongPool);
         assert!(
@@ -341,6 +345,7 @@ module sui_system::staking_pool {
             pool_id: _,
             stake_activation_epoch: _,
             principal,
+            lock: _,
         } = staked_sui;
         object::delete(id);
         principal
@@ -451,6 +456,8 @@ module sui_system::staking_pool {
 
     public fun staked_sui_amount(staked_sui: &StakedSui): u64 { staked_sui.principal.value() }
 
+    public fun lock(staked_sui:&StakedSui):bool{staked_sui.lock}
+
     /// Allows calling `.amount()` on `StakedSui` to invoke `staked_sui_amount`
     public use fun staked_sui_amount as StakedSui.amount;
 
@@ -513,6 +520,7 @@ module sui_system::staking_pool {
             pool_id: self.pool_id,
             stake_activation_epoch: self.stake_activation_epoch,
             principal: self.principal.split(split_amount),
+            lock:self.lock,
         }
     }
 
@@ -534,6 +542,7 @@ module sui_system::staking_pool {
             pool_id: _,
             stake_activation_epoch: _,
             principal,
+            lock:_
         } = other;
 
         id.delete();
@@ -546,7 +555,8 @@ module sui_system::staking_pool {
     /// Returns true if all the staking parameters of the staked sui except the principal are identical
     public fun is_equal_staking_metadata(self: &StakedSui, other: &StakedSui): bool {
         (self.pool_id == other.pool_id) &&
-        (self.stake_activation_epoch == other.stake_activation_epoch)
+        (self.stake_activation_epoch == other.stake_activation_epoch) &&
+        (self.lock == other.lock)
     }
 
     public fun pool_token_exchange_rate_at_epoch(pool: &StakingPool, epoch: u64): PoolTokenExchangeRate {

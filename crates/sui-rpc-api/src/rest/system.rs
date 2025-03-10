@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use sui_protocol_config::{ProtocolConfig, ProtocolConfigValue, ProtocolVersion};
 use sui_sdk_types::types::{Address, ObjectId};
+use sui_types::base_types::SuiAddress;
 
 pub struct GetSystemStateSummary;
 
@@ -58,6 +59,21 @@ async fn get_system_state_summary(
     let summary = state.get_system_state_summary()?;
 
     Ok(Json(summary))
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct SupperCommitteeSummary {
+    pub committee_validators: Vec<Address>,
+    pub proposal_list: Vec<ObjectId>,
+}
+
+impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary> for SupperCommitteeSummary {
+    fn from(value: sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary) -> Self {
+        Self{
+            committee_validators: value.committee_validators.into_iter().map(|v|v.into()).collect(),
+            proposal_list: value.proposal_list.into_iter().map(|v|v.into()).collect(),
+        }
+    }
 }
 
 #[serde_with::serde_as]
@@ -182,6 +198,9 @@ pub struct SystemStateSummary {
     #[serde_as(as = "sui_types::sui_serde::BigInt<u64>")]
     #[schemars(with = "U64")]
     pub total_stake: u64,
+
+    pub supper_committee: SupperCommitteeSummary,
+
     /// The list of active validators in the current epoch.
     pub active_validators: Vec<ValidatorSummary>,
     /// ID of the object that contains the list of new validators that will join at the end of the epoch.
@@ -219,6 +238,8 @@ pub struct SystemStateSummary {
     pub at_risk_validators: Vec<(Address, u64)>,
     /// A map storing the records of validator reporting each other.
     pub validator_report_records: Vec<(Address, Vec<Address>)>,
+    pub validator_only_staking: bool,
+    pub trusted_validators: Vec<SuiAddress>,
 }
 
 /// This is the REST type for the sui validator. It flattens all inner structures
@@ -228,6 +249,8 @@ pub struct SystemStateSummary {
 pub struct ValidatorSummary {
     // Metadata
     pub address: Address,
+    pub revenue_receiving_address: Address,
+
     pub protocol_public_key: sui_sdk_types::types::Bls12381PublicKey,
     pub network_public_key: sui_sdk_types::types::Ed25519PublicKey,
     pub worker_public_key: sui_sdk_types::types::Ed25519PublicKey,
@@ -320,6 +343,7 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
     fn from(value: sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSummary) -> Self {
         let sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSummary {
             sui_address,
+            revenue_receiving_address,
             protocol_pubkey_bytes,
             network_pubkey_bytes,
             worker_pubkey_bytes,
@@ -362,6 +386,7 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
 
         Self {
             address: sui_address.into(),
+            revenue_receiving_address: revenue_receiving_address.into(),
             protocol_public_key: sui_sdk_types::types::Bls12381PublicKey::from_bytes(protocol_pubkey_bytes).unwrap(),
             network_public_key: sui_sdk_types::types::Ed25519PublicKey::from_bytes(network_pubkey_bytes).unwrap(),
             worker_public_key: sui_sdk_types::types::Ed25519PublicKey::from_bytes(worker_pubkey_bytes).unwrap(),
@@ -434,6 +459,7 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
             stake_subsidy_current_distribution_amount,
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
+            supper_committee,
             total_stake,
             active_validators,
             pending_active_validators_id,
@@ -447,6 +473,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
             validator_candidates_size,
             at_risk_validators,
             validator_report_records,
+            validator_only_staking ,
+            trusted_validators,
         } = value;
 
         Self {
@@ -475,6 +503,7 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
             total_stake,
+            supper_committee: supper_committee.into(),
             active_validators: active_validators.into_iter().map(Into::into).collect(),
             pending_active_validators_id: pending_active_validators_id.into(),
             pending_active_validators_size,
@@ -490,6 +519,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
                 .into_iter()
                 .map(|(address, reports)| (address.into(), reports.into_iter().map(Into::into).collect()))
                 .collect(),
+            validator_only_staking,
+            trusted_validators,
         }
     }
 }

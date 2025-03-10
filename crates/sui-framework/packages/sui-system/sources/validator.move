@@ -15,6 +15,7 @@ module sui_system::validator {
     use sui::event;
     use sui::bag::Bag;
     use sui::bag;
+    use sui::coin_vesting::{Self,CoinVesting};
 
     /// Invalid proof_of_possession field in ValidatorMetadata
     const EInvalidProofOfPossession: u64 = 0;
@@ -64,14 +65,22 @@ module sui_system::validator {
     /// Validator trying to set gas price higher than threshold.
     const EGasPriceHigherThanThreshold: u64 = 102;
 
+
+    const EStakedSuiIsLock: u64 = 201;
+    const EStakedSuiNotLock: u64 = 202;
+
     // TODO: potentially move this value to onchain config.
-    const MAX_COMMISSION_RATE: u64 = 2_000; // Max rate is 20%, which is 2000 base points
+    const MAX_COMMISSION_RATE: u64 = 10_000; // Max rate is 100%, which is 10000 base points
 
     const MAX_VALIDATOR_METADATA_LENGTH: u64 = 256;
 
     // TODO: Move this to onchain config when we have a good way to do it.
     /// Max gas price a validator can set is 100K MIST.
     const MAX_VALIDATOR_GAS_PRICE: u64 = 100_000;
+
+    const LOCK_CLIFF_EPOCH: u64 = 180;
+    const LOCK_INTERVAL_EPOCHL: u64 = 24;
+    const LOCK_PERIOD: u64 = 24;
 
     public struct ValidatorMetadata has store {
         /// The Sui Address of the validator. This is the sender that created the Validator object,
@@ -119,6 +128,7 @@ module sui_system::validator {
     public struct Validator has store {
         /// Summary of the validator.
         metadata: ValidatorMetadata,
+        revenue_receiving_address:address,
         /// The voting power of this validator, which might be different from its
         /// stake amount.
         voting_power: u64,
@@ -146,6 +156,7 @@ module sui_system::validator {
         validator_address: address,
         staker_address: address,
         epoch: u64,
+        lock: bool,
         amount: u64,
     }
 
@@ -220,6 +231,7 @@ module sui_system::validator {
 
     public(package) fun new(
         sui_address: address,
+        revenue_receiving_address: address,
         protocol_pubkey_bytes: vector<u8>,
         network_pubkey_bytes: vector<u8>,
         worker_pubkey_bytes: vector<u8>,
@@ -272,6 +284,7 @@ module sui_system::validator {
 
         new_from_metadata(
             metadata,
+            revenue_receiving_address,
             gas_price,
             commission_rate,
             ctx
@@ -293,17 +306,28 @@ module sui_system::validator {
         self.commission_rate = self.next_epoch_commission_rate;
     }
 
+    public(package) fun request_set_revenue_receiving_address(
+        self:&mut Validator,
+        verified_cap: ValidatorOperationCap,
+        revenue_receiving_address:address,
+    ) {
+        let validator_address = *verified_cap.verified_operation_cap_address();
+        assert!(validator_address == self.metadata.sui_address, EInvalidCap);
+        self.revenue_receiving_address = revenue_receiving_address;
+    }
+
     /// Request to add stake to the validator's staking pool, processed at the end of the epoch.
     public(package) fun request_add_stake(
         self: &mut Validator,
         stake: Balance<HC>,
         staker_address: address,
+        lock: bool,
         ctx: &mut TxContext,
     ) : StakedSui {
         let stake_amount = stake.value();
         assert!(stake_amount > 0, EInvalidStakeAmount);
         let stake_epoch = ctx.epoch() + 1;
-        let staked_sui = self.staking_pool.request_add_stake(stake, stake_epoch, ctx);
+        let staked_sui = self.staking_pool.request_add_stake(stake, stake_epoch, lock,ctx);
         // Process stake right away if staking pool is preactive.
         if (self.staking_pool.is_preactive()) {
             self.staking_pool.process_pending_stake();
@@ -315,6 +339,7 @@ module sui_system::validator {
                 validator_address: self.metadata.sui_address,
                 staker_address,
                 epoch: ctx.epoch(),
+                lock,
                 amount: stake_amount,
             }
         );
@@ -326,6 +351,7 @@ module sui_system::validator {
         staked_sui: StakedSui,
         ctx: &mut TxContext,
     ) : FungibleStakedSui {
+        assert!(!staked_sui.lock(),EStakedSuiIsLock);
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
         let staked_sui_principal_amount = staked_sui.staked_sui_amount();
 
@@ -379,6 +405,7 @@ module sui_system::validator {
         let staked_sui = self.staking_pool.request_add_stake(
             stake,
             0, // epoch 0 -- genesis
+            true,
             ctx
         );
 
@@ -395,6 +422,7 @@ module sui_system::validator {
         staked_sui: StakedSui,
         ctx: &TxContext,
     ) : Balance<HC> {
+        assert!(!staked_sui.lock(),EStakedSuiIsLock);
         let principal_amount = staked_sui.staked_sui_amount();
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
         let withdrawn_stake = self.staking_pool.request_withdraw_stake(staked_sui, ctx);
@@ -414,6 +442,45 @@ module sui_system::validator {
         );
         withdrawn_stake
     }
+
+    public(package) fun request_withdraw_stake_lock(
+        self: &mut Validator,
+        staked_sui: StakedSui,
+        ctx: &mut TxContext,
+    ):(Balance<HC>,CoinVesting<HC>){
+        assert!(staked_sui.lock(),EStakedSuiNotLock);
+        let principal_amount = staked_sui.staked_sui_amount();
+        let stake_activation_epoch = staked_sui.stake_activation_epoch();
+        let mut withdrawn_stake = self.staking_pool.request_withdraw_stake(staked_sui, ctx);
+        let withdraw_amount = withdrawn_stake.value();
+        let reward_amount = withdraw_amount - principal_amount;
+        self.next_epoch_stake = self.next_epoch_stake - withdraw_amount;
+        event::emit(
+            UnstakingRequestEvent {
+                pool_id: staking_pool_id(self),
+                validator_address: self.metadata.sui_address,
+                staker_address: ctx.sender(),
+                stake_activation_epoch,
+                unstaking_epoch: ctx.epoch(),
+                principal_amount,
+                reward_amount,
+            }
+        );
+
+        let withdrawn_reward = withdrawn_stake.split(reward_amount);
+
+        let coin_vesting = coin_vesting::new_form_balance(
+            withdrawn_stake, 
+            stake_activation_epoch, 
+            LOCK_CLIFF_EPOCH, 
+            LOCK_INTERVAL_EPOCHL, 
+            LOCK_PERIOD, 
+            ctx,
+        );
+
+        (withdrawn_reward,coin_vesting)
+    }
+
 
     /// Request to set new gas price for the next epoch.
     /// Need to present a `ValidatorOperationCap`.
@@ -600,6 +667,10 @@ module sui_system::validator {
 
     public fun pending_stake_withdraw_amount(self: &Validator): u64 {
         self.staking_pool.pending_stake_withdraw_amount()
+    }
+
+    public fun revenue_receiving_address(self:&Validator):address{
+        self.revenue_receiving_address
     }
 
     public fun gas_price(self: &Validator): u64 {
@@ -908,6 +979,7 @@ module sui_system::validator {
     /// Create a new validator from the given `ValidatorMetadata`, called by both `new` and `new_for_testing`.
     fun new_from_metadata(
         metadata: ValidatorMetadata,
+        revenue_receiving_address:address,
         gas_price: u64,
         commission_rate: u64,
         ctx: &mut TxContext
@@ -923,6 +995,7 @@ module sui_system::validator {
             // At the epoch change where this validator is actually added to the
             // active validator set, the voting power will be updated accordingly.
             voting_power: 0,
+            revenue_receiving_address,
             operation_cap_id,
             gas_price,
             staking_pool,
@@ -977,6 +1050,7 @@ module sui_system::validator {
                 worker_address.to_ascii_string().to_string(),
                 bag::new(ctx),
             ),
+            sui_address,
             gas_price,
             commission_rate,
             ctx

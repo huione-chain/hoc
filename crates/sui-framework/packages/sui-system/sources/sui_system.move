@@ -42,6 +42,7 @@ module sui_system::sui_system {
     use sui::balance::Balance;
 
     use sui::coin::Coin;
+    use sui::clock::Clock;
     use sui_system::staking_pool::{StakedSui, FungibleStakedSui};
     use sui::hc::HC;
     use sui::table::Table;
@@ -50,8 +51,10 @@ module sui_system::sui_system {
     use sui_system::sui_system_state_inner::{Self, SystemParameters, SuiSystemStateInner, SuiSystemStateInnerV2};
     use sui_system::stake_subsidy::StakeSubsidy;
     use sui_system::staking_pool::PoolTokenExchangeRate;
+    use sui_system::supper_committee::Proposal;
     use sui::dynamic_field;
     use sui::vec_map::VecMap;
+    use sui::coin_vesting::CoinVesting;
 
     #[test_only] use sui::balance;
     #[test_only] use sui_system::validator_set::ValidatorSet;
@@ -99,6 +102,50 @@ module sui_system::sui_system {
 
     // ==== entry functions ====
 
+
+    public entry fun create_update_committee_validator_proposal(
+        wrapper:&mut SuiSystemState,
+        operate: bool,
+        committee_validator: address ,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+       let self = load_system_state_mut(wrapper); 
+       self.create_update_committee_validator_proposal(operate, committee_validator, clock, ctx);
+    }
+
+    public entry fun create_update_trusted_validator_proposal(
+        wrapper: &mut SuiSystemState,
+        operate: bool,
+        validator: address,
+        clock: &Clock,
+        ctx:&mut TxContext
+    ){
+        let self = load_system_state_mut(wrapper);
+        self.create_update_trusted_validator_proposal(operate, validator, clock, ctx);
+    }
+
+    public entry fun create_update_validator_only_staking_proposal(
+        wrapper: &mut SuiSystemState,
+        validator_only_staking:bool,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+        let self = load_system_state_mut(wrapper);
+        self.create_update_validator_only_staking_proposal(validator_only_staking, clock, ctx);
+    }
+
+    public entry fun vote_proposal(
+        wrapper: &mut SuiSystemState,
+        proposal: &mut Proposal,
+        agree: bool,
+        clock: &Clock,
+        ctx: &TxContext
+    ){
+        let self = load_system_state_mut(wrapper);
+        self.vote_proposal(proposal, agree, clock, ctx);
+    }
+
     /// Can be called by anyone who wishes to become a validator candidate and starts accuring delegated
     /// stakes in their staking pool. Once they have at least `MIN_VALIDATOR_JOINING_STAKE` amount of stake they
     /// can call `request_add_validator` to officially become an active validator at the next epoch.
@@ -119,6 +166,7 @@ module sui_system::sui_system {
         p2p_address: vector<u8>,
         primary_address: vector<u8>,
         worker_address: vector<u8>,
+        revenue_receiving_address:address,
         gas_price: u64,
         commission_rate: u64,
         ctx: &mut TxContext,
@@ -137,6 +185,7 @@ module sui_system::sui_system {
             p2p_address,
             primary_address,
             worker_address,
+            revenue_receiving_address,
             gas_price,
             commission_rate,
             ctx,
@@ -199,6 +248,15 @@ module sui_system::sui_system {
         self.set_candidate_validator_gas_price(cap, new_gas_price)
     }
 
+    public entry fun request_set_revenue_receiving_address(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,        
+        revenue_receiving_address:address,
+    ){
+        let self = load_system_state_mut(wrapper);             
+        self.request_set_revenue_receiving_address(cap, revenue_receiving_address);
+    }
+
     /// A validator can call this entry function to set a new commission rate, updated at the end of
     /// the epoch.
     public entry fun request_set_commission_rate(
@@ -231,6 +289,16 @@ module sui_system::sui_system {
         transfer::public_transfer(staked_sui, ctx.sender());
     }
 
+    public entry fun request_add_val_stake(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
+        stake: Coin<HC>,
+        ctx: &mut TxContext,
+    ){
+        let staked_sui = request_add_val_stake_non_entry(wrapper, cap, stake, ctx);
+        transfer::public_transfer(staked_sui, ctx.sender());
+    }
+
     /// The non-entry version of `request_add_stake`, which returns the staked SUI instead of transferring it to the sender.
     public fun request_add_stake_non_entry(
         wrapper: &mut SuiSystemState,
@@ -240,6 +308,16 @@ module sui_system::sui_system {
     ): StakedSui {
         let self = load_system_state_mut(wrapper);
         self.request_add_stake(stake, validator_address, ctx)
+    }
+
+    public fun request_add_val_stake_non_entry(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
+        stake: Coin<HC>,
+        ctx: &mut TxContext,
+    ): StakedSui{
+        let self = load_system_state_mut(wrapper);
+        self.request_add_val_stake(cap, stake, ctx)
     }
 
     /// Add stake to a validator's staking pool using multiple coins.
@@ -255,6 +333,18 @@ module sui_system::sui_system {
         transfer::public_transfer(staked_sui, ctx.sender());
     }
 
+    public entry fun request_add_val_stake_mul_coin(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
+        stakes: vector<Coin<HC>>,
+        stake_amount: option::Option<u64>,
+        ctx: &mut TxContext,
+    ){
+        let self = load_system_state_mut(wrapper);
+        let staked_sui = self.request_add_val_stake_mul_coin(cap, stakes, stake_amount, ctx);
+        transfer::public_transfer(staked_sui, ctx.sender());
+    }
+
     /// Withdraw stake from a validator's staking pool.
     public entry fun request_withdraw_stake(
         wrapper: &mut SuiSystemState,
@@ -264,6 +354,17 @@ module sui_system::sui_system {
         let withdrawn_stake = request_withdraw_stake_non_entry(wrapper, staked_sui, ctx);
         transfer::public_transfer(withdrawn_stake.into_coin(ctx), ctx.sender());
     }
+
+    public entry fun request_withdraw_stake_lock(
+        wrapper: &mut SuiSystemState,
+        staked_sui: StakedSui,
+        ctx: &mut TxContext,
+    ){
+        let (withdrawn_reward,coin_vesting) = request_withdraw_stake_lock_non_entry(wrapper, staked_sui, ctx);
+        transfer::public_transfer(withdrawn_reward.into_coin(ctx), ctx.sender());
+        transfer::public_transfer(coin_vesting, ctx.sender());
+    }
+
 
     /// Convert StakedSui into a FungibleStakedSui object.
     public fun convert_to_fungible_staked_sui(
@@ -293,6 +394,15 @@ module sui_system::sui_system {
     ) : Balance<HC> {
         let self = load_system_state_mut(wrapper);
         self.request_withdraw_stake(staked_sui, ctx)
+    }
+
+    public fun request_withdraw_stake_lock_non_entry(
+        wrapper: &mut SuiSystemState,
+        staked_sui: StakedSui,
+        ctx: &mut TxContext, 
+    ):(Balance<HC>,CoinVesting<HC>){
+        let self = load_system_state_mut(wrapper);
+        self.request_withdraw_stake_lock(staked_sui, ctx)
     }
 
     /// Report a validator as a bad or non-performant actor in the system.
