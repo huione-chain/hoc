@@ -585,10 +585,10 @@ move-abstract-interpreter = { path = "external-crates/move/crates/move-abstract-
 move-abstract-stack = { path = "external-crates/move/crates/move-abstract-stack" }
 move-analyzer = { path = "external-crates/move/crates/move-analyzer" }
 
-fastcrypto = { git = "https://github.com/huione-chain/fastcrypto",branch = "xone-jwk"}
-fastcrypto-tbls = { git = "https://github.com/huione-chain/fastcrypto",branch = "xone-jwk" }
-fastcrypto-vdf = { git = "https://github.com/huione-chain/fastcrypto", branch = "xone-jwk", features = [ "experimental" ] }
-fastcrypto-zkp = { git = "https://github.com/huione-chain/fastcrypto", branch = "xone-jwk", package = "fastcrypto-zkp" }
+fastcrypto = { git = "https://github.com/huione-chain/fastcrypto",branch = "huionepay-jwk"}
+fastcrypto-tbls = { git = "https://github.com/huione-chain/fastcrypto",branch = "huionepay-jwk" }
+fastcrypto-vdf = { git = "https://github.com/huione-chain/fastcrypto", branch = "huionepay-jwk", features = [ "experimental" ] }
+fastcrypto-zkp = { git = "https://github.com/huione-chain/fastcrypto", branch = "huionepay-jwk", package = "fastcrypto-zkp" }
 
 passkey-types = { version = "0.2.0" }
 passkey-client = { version = "0.2.0" }
