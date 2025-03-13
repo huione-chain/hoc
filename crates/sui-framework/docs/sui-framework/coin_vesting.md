@@ -6,12 +6,15 @@ title: Module `0x2::coin_vesting`
 
 -  [Resource `CoinVesting`](#0x2_coin_vesting_CoinVesting)
 -  [Function `new_form_balance`](#0x2_coin_vesting_new_form_balance)
+-  [Function `release_entry`](#0x2_coin_vesting_release_entry)
 -  [Function `release`](#0x2_coin_vesting_release)
 -  [Function `destroy_zero`](#0x2_coin_vesting_destroy_zero)
 
 
 <pre><code><b>use</b> <a href="../sui-framework/balance.md#0x2_balance">0x2::balance</a>;
+<b>use</b> <a href="../sui-framework/coin.md#0x2_coin">0x2::coin</a>;
 <b>use</b> <a href="../sui-framework/object.md#0x2_object">0x2::object</a>;
+<b>use</b> <a href="../sui-framework/transfer.md#0x2_transfer">0x2::transfer</a>;
 <b>use</b> <a href="../sui-framework/tx_context.md#0x2_tx_context">0x2::tx_context</a>;
 </code></pre>
 
@@ -121,6 +124,31 @@ title: Module `0x2::coin_vesting`
         vesting_interval_epoch,
         vesting_internal_release,
     }
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x2_coin_vesting_release_entry"></a>
+
+## Function `release_entry`
+
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_entry">release_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_entry">release_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> TxContext){
+    <b>let</b> withdraw = self.<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>(ctx);
+    <a href="../sui-framework/transfer.md#0x2_transfer_public_transfer">transfer::public_transfer</a>(<a href="../sui-framework/coin.md#0x2_coin_from_balance">coin::from_balance</a>(withdraw,ctx),ctx.sender());
 }
 </code></pre>
 

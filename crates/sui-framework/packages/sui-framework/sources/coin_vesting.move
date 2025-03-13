@@ -1,6 +1,7 @@
 module sui::coin_vesting;
 
 use sui::balance::{Self, Balance};
+use sui::coin;
 
 public struct CoinVesting<phantom T> has key, store {
     id: UID,
@@ -39,6 +40,11 @@ public fun new_form_balance<T>(
         vesting_interval_epoch,
         vesting_internal_release,
     }
+}
+
+public entry fun release_entry<T>(self: &mut CoinVesting<T>, ctx: &mut TxContext){
+    let withdraw = self.release(ctx);
+    transfer::public_transfer(coin::from_balance(withdraw,ctx),ctx.sender());
 }
 
 public fun release<T>(self: &mut CoinVesting<T>, ctx: &TxContext): Balance<T> {

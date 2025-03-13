@@ -584,6 +584,10 @@ This is the only way to create <code><a href="../sui-framework/object.md#0x2_obj
 ## Function `delete`
 
 Delete the object and it's <code><a href="../sui-framework/object.md#0x2_object_UID">UID</a></code>. This is the only way to eliminate a <code><a href="../sui-framework/object.md#0x2_object_UID">UID</a></code>.
+This exists to inform Sui of object deletions. When an object
+gets unpacked, the programmer will have to do something with its
+<code><a href="../sui-framework/object.md#0x2_object_UID">UID</a></code>. The implementation of this function emits a deleted
+system event so Sui knows to process the object deletion
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="../sui-framework/object.md#0x2_object_delete">delete</a>(id: <a href="../sui-framework/object.md#0x2_object_UID">object::UID</a>)

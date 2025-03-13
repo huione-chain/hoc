@@ -2338,6 +2338,9 @@ CoinVesting
 new_form_balance
 	public fun
 	0x2::coin_vesting
+release_entry
+	public entry fun
+	0x2::coin_vesting
 release
 	public fun
 	0x2::coin_vesting
