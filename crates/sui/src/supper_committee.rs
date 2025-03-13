@@ -26,7 +26,7 @@ pub enum SuiSupperCommitteeCommand {
         #[clap(name = "gas-budget", long)]
         gas_budget: Option<u64>,
     },
-    #[clap(name = "update-committee-validator-proposal")]
+    #[clap(name = "update-trusted-validator-proposal")]
     CreateUpdateTrustedValidatorProposal {
         #[clap(name = "operate", long)]
         operate: bool,
