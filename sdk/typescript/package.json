@@ -1,9 +1,9 @@
 {
-	"name": "@mysten/sui",
+	"name": "hocjs",
 	"author": "Mysten Labs <build@mystenlabs.com>",
 	"description": "Sui TypeScript API(Work in Progress)",
 	"homepage": "https://sdk.mystenlabs.com",
-	"version": "1.16.0",
+	"version": "1.16.4",
 	"license": "Apache-2.0",
 	"sideEffects": false,
 	"files": [
@@ -146,7 +146,7 @@
 	},
 	"dependencies": {
 		"@graphql-typed-document-node/core": "^3.2.0",
-		"@mysten/bcs": "workspace:*",
+		"@mysten/bcs": "1.2.0",
 		"@noble/curves": "^1.4.2",
 		"@noble/hashes": "^1.4.0",
 		"@scure/bip32": "^1.4.0",
