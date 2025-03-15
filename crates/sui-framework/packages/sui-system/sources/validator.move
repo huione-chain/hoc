@@ -15,7 +15,7 @@ module sui_system::validator {
     use sui::event;
     use sui::bag::Bag;
     use sui::bag;
-    use sui::coin_vesting::{Self,CoinVesting};
+    use sui::coin_vesting::{Self, CoinVesting};
 
     /// Invalid proof_of_possession field in ValidatorMetadata
     const EInvalidProofOfPossession: u64 = 0;
@@ -66,8 +66,10 @@ module sui_system::validator {
     const EGasPriceHigherThanThreshold: u64 = 102;
 
 
-    const EStakedSuiIsLock: u64 = 201;
-    const EStakedSuiNotLock: u64 = 202;
+    const EOnlyValidatorStake: u64 = 201;
+    const EValidatorStakeClosed: u64 = 202;
+    const EStakedSuiIsLock: u64 = 203;
+    const EStakedSuiNotLock: u64 = 204;
 
     // TODO: potentially move this value to onchain config.
     const MAX_COMMISSION_RATE: u64 = 10_000; // Max rate is 100%, which is 10000 base points
@@ -128,7 +130,8 @@ module sui_system::validator {
     public struct Validator has store {
         /// Summary of the validator.
         metadata: ValidatorMetadata,
-        revenue_receiving_address:address,
+        revenue_receiving_address: address,
+        only_validator_staking: bool,
         /// The voting power of this validator, which might be different from its
         /// stake amount.
         voting_power: u64,
@@ -307,9 +310,9 @@ module sui_system::validator {
     }
 
     public(package) fun request_set_revenue_receiving_address(
-        self:&mut Validator,
+        self: &mut Validator,
         verified_cap: ValidatorOperationCap,
-        revenue_receiving_address:address,
+        revenue_receiving_address: address,
     ) {
         let validator_address = *verified_cap.verified_operation_cap_address();
         assert!(validator_address == self.metadata.sui_address, EInvalidCap);
@@ -321,13 +324,18 @@ module sui_system::validator {
         self: &mut Validator,
         stake: Balance<OCT>,
         staker_address: address,
-        lock: bool,
+        is_validator: bool,
         ctx: &mut TxContext,
-    ) : StakedSui {
+    ): StakedSui {
         let stake_amount = stake.value();
         assert!(stake_amount > 0, EInvalidStakeAmount);
+        if (self.only_validator_staking) {
+            assert!(is_validator, EOnlyValidatorStake);
+        }else {
+            assert!(!is_validator, EValidatorStakeClosed);
+        };
         let stake_epoch = ctx.epoch() + 1;
-        let staked_sui = self.staking_pool.request_add_stake(stake, stake_epoch, lock,ctx);
+        let staked_sui = self.staking_pool.request_add_stake(stake, stake_epoch, is_validator, ctx);
         // Process stake right away if staking pool is preactive.
         if (self.staking_pool.is_preactive()) {
             self.staking_pool.process_pending_stake();
@@ -339,7 +347,7 @@ module sui_system::validator {
                 validator_address: self.metadata.sui_address,
                 staker_address,
                 epoch: ctx.epoch(),
-                lock,
+                lock: is_validator,
                 amount: stake_amount,
             }
         );
@@ -350,8 +358,8 @@ module sui_system::validator {
         self: &mut Validator,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ) : FungibleStakedSui {
-        assert!(!staked_sui.lock(),EStakedSuiIsLock);
+    ): FungibleStakedSui {
+        assert!(!staked_sui.lock(), EStakedSuiIsLock);
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
         let staked_sui_principal_amount = staked_sui.staked_sui_amount();
 
@@ -373,7 +381,7 @@ module sui_system::validator {
         self: &mut Validator,
         fungible_staked_sui: FungibleStakedSui,
         ctx: &TxContext,
-    ) : Balance<OCT> {
+    ): Balance<OCT> {
         let fungible_staked_sui_amount = fungible_staked_sui.value();
 
         let sui = self.staking_pool.redeem_fungible_staked_sui(fungible_staked_sui, ctx);
@@ -421,8 +429,8 @@ module sui_system::validator {
         self: &mut Validator,
         staked_sui: StakedSui,
         ctx: &TxContext,
-    ) : Balance<OCT> {
-        assert!(!staked_sui.lock(),EStakedSuiIsLock);
+    ): Balance<OCT> {
+        assert!(!staked_sui.lock(), EStakedSuiIsLock);
         let principal_amount = staked_sui.staked_sui_amount();
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
         let withdrawn_stake = self.staking_pool.request_withdraw_stake(staked_sui, ctx);
@@ -447,8 +455,8 @@ module sui_system::validator {
         self: &mut Validator,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ):(Balance<OCT>,CoinVesting<OCT>){
-        assert!(staked_sui.lock(),EStakedSuiNotLock);
+    ): (Balance<OCT>, CoinVesting<OCT>) {
+        assert!(staked_sui.lock(), EStakedSuiNotLock);
         let principal_amount = staked_sui.staked_sui_amount();
         let stake_activation_epoch = staked_sui.stake_activation_epoch();
         let mut withdrawn_stake = self.staking_pool.request_withdraw_stake(staked_sui, ctx);
@@ -470,15 +478,22 @@ module sui_system::validator {
         let withdrawn_reward = withdrawn_stake.split(reward_amount);
 
         let coin_vesting = coin_vesting::new_form_balance(
-            withdrawn_stake, 
-            stake_activation_epoch, 
-            LOCK_CLIFF_EPOCH, 
-            LOCK_INTERVAL_EPOCHL, 
-            LOCK_PERIOD, 
+            withdrawn_stake,
+            stake_activation_epoch,
+            LOCK_CLIFF_EPOCH,
+            LOCK_INTERVAL_EPOCHL,
+            LOCK_PERIOD,
             ctx,
         );
 
-        (withdrawn_reward,coin_vesting)
+        (withdrawn_reward, coin_vesting)
+    }
+
+    public(package) fun set_only_validator_staking(
+        self: &mut Validator,
+        only_validator_staking: bool
+    ) {
+        self.only_validator_staking = only_validator_staking
     }
 
 
@@ -651,6 +666,10 @@ module sui_system::validator {
         stake_amount(self)
     }
 
+    public fun only_validator_staking(self: &Validator): bool {
+        self.only_validator_staking
+    }
+
     /// Return the voting power of this validator.
     public fun voting_power(self: &Validator): u64 {
         self.voting_power
@@ -669,7 +688,7 @@ module sui_system::validator {
         self.staking_pool.pending_stake_withdraw_amount()
     }
 
-    public fun revenue_receiving_address(self:&Validator):address{
+    public fun revenue_receiving_address(self: &Validator): address {
         self.revenue_receiving_address
     }
 
@@ -691,7 +710,7 @@ module sui_system::validator {
 
     // MUSTFIX: We need to check this when updating metadata as well.
     public fun is_duplicate(self: &Validator, other: &Validator): bool {
-         self.metadata.sui_address == other.metadata.sui_address
+        self.metadata.sui_address == other.metadata.sui_address
             || self.metadata.name == other.metadata.name
             || self.metadata.net_address == other.metadata.net_address
             || self.metadata.p2p_address == other.metadata.p2p_address
@@ -703,27 +722,72 @@ module sui_system::validator {
             // All next epoch parameters.
             || is_equal_some(&self.metadata.next_epoch_net_address, &other.metadata.next_epoch_net_address)
             || is_equal_some(&self.metadata.next_epoch_p2p_address, &other.metadata.next_epoch_p2p_address)
-            || is_equal_some(&self.metadata.next_epoch_protocol_pubkey_bytes, &other.metadata.next_epoch_protocol_pubkey_bytes)
-            || is_equal_some(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.next_epoch_network_pubkey_bytes)
-            || is_equal_some(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.next_epoch_worker_pubkey_bytes)
-            || is_equal_some(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.next_epoch_worker_pubkey_bytes)
-            || is_equal_some(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.next_epoch_network_pubkey_bytes)
+            || is_equal_some(
+            &self.metadata.next_epoch_protocol_pubkey_bytes,
+            &other.metadata.next_epoch_protocol_pubkey_bytes
+        )
+            || is_equal_some(
+            &self.metadata.next_epoch_network_pubkey_bytes,
+            &other.metadata.next_epoch_network_pubkey_bytes
+        )
+            || is_equal_some(
+            &self.metadata.next_epoch_network_pubkey_bytes,
+            &other.metadata.next_epoch_worker_pubkey_bytes
+        )
+            || is_equal_some(
+            &self.metadata.next_epoch_worker_pubkey_bytes,
+            &other.metadata.next_epoch_worker_pubkey_bytes
+        )
+            || is_equal_some(
+            &self.metadata.next_epoch_worker_pubkey_bytes,
+            &other.metadata.next_epoch_network_pubkey_bytes
+        )
             // My next epoch parameters with other current epoch parameters.
             || is_equal_some_and_value(&self.metadata.next_epoch_net_address, &other.metadata.net_address)
             || is_equal_some_and_value(&self.metadata.next_epoch_p2p_address, &other.metadata.p2p_address)
-            || is_equal_some_and_value(&self.metadata.next_epoch_protocol_pubkey_bytes, &other.metadata.protocol_pubkey_bytes)
-            || is_equal_some_and_value(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.network_pubkey_bytes)
-            || is_equal_some_and_value(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.worker_pubkey_bytes)
-            || is_equal_some_and_value(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.worker_pubkey_bytes)
-            || is_equal_some_and_value(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.network_pubkey_bytes)
+            || is_equal_some_and_value(
+            &self.metadata.next_epoch_protocol_pubkey_bytes,
+            &other.metadata.protocol_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &self.metadata.next_epoch_network_pubkey_bytes,
+            &other.metadata.network_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &self.metadata.next_epoch_network_pubkey_bytes,
+            &other.metadata.worker_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &self.metadata.next_epoch_worker_pubkey_bytes,
+            &other.metadata.worker_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &self.metadata.next_epoch_worker_pubkey_bytes,
+            &other.metadata.network_pubkey_bytes
+        )
             // Other next epoch parameters with my current epoch parameters.
             || is_equal_some_and_value(&other.metadata.next_epoch_net_address, &self.metadata.net_address)
             || is_equal_some_and_value(&other.metadata.next_epoch_p2p_address, &self.metadata.p2p_address)
-            || is_equal_some_and_value(&other.metadata.next_epoch_protocol_pubkey_bytes, &self.metadata.protocol_pubkey_bytes)
-            || is_equal_some_and_value(&other.metadata.next_epoch_network_pubkey_bytes, &self.metadata.network_pubkey_bytes)
-            || is_equal_some_and_value(&other.metadata.next_epoch_network_pubkey_bytes, &self.metadata.worker_pubkey_bytes)
-            || is_equal_some_and_value(&other.metadata.next_epoch_worker_pubkey_bytes, &self.metadata.worker_pubkey_bytes)
-            || is_equal_some_and_value(&other.metadata.next_epoch_worker_pubkey_bytes, &self.metadata.network_pubkey_bytes)
+            || is_equal_some_and_value(
+            &other.metadata.next_epoch_protocol_pubkey_bytes,
+            &self.metadata.protocol_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &other.metadata.next_epoch_network_pubkey_bytes,
+            &self.metadata.network_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &other.metadata.next_epoch_network_pubkey_bytes,
+            &self.metadata.worker_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &other.metadata.next_epoch_worker_pubkey_bytes,
+            &self.metadata.worker_pubkey_bytes
+        )
+            || is_equal_some_and_value(
+            &other.metadata.next_epoch_worker_pubkey_bytes,
+            &self.metadata.network_pubkey_bytes
+        )
     }
 
     fun is_equal_some_and_value<T>(a: &Option<T>, b: &T): bool {
@@ -882,14 +946,22 @@ module sui_system::validator {
     }
 
     /// Update protocol public key of this validator, taking effects from next epoch
-    public(package) fun update_next_epoch_protocol_pubkey(self: &mut Validator, protocol_pubkey: vector<u8>, proof_of_possession: vector<u8>) {
+    public(package) fun update_next_epoch_protocol_pubkey(
+        self: &mut Validator,
+        protocol_pubkey: vector<u8>,
+        proof_of_possession: vector<u8>
+    ) {
         self.metadata.next_epoch_protocol_pubkey_bytes = option::some(protocol_pubkey);
         self.metadata.next_epoch_proof_of_possession = option::some(proof_of_possession);
         validate_metadata(&self.metadata);
     }
 
     /// Update protocol public key of this candidate validator
-    public(package) fun update_candidate_protocol_pubkey(self: &mut Validator, protocol_pubkey: vector<u8>, proof_of_possession: vector<u8>) {
+    public(package) fun update_candidate_protocol_pubkey(
+        self: &mut Validator,
+        protocol_pubkey: vector<u8>,
+        proof_of_possession: vector<u8>
+    ) {
         assert!(is_preactive(self), ENotValidatorCandidate);
         self.metadata.protocol_pubkey_bytes = protocol_pubkey;
         self.metadata.proof_of_possession = proof_of_possession;
@@ -971,7 +1043,7 @@ module sui_system::validator {
 
     public native fun validate_metadata_bcs(metadata: vector<u8>);
 
-    public(package) fun get_staking_pool_ref(self: &Validator) : &StakingPool {
+    public(package) fun get_staking_pool_ref(self: &Validator): &StakingPool {
         &self.staking_pool
     }
 
@@ -979,7 +1051,7 @@ module sui_system::validator {
     /// Create a new validator from the given `ValidatorMetadata`, called by both `new` and `new_for_testing`.
     fun new_from_metadata(
         metadata: ValidatorMetadata,
-        revenue_receiving_address:address,
+        revenue_receiving_address: address,
         gas_price: u64,
         commission_rate: u64,
         ctx: &mut TxContext
@@ -996,6 +1068,7 @@ module sui_system::validator {
             // active validator set, the voting power will be updated accordingly.
             voting_power: 0,
             revenue_receiving_address,
+            only_validator_staking: true,
             operation_cap_id,
             gas_price,
             staking_pool,
@@ -1027,50 +1100,50 @@ module sui_system::validator {
         p2p_address: vector<u8>,
         primary_address: vector<u8>,
         worker_address: vector<u8>,
-        mut initial_stake_option: Option<Balance<OCT>>,
-        gas_price: u64,
-        commission_rate: u64,
-        is_active_at_genesis: bool,
-        ctx: &mut TxContext
+    mut initial_stake_option: Option<Balance<OCT>>,
+    gas_price: u64,
+    commission_rate: u64,
+    is_active_at_genesis: bool,
+    ctx: &mut TxContext
     ): Validator {
-        let mut validator = new_from_metadata(
-            new_metadata(
-                sui_address,
-                protocol_pubkey_bytes,
-                network_pubkey_bytes,
-                worker_pubkey_bytes,
-                proof_of_possession,
-                name.to_ascii_string().to_string(),
-                description.to_ascii_string().to_string(),
-                url::new_unsafe_from_bytes(image_url),
-                url::new_unsafe_from_bytes(project_url),
-                net_address.to_ascii_string().to_string(),
-                p2p_address.to_ascii_string().to_string(),
-                primary_address.to_ascii_string().to_string(),
-                worker_address.to_ascii_string().to_string(),
-                bag::new(ctx),
-            ),
-            sui_address,
-            gas_price,
-            commission_rate,
-            ctx
-        );
+    let mut validator = new_from_metadata(
+    new_metadata(
+    sui_address,
+    protocol_pubkey_bytes,
+    network_pubkey_bytes,
+    worker_pubkey_bytes,
+    proof_of_possession,
+    name.to_ascii_string().to_string(),
+    description.to_ascii_string().to_string(),
+    url::new_unsafe_from_bytes(image_url),
+    url::new_unsafe_from_bytes(project_url),
+    net_address.to_ascii_string().to_string(),
+    p2p_address.to_ascii_string().to_string(),
+    primary_address.to_ascii_string().to_string(),
+    worker_address.to_ascii_string().to_string(),
+    bag::new(ctx),
+    ),
+    sui_address,
+    gas_price,
+    commission_rate,
+    ctx
+    );
 
-        // Add the validator's starting stake to the staking pool if there exists one.
-        if (initial_stake_option.is_some()) {
-            request_add_stake_at_genesis(
-                &mut validator,
-                initial_stake_option.extract(),
-                sui_address, // give the stake to the validator
-                ctx
-            );
-        };
-        initial_stake_option.destroy_none();
+    // Add the validator's starting stake to the staking pool if there exists one.
+    if (initial_stake_option.is_some()) {
+    request_add_stake_at_genesis(
+    &mut validator,
+    initial_stake_option.extract(),
+    sui_address, // give the stake to the validator
+    ctx
+    );
+    };
+    initial_stake_option.destroy_none();
 
-        if (is_active_at_genesis) {
-            activate(&mut validator, 0);
-        };
+    if (is_active_at_genesis) {
+    activate(&mut validator, 0);
+    };
 
-        validator
+    validator
     }
 }

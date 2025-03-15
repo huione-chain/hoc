@@ -102,48 +102,50 @@ module sui_system::sui_system {
 
     // ==== entry functions ====
 
-
-    public entry fun create_update_committee_validator_proposal(
-        wrapper:&mut SuiSystemState,
-        operate: bool,
-        committee_validator: address ,
-        clock: &Clock,
-        ctx: &mut TxContext
-    ){
-       let self = load_system_state_mut(wrapper); 
-       self.create_update_committee_validator_proposal(operate, committee_validator, clock, ctx);
-    }
-
     public entry fun create_update_trusted_validator_proposal(
         wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
         operate: bool,
         validator: address,
         clock: &Clock,
         ctx:&mut TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.create_update_trusted_validator_proposal(operate, validator, clock, ctx);
+        self.create_update_trusted_validator_proposal(cap,operate, validator, clock, ctx);
     }
 
-    public entry fun create_update_validator_only_staking_proposal(
+    public entry fun create_update_only_trusted_validator_proposal(
         wrapper: &mut SuiSystemState,
-        validator_only_staking:bool,
+        cap: &UnverifiedValidatorOperationCap,
+        only_trusted_validator:bool,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+        let self = load_system_state_mut(wrapper); 
+        self.create_update_only_trusted_validator_proposal(cap, only_trusted_validator, clock, ctx)
+    }
+
+    public entry fun create_update_only_validator_staking_proposal(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
+        only_validator_staking:bool,
         clock: &Clock,
         ctx: &mut TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.create_update_validator_only_staking_proposal(validator_only_staking, clock, ctx);
+        self.create_update_only_validator_staking_proposal(cap,only_validator_staking, clock, ctx);
     }
 
     public entry fun vote_proposal(
         wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
         proposal: &mut Proposal,
         agree: bool,
         clock: &Clock,
         ctx: &TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.vote_proposal(proposal, agree, clock, ctx);
+        self.vote_proposal(cap,proposal, agree, clock, ctx);
     }
 
     /// Can be called by anyone who wishes to become a validator candidate and starts accuring delegated

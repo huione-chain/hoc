@@ -26,7 +26,6 @@ use serde_with::serde_as;
 #[derive(Default, Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SuiSupperCommitteeSummary {
-    pub committee_validators: Vec<SuiAddress>,
     pub proposal_list: Vec<ObjectID>,
 }
 
@@ -194,8 +193,8 @@ pub struct SuiSystemStateSummary {
     /// A map storing the records of validator reporting each other.
     pub validator_report_records: Vec<(SuiAddress, Vec<SuiAddress>)>,
 
-    pub validator_only_staking: bool,
     pub trusted_validators: Vec<SuiAddress>,
+    pub only_trusted_validator: bool,
 }
 
 impl SuiSystemStateSummary {
@@ -227,7 +226,6 @@ impl SuiSystemStateSummary {
 pub struct SuiValidatorSummary {
     // Metadata
     pub sui_address: SuiAddress,
-    pub revenue_receiving_address: SuiAddress,
 
     #[schemars(with = "Base64")]
     #[serde_as(as = "Base64")]
@@ -269,6 +267,8 @@ pub struct SuiValidatorSummary {
     #[schemars(with = "BigInt<u64>")]
     #[serde_as(as = "Readable<BigInt<u64>, _>")]
     pub voting_power: u64,
+    pub revenue_receiving_address: SuiAddress,
+    pub only_validator_staking: bool,
     pub operation_cap_id: ObjectID,
     #[schemars(with = "BigInt<u64>")]
     #[serde_as(as = "Readable<BigInt<u64>, _>")]
@@ -370,8 +370,8 @@ impl Default for SuiSystemStateSummary {
             at_risk_validators: vec![],
             validator_report_records: vec![],
             supper_committee: SuiSupperCommitteeSummary::default(),
-            validator_only_staking: true,
             trusted_validators: vec![],
+            only_trusted_validator: true,
         }
     }
 }
@@ -380,7 +380,6 @@ impl Default for SuiValidatorSummary {
     fn default() -> Self {
         Self {
             sui_address: SuiAddress::default(),
-            revenue_receiving_address: SuiAddress::default(),
             protocol_pubkey_bytes: vec![],
             network_pubkey_bytes: vec![],
             worker_pubkey_bytes: vec![],
@@ -402,6 +401,8 @@ impl Default for SuiValidatorSummary {
             next_epoch_primary_address: None,
             next_epoch_worker_address: None,
             voting_power: 0,
+            revenue_receiving_address: SuiAddress::default(),
+            only_validator_staking: true,
             operation_cap_id: ObjectID::ZERO,
             gas_price: 0,
             commission_rate: 0,

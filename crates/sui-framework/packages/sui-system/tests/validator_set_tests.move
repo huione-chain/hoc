@@ -52,6 +52,7 @@ module sui_system::validator_set_tests {
             let stake = validator_set.request_add_stake(
                 @0x1,
                 coin::mint_for_testing(500 * MIST_PER_OCT, ctx1).into_balance(),
+                false,
                 ctx1,
             );
             transfer::public_transfer(stake, @0x1);
@@ -158,6 +159,7 @@ module sui_system::validator_set_tests {
         let stake = validator_set.request_add_stake(
             @0x1,
             balance::create_for_testing(MIST_PER_OCT - 1), // 1 MIST lower than the threshold
+            false,
             ctx1,
         );
         transfer::public_transfer(stake, @0x1);
@@ -182,6 +184,7 @@ module sui_system::validator_set_tests {
         let stake = validator_set.request_add_stake(
             @0x1,
             balance::create_for_testing(MIST_PER_OCT), // min possible stake
+            false,
             ctx1,
         );
         transfer::public_transfer(stake, @0x1);
@@ -220,6 +223,7 @@ module sui_system::validator_set_tests {
             let stake = validator_set.request_add_stake(
                 @0x2,
                 balance::create_for_testing(500 * MIST_PER_OCT),
+                false,
                 ctx,
             );
             transfer::public_transfer(stake, @0x42);
@@ -261,6 +265,7 @@ module sui_system::validator_set_tests {
             let stake = validator_set.request_add_stake(
                 @0x2,
                 balance::create_for_testing(500 * MIST_PER_OCT),
+                false,
                 ctx,
             );
             transfer::public_transfer(stake, @0x42);
@@ -355,6 +360,7 @@ module sui_system::validator_set_tests {
             let stake = validator_set.request_add_stake(
                 @0x4,
                 balance::create_for_testing(500 * MIST_PER_OCT),
+                false,
                 ctx,
             );
             transfer::public_transfer(stake, @0x42);

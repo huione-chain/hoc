@@ -45,25 +45,16 @@ use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockResponse, SuiT
 use sui_keys::{
     key_derive::generate_new_key,
     keypair_file::{
-        read_authority_keypair_from_file,
-        read_key,
-        read_keypair_from_file,
-        read_network_keypair_from_file,
-        write_authority_keypair_to_file,
-        write_keypair_to_file,
+        read_authority_keypair_from_file, read_key, read_keypair_from_file, read_network_keypair_from_file,
+        write_authority_keypair_to_file, write_keypair_to_file,
     },
     keystore::AccountKeystore,
 };
 use sui_sdk::{wallet_context::WalletContext, SuiClient};
 use sui_types::{
     crypto::{
-        generate_proof_of_possession,
-        get_authority_key_pair,
-        AuthorityKeyPair,
-        AuthorityPublicKeyBytes,
-        NetworkKeyPair,
-        SignatureScheme,
-        SuiKeyPair,
+        generate_proof_of_possession, get_authority_key_pair, AuthorityKeyPair, AuthorityPublicKeyBytes, NetworkKeyPair,
+        SignatureScheme, SuiKeyPair,
     },
     transaction::{CallArg, ObjectArg, Transaction, TransactionData},
 };
@@ -570,7 +561,7 @@ fn check_address(
     }
 }
 
-async fn get_cap_object_ref(
+pub async fn get_cap_object_ref(
     context: &mut WalletContext,
     operation_cap_id: Option<ObjectID>,
 ) -> Result<(ValidatorStatus, SuiValidatorSummary, ObjectRef)> {

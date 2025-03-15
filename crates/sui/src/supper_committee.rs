@@ -1,4 +1,4 @@
-use crate::validator_commands::{call_0x5, write_transaction_response};
+use crate::validator_commands::{call_0x5, get_cap_object_ref, write_transaction_response};
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use colored::Colorize;
@@ -16,18 +16,10 @@ const DEFAULT_GAS_BUDGET: u64 = 200_000_000; // 0.2 SUI
 #[derive(Parser)]
 #[clap(rename_all = "kebab-case")]
 pub enum SuiSupperCommitteeCommand {
-    #[clap(name = "update-committee-validator-proposal")]
-    CreateUpdateCommitteeValidatorProposal {
-        #[clap(name = "operate", long)]
-        operate: bool,
-        #[clap(name = "committee_validator", long)]
-        committee_validator: SuiAddress,
-        /// Gas budget for this transaction.
-        #[clap(name = "gas-budget", long)]
-        gas_budget: Option<u64>,
-    },
     #[clap(name = "update-trusted-validator-proposal")]
     CreateUpdateTrustedValidatorProposal {
+        #[clap(name = "operation-cap-id", long)]
+        operation_cap_id: Option<ObjectID>,
         #[clap(name = "operate", long)]
         operate: bool,
         #[clap(name = "validator", long)]
@@ -36,16 +28,30 @@ pub enum SuiSupperCommitteeCommand {
         #[clap(name = "gas-budget", long)]
         gas_budget: Option<u64>,
     },
-    #[clap(name = "update-validator-only-staking-proposal")]
-    CreateUpdateValidatorOnlyStakingProposal {
+    #[clap(name = "update-only-trusted-validator-proposal")]
+    CreateUpdateOnlyTrustedValidatorProposal {
+        #[clap(name = "operation-cap-id", long)]
+        operation_cap_id: Option<ObjectID>,
+        #[clap(name = "operate", long)]
+        only_trusted_validator: bool,
+        /// Gas budget for this transaction.
+        #[clap(name = "gas-budget", long)]
+        gas_budget: Option<u64>,
+    },
+    #[clap(name = "update-only-validator-staking-proposal")]
+    CreateUpdateOnlyValidatorStakingProposal {
+        #[clap(name = "operation-cap-id", long)]
+        operation_cap_id: Option<ObjectID>,
         #[clap(name = "validator_only_staking", long)]
-        validator_only_staking: bool,
+        only_validator_staking: bool,
         /// Gas budget for this transaction.
         #[clap(name = "gas-budget", long)]
         gas_budget: Option<u64>,
     },
     #[clap(name = "vote-proposal")]
     VoteProposal {
+        #[clap(name = "operation-cap-id", long)]
+        operation_cap_id: Option<ObjectID>,
         #[clap(name = "proposal-id", long)]
         proposal_id: ObjectID,
         #[clap(name = "agree", long)]
@@ -59,9 +65,9 @@ pub enum SuiSupperCommitteeCommand {
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum SuiSupperCommitteeResponse {
-    CreateUpdateCommitteeValidatorProposal(SuiTransactionBlockResponse),
     CreateUpdateTrustedValidatorProposal(SuiTransactionBlockResponse),
-    CreateUpdateValidatorOnlyStakingProposal(SuiTransactionBlockResponse),
+    CreateUpdateOnlyTrustedValidatorProposal(SuiTransactionBlockResponse),
+    CreateUpdateOnlyValidatorStakingProposal(SuiTransactionBlockResponse),
     VoteProposal(SuiTransactionBlockResponse),
 }
 
@@ -71,25 +77,17 @@ impl SuiSupperCommitteeCommand {
         context: &mut WalletContext,
     ) -> anyhow::Result<SuiSupperCommitteeResponse, anyhow::Error> {
         let ret = Ok(match self {
-            SuiSupperCommitteeCommand::CreateUpdateCommitteeValidatorProposal {
+            SuiSupperCommitteeCommand::CreateUpdateTrustedValidatorProposal {
+                operation_cap_id,
                 operate,
-                committee_validator,
+                validator,
                 gas_budget,
             } => {
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
+                let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
 
                 let args = vec![
-                    CallArg::Pure(bcs::to_bytes(&operate).unwrap()),
-                    CallArg::Pure(bcs::to_bytes(&committee_validator).unwrap()),
-                    CallArg::CLOCK_IMM,
-                ];
-                let response = call_0x5(context, "create_update_committee_validator_proposal", args, gas_budget).await?;
-                SuiSupperCommitteeResponse::CreateUpdateCommitteeValidatorProposal(response)
-            }
-            SuiSupperCommitteeCommand::CreateUpdateTrustedValidatorProposal { operate, validator, gas_budget } => {
-                let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
-
-                let args = vec![
+                    CallArg::Object(ObjectArg::ImmOrOwnedObject(cap_obj_ref)),
                     CallArg::Pure(bcs::to_bytes(&operate).unwrap()),
                     CallArg::Pure(bcs::to_bytes(&validator).unwrap()),
                     CallArg::CLOCK_IMM,
@@ -97,25 +95,50 @@ impl SuiSupperCommitteeCommand {
                 let response = call_0x5(context, "create_update_trusted_validator_proposal", args, gas_budget).await?;
                 SuiSupperCommitteeResponse::CreateUpdateTrustedValidatorProposal(response)
             }
-            SuiSupperCommitteeCommand::CreateUpdateValidatorOnlyStakingProposal {
-                validator_only_staking,
+            SuiSupperCommitteeCommand::CreateUpdateOnlyTrustedValidatorProposal {
+                operation_cap_id,
+                only_trusted_validator,
                 gas_budget,
             } => {
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
-                let args = vec![CallArg::Pure(bcs::to_bytes(&validator_only_staking).unwrap()), CallArg::CLOCK_IMM];
-                let response =
-                    call_0x5(context, "create_update_validator_only_staking_proposal", args, gas_budget).await?;
+                let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
 
-                SuiSupperCommitteeResponse::CreateUpdateValidatorOnlyStakingProposal(response)
+                let args = vec![
+                    CallArg::Object(ObjectArg::ImmOrOwnedObject(cap_obj_ref)),
+                    CallArg::Pure(bcs::to_bytes(&only_trusted_validator).unwrap()),
+                    CallArg::CLOCK_IMM,
+                ];
+                let response =
+                    call_0x5(context, "create_update_only_trusted_validator_proposal", args, gas_budget).await?;
+                SuiSupperCommitteeResponse::CreateUpdateOnlyTrustedValidatorProposal(response)
             }
-            SuiSupperCommitteeCommand::VoteProposal { proposal_id, agree, gas_budget } => {
+            SuiSupperCommitteeCommand::CreateUpdateOnlyValidatorStakingProposal {
+                operation_cap_id,
+                only_validator_staking,
+                gas_budget,
+            } => {
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
+                let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
+
+                let args = vec![
+                    CallArg::Object(ObjectArg::ImmOrOwnedObject(cap_obj_ref)),
+                    CallArg::Pure(bcs::to_bytes(&only_validator_staking).unwrap()),
+                    CallArg::CLOCK_IMM,
+                ];
+                let response =
+                    call_0x5(context, "create_update_only_validator_staking_proposal", args, gas_budget).await?;
+                SuiSupperCommitteeResponse::CreateUpdateOnlyValidatorStakingProposal(response)
+            }
+            SuiSupperCommitteeCommand::VoteProposal { operation_cap_id, proposal_id, agree, gas_budget } => {
+                let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
+                let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
                 let proposal_ref = get_proposal_ref(context, proposal_id).await?;
 
                 let proposal_obj_mut =
                     ObjectArg::SharedObject { id: proposal_id, initial_shared_version: proposal_ref.1, mutable: true };
 
                 let args = vec![
+                    CallArg::Object(ObjectArg::ImmOrOwnedObject(cap_obj_ref)),
                     CallArg::Object(proposal_obj_mut),
                     CallArg::Pure(bcs::to_bytes(&agree).unwrap()),
                     CallArg::CLOCK_IMM,
@@ -144,13 +167,13 @@ impl Display for SuiSupperCommitteeResponse {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut writer = String::new();
         match self {
-            SuiSupperCommitteeResponse::CreateUpdateCommitteeValidatorProposal(response) => {
-                write!(writer, "{}", write_transaction_response(response)?)?;
-            }
             SuiSupperCommitteeResponse::CreateUpdateTrustedValidatorProposal(response) => {
                 write!(writer, "{}", write_transaction_response(response)?)?;
             }
-            SuiSupperCommitteeResponse::CreateUpdateValidatorOnlyStakingProposal(response) => {
+            SuiSupperCommitteeResponse::CreateUpdateOnlyTrustedValidatorProposal(response) => {
+                write!(writer, "{}", write_transaction_response(response)?)?;
+            }
+            SuiSupperCommitteeResponse::CreateUpdateOnlyValidatorStakingProposal(response) => {
                 write!(writer, "{}", write_transaction_response(response)?)?;
             }
             SuiSupperCommitteeResponse::VoteProposal(response) => {

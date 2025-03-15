@@ -43,9 +43,9 @@ the SuiSystemStateInner version, or vice versa.
 -  [Resource `SuiSystemState`](#0x3_sui_system_SuiSystemState)
 -  [Constants](#@Constants_0)
 -  [Function `create`](#0x3_sui_system_create)
--  [Function `create_update_committee_validator_proposal`](#0x3_sui_system_create_update_committee_validator_proposal)
 -  [Function `create_update_trusted_validator_proposal`](#0x3_sui_system_create_update_trusted_validator_proposal)
--  [Function `create_update_validator_only_staking_proposal`](#0x3_sui_system_create_update_validator_only_staking_proposal)
+-  [Function `create_update_only_trusted_validator_proposal`](#0x3_sui_system_create_update_only_trusted_validator_proposal)
+-  [Function `create_update_only_validator_staking_proposal`](#0x3_sui_system_create_update_only_validator_staking_proposal)
 -  [Function `vote_proposal`](#0x3_sui_system_vote_proposal)
 -  [Function `request_add_validator_candidate`](#0x3_sui_system_request_add_validator_candidate)
 -  [Function `request_remove_validator_candidate`](#0x3_sui_system_request_remove_validator_candidate)
@@ -227,44 +227,13 @@ This function will be called only once in genesis.
 
 </details>
 
-<a name="0x3_sui_system_create_update_committee_validator_proposal"></a>
-
-## Function `create_update_committee_validator_proposal`
-
-
-
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, operate: bool, committee_validator: <b>address</b>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(
-    wrapper:&<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">SuiSystemState</a>,
-    operate: bool,
-    committee_validator: <b>address</b> ,
-    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
-    ctx: &<b>mut</b> TxContext
-){
-   <b>let</b> self = <a href="sui_system.md#0x3_sui_system_load_system_state_mut">load_system_state_mut</a>(wrapper);
-   self.<a href="sui_system.md#0x3_sui_system_create_update_committee_validator_proposal">create_update_committee_validator_proposal</a>(operate, committee_validator, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
-}
-</code></pre>
-
-
-
-</details>
-
 <a name="0x3_sui_system_create_update_trusted_validator_proposal"></a>
 
 ## Function `create_update_trusted_validator_proposal`
 
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, operate: bool, <a href="validator.md#0x3_validator">validator</a>: <b>address</b>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, operate: bool, <a href="validator.md#0x3_validator">validator</a>: <b>address</b>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -275,13 +244,14 @@ This function will be called only once in genesis.
 
 <pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(
     wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">SuiSystemState</a>,
+    cap: &UnverifiedValidatorOperationCap,
     operate: bool,
     <a href="validator.md#0x3_validator">validator</a>: <b>address</b>,
     <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
     ctx:&<b>mut</b> TxContext
 ){
     <b>let</b> self = <a href="sui_system.md#0x3_sui_system_load_system_state_mut">load_system_state_mut</a>(wrapper);
-    self.<a href="sui_system.md#0x3_sui_system_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(operate, <a href="validator.md#0x3_validator">validator</a>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+    self.<a href="sui_system.md#0x3_sui_system_create_update_trusted_validator_proposal">create_update_trusted_validator_proposal</a>(cap,operate, <a href="validator.md#0x3_validator">validator</a>, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
 }
 </code></pre>
 
@@ -289,13 +259,13 @@ This function will be called only once in genesis.
 
 </details>
 
-<a name="0x3_sui_system_create_update_validator_only_staking_proposal"></a>
+<a name="0x3_sui_system_create_update_only_trusted_validator_proposal"></a>
 
-## Function `create_update_validator_only_staking_proposal`
+## Function `create_update_only_trusted_validator_proposal`
 
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_validator_only_staking_proposal">create_update_validator_only_staking_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, validator_only_staking: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_only_trusted_validator_proposal">create_update_only_trusted_validator_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, only_trusted_validator: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -304,14 +274,46 @@ This function will be called only once in genesis.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_validator_only_staking_proposal">create_update_validator_only_staking_proposal</a>(
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_only_trusted_validator_proposal">create_update_only_trusted_validator_proposal</a>(
     wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">SuiSystemState</a>,
-    validator_only_staking:bool,
+    cap: &UnverifiedValidatorOperationCap,
+    only_trusted_validator:bool,
     <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
     ctx: &<b>mut</b> TxContext
 ){
     <b>let</b> self = <a href="sui_system.md#0x3_sui_system_load_system_state_mut">load_system_state_mut</a>(wrapper);
-    self.<a href="sui_system.md#0x3_sui_system_create_update_validator_only_staking_proposal">create_update_validator_only_staking_proposal</a>(validator_only_staking, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+    self.<a href="sui_system.md#0x3_sui_system_create_update_only_trusted_validator_proposal">create_update_only_trusted_validator_proposal</a>(cap, only_trusted_validator, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx)
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_sui_system_create_update_only_validator_staking_proposal"></a>
+
+## Function `create_update_only_validator_staking_proposal`
+
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_only_validator_staking_proposal">create_update_only_validator_staking_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, only_validator_staking: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_create_update_only_validator_staking_proposal">create_update_only_validator_staking_proposal</a>(
+    wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">SuiSystemState</a>,
+    cap: &UnverifiedValidatorOperationCap,
+    only_validator_staking:bool,
+    <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
+    ctx: &<b>mut</b> TxContext
+){
+    <b>let</b> self = <a href="sui_system.md#0x3_sui_system_load_system_state_mut">load_system_state_mut</a>(wrapper);
+    self.<a href="sui_system.md#0x3_sui_system_create_update_only_validator_staking_proposal">create_update_only_validator_staking_proposal</a>(cap,only_validator_staking, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
 }
 </code></pre>
 
@@ -325,7 +327,7 @@ This function will be called only once in genesis.
 
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_vote_proposal">vote_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, proposal: &<b>mut</b> <a href="supper_committee.md#0x3_supper_committee_Proposal">supper_committee::Proposal</a>, agree: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_vote_proposal">vote_proposal</a>(wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">sui_system::SuiSystemState</a>, cap: &<a href="validator_cap.md#0x3_validator_cap_UnverifiedValidatorOperationCap">validator_cap::UnverifiedValidatorOperationCap</a>, proposal: &<b>mut</b> <a href="supper_committee.md#0x3_supper_committee_Proposal">supper_committee::Proposal</a>, agree: bool, <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &<a href="../sui-framework/clock.md#0x2_clock_Clock">clock::Clock</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -336,13 +338,14 @@ This function will be called only once in genesis.
 
 <pre><code><b>public</b> entry <b>fun</b> <a href="sui_system.md#0x3_sui_system_vote_proposal">vote_proposal</a>(
     wrapper: &<b>mut</b> <a href="sui_system.md#0x3_sui_system_SuiSystemState">SuiSystemState</a>,
+    cap: &UnverifiedValidatorOperationCap,
     proposal: &<b>mut</b> Proposal,
     agree: bool,
     <a href="../sui-framework/clock.md#0x2_clock">clock</a>: &Clock,
     ctx: &TxContext
 ){
     <b>let</b> self = <a href="sui_system.md#0x3_sui_system_load_system_state_mut">load_system_state_mut</a>(wrapper);
-    self.<a href="sui_system.md#0x3_sui_system_vote_proposal">vote_proposal</a>(proposal, agree, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
+    self.<a href="sui_system.md#0x3_sui_system_vote_proposal">vote_proposal</a>(cap,proposal, agree, <a href="../sui-framework/clock.md#0x2_clock">clock</a>, ctx);
 }
 </code></pre>
 

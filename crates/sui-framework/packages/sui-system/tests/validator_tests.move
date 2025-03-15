@@ -101,7 +101,7 @@ module sui_system::validator_tests {
         {
             let ctx = scenario.ctx();
             let new_stake = coin::mint_for_testing(30_000_000_000, ctx).into_balance();
-            let stake = validator.request_add_stake(new_stake, sender, ctx);
+            let stake = validator.request_add_stake(new_stake, sender,false, ctx);
             transfer::public_transfer(stake, sender);
 
             assert!(validator.total_stake() == 10_000_000_000);
