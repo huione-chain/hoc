@@ -4,6 +4,7 @@ use clap::Parser;
 use colored::Colorize;
 use serde::Serialize;
 use std::fmt::{Debug, Display, Formatter, Write};
+use std::str::FromStr;
 use sui_json_rpc_types::{SuiObjectDataOptions, SuiTransactionBlockResponse};
 use sui_sdk::wallet_context::WalletContext;
 use sui_types::{
@@ -20,9 +21,9 @@ pub enum SuiSupperCommitteeCommand {
     CreateUpdateTrustedValidatorProposal {
         #[clap(name = "operation-cap-id", long)]
         operation_cap_id: Option<ObjectID>,
-        #[clap(name = "operate", long)]
-        operate: bool,
-        #[clap(name = "validator", long)]
+        #[clap(name = "operate")]
+        operate: String,
+        #[clap(name = "validator")]
         validator: SuiAddress,
         /// Gas budget for this transaction.
         #[clap(name = "gas-budget", long)]
@@ -32,8 +33,8 @@ pub enum SuiSupperCommitteeCommand {
     CreateUpdateOnlyTrustedValidatorProposal {
         #[clap(name = "operation-cap-id", long)]
         operation_cap_id: Option<ObjectID>,
-        #[clap(name = "operate", long)]
-        only_trusted_validator: bool,
+        #[clap(name = "only-trusted-validator")]
+        only_trusted_validator: String,
         /// Gas budget for this transaction.
         #[clap(name = "gas-budget", long)]
         gas_budget: Option<u64>,
@@ -42,8 +43,8 @@ pub enum SuiSupperCommitteeCommand {
     CreateUpdateOnlyValidatorStakingProposal {
         #[clap(name = "operation-cap-id", long)]
         operation_cap_id: Option<ObjectID>,
-        #[clap(name = "validator_only_staking", long)]
-        only_validator_staking: bool,
+        #[clap(name = "only-validator-staking")]
+        only_validator_staking: String,
         /// Gas budget for this transaction.
         #[clap(name = "gas-budget", long)]
         gas_budget: Option<u64>,
@@ -83,6 +84,7 @@ impl SuiSupperCommitteeCommand {
                 validator,
                 gas_budget,
             } => {
+                let operate = bool::from_str(&operate).map_err(|_|anyhow!("operate invalid boolean value"))?;
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
                 let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
 
@@ -100,6 +102,7 @@ impl SuiSupperCommitteeCommand {
                 only_trusted_validator,
                 gas_budget,
             } => {
+                let only_trusted_validator = bool::from_str(&only_trusted_validator).map_err(|_|anyhow!("only-trusted-validator invalid boolean value"))?;
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
                 let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
 
@@ -117,6 +120,7 @@ impl SuiSupperCommitteeCommand {
                 only_validator_staking,
                 gas_budget,
             } => {
+                let only_validator_staking = bool::from_str(&only_validator_staking).map_err(|_|anyhow!("only-validator-staking invalid boolean value"))?;
                 let gas_budget = gas_budget.unwrap_or(DEFAULT_GAS_BUDGET);
                 let (_status, _summary, cap_obj_ref) = get_cap_object_ref(context, operation_cap_id).await?;
 
