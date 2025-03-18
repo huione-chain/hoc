@@ -8,9 +8,7 @@ use crate::{
         accept::AcceptFormat,
         openapi::{ApiEndpoint, OperationBuilder, ResponseBuilder, RouteHandler},
     },
-    Result,
-    RpcService,
-    RpcServiceError,
+    Result, RpcService, RpcServiceError,
 };
 use axum::{
     extract::{Path, State},
@@ -63,16 +61,12 @@ async fn get_system_state_summary(
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct SupperCommitteeSummary {
-    pub committee_validators: Vec<Address>,
     pub proposal_list: Vec<ObjectId>,
 }
 
 impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary> for SupperCommitteeSummary {
     fn from(value: sui_types::sui_system_state::sui_system_state_summary::SuiSupperCommitteeSummary) -> Self {
-        Self {
-            committee_validators: value.committee_validators.into_iter().map(|v| v.into()).collect(),
-            proposal_list: value.proposal_list.into_iter().map(|v| v.into()).collect(),
-        }
+        Self { proposal_list: value.proposal_list.into_iter().map(|v| v.into()).collect() }
     }
 }
 
@@ -238,8 +232,8 @@ pub struct SystemStateSummary {
     pub at_risk_validators: Vec<(Address, u64)>,
     /// A map storing the records of validator reporting each other.
     pub validator_report_records: Vec<(Address, Vec<Address>)>,
-    pub validator_only_staking: bool,
     pub trusted_validators: Vec<SuiAddress>,
+    pub only_trusted_validator: bool,
 }
 
 /// This is the REST type for the sui validator. It flattens all inner structures
@@ -249,7 +243,6 @@ pub struct SystemStateSummary {
 pub struct ValidatorSummary {
     // Metadata
     pub address: Address,
-    pub revenue_receiving_address: Address,
 
     pub protocol_public_key: sui_sdk_types::types::Bls12381PublicKey,
     pub network_public_key: sui_sdk_types::types::Ed25519PublicKey,
@@ -279,6 +272,8 @@ pub struct ValidatorSummary {
     #[serde_as(as = "sui_types::sui_serde::BigInt<u64>")]
     #[schemars(with = "U64")]
     pub voting_power: u64,
+    pub revenue_receiving_address: Address,
+    pub only_validator_staking: bool,
     pub operation_cap_id: ObjectId,
     #[serde_as(as = "sui_types::sui_serde::BigInt<u64>")]
     #[schemars(with = "U64")]
@@ -343,7 +338,6 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
     fn from(value: sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSummary) -> Self {
         let sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSummary {
             sui_address,
-            revenue_receiving_address,
             protocol_pubkey_bytes,
             network_pubkey_bytes,
             worker_pubkey_bytes,
@@ -365,6 +359,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
             next_epoch_primary_address,
             next_epoch_worker_address,
             voting_power,
+            revenue_receiving_address,
+            only_validator_staking,
             operation_cap_id,
             gas_price,
             commission_rate,
@@ -386,7 +382,6 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
 
         Self {
             address: sui_address.into(),
-            revenue_receiving_address: revenue_receiving_address.into(),
             protocol_public_key: sui_sdk_types::types::Bls12381PublicKey::from_bytes(protocol_pubkey_bytes).unwrap(),
             network_public_key: sui_sdk_types::types::Ed25519PublicKey::from_bytes(network_pubkey_bytes).unwrap(),
             worker_public_key: sui_sdk_types::types::Ed25519PublicKey::from_bytes(worker_pubkey_bytes).unwrap(),
@@ -411,6 +406,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiValidatorSum
             next_epoch_primary_address,
             next_epoch_worker_address,
             voting_power,
+            revenue_receiving_address: revenue_receiving_address.into(),
+            only_validator_staking,
             operation_cap_id: operation_cap_id.into(),
             gas_price,
             commission_rate,
@@ -473,8 +470,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
             validator_candidates_size,
             at_risk_validators,
             validator_report_records,
-            validator_only_staking,
             trusted_validators,
+            only_trusted_validator,
         } = value;
 
         Self {
@@ -519,8 +516,8 @@ impl From<sui_types::sui_system_state::sui_system_state_summary::SuiSystemStateS
                 .into_iter()
                 .map(|(address, reports)| (address.into(), reports.into_iter().map(Into::into).collect()))
                 .collect(),
-            validator_only_staking,
             trusted_validators,
+            only_trusted_validator,
         }
     }
 }

@@ -7,12 +7,14 @@ module sui_system::sui_system_state_inner {
     use sui_system::staking_pool::{StakedSui, FungibleStakedSui};
     use sui::oct::OCT;
     use sui_system::validator::{Self, Validator};
-    use sui_system::validator_set::{Self, ValidatorSet,UpdateTrustedValidatorsAction,UpdateValidatorOnlyStakingAction};
+    use sui_system::validator_set::{Self, ValidatorSet,UpdateTrustedValidatorsAction,UpdateOnlyTrustedValidatorAction,
+        UpdateOnlyValidatorStakingAction
+    };
     use sui_system::validator_cap::{UnverifiedValidatorOperationCap, ValidatorOperationCap};
     use sui_system::stake_subsidy::StakeSubsidy;
     use sui_system::storage_fund::{Self, StorageFund};
     use sui_system::staking_pool::PoolTokenExchangeRate;
-    use sui_system::supper_committee::{Self,SupperCommittee,Proposal,UpdateCommitteeValidatorAction};
+    use sui_system::supper_committee::{Self,SupperCommittee,Proposal};
     use sui::vec_map::{Self, VecMap};
     use sui::vec_set::{Self, VecSet};
     use sui::event;
@@ -251,7 +253,7 @@ module sui_system::sui_system_state_inner {
             epoch: 0,
             protocol_version,
             system_state_version: genesis_system_state_version(),
-            supper_committee: supper_committee::new(init_supper_committee_vec,ctx),
+            supper_committee: supper_committee::new(ctx),
             validators,
             storage_fund: storage_fund::new(initial_storage_fund),
             parameters,
@@ -530,12 +532,12 @@ module sui_system::sui_system_state_inner {
         self: &mut SuiSystemStateInnerV2,
         cap: &UnverifiedValidatorOperationCap,
         stake: Coin<OCT>,
-        ctx: &mut TxContext, 
+        ctx: &mut TxContext,
     ) : StakedSui{
 
         self.validators.request_add_stake(
-            *cap.unverified_operation_cap_address(), 
-            stake.into_balance(), 
+            *cap.unverified_operation_cap_address(),
+            stake.into_balance(),
             true,
              ctx,
         )
@@ -570,17 +572,9 @@ module sui_system::sui_system_state_inner {
     public(package) fun request_withdraw_stake(
         self: &mut SuiSystemStateInnerV2,
         staked_sui: StakedSui,
-        ctx: &TxContext,
-    ) : Balance<OCT> {
-        self.validators.request_withdraw_stake(staked_sui, ctx)
-    }
-
-    public(package) fun request_withdraw_stake_lock(
-        self: &mut SuiSystemStateInnerV2,
-        staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ):(Balance<OCT>,CoinVesting<OCT>){
-        self.validators.request_withdraw_stake_lock(staked_sui, ctx)
+    ) :  (Balance<OCT>,Option<CoinVesting<OCT>>){
+        self.validators.request_withdraw_stake(staked_sui, ctx)
     }
 
 
@@ -668,62 +662,90 @@ module sui_system::sui_system_state_inner {
 
     // ==== supper committer proposal functions ====
 
-    /// create update supper committee validator  proposal
-    public(package) fun create_update_committee_validator_proposal(
-        self:&mut SuiSystemStateInnerV2,
-        operate:bool,
-        committee_validator: address ,
-        clock: &Clock,
-        ctx: &mut TxContext
-    ){
-        self.supper_committee.create_update_committee_validator_proposal(
-            operate, 
-            committee_validator,
-            clock,
-             ctx,
-        );
-    }
 
     public(package) fun create_update_trusted_validator_proposal(
         self: &mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
         operate: bool,
-        validator: address,
+        trusted_validator: address,
         clock: &Clock,
         ctx:&mut TxContext
     ){
-        let action  = self.validators.create_update_trusted_validator_action(operate, validator);
-        self.supper_committee.create_proposal(action, clock, ctx);
+        let action = self.validators.create_update_trusted_validator_action(operate, trusted_validator);
+        let verified_cap = self.validators.verify_cap(cap, ACTIVE_VALIDATOR_ONLY);
+        self.supper_committee.create_proposal(
+            *verified_cap.verified_operation_cap_address(),
+            self.validators.get_active_vote_power(),
+            action,
+            clock,
+            ctx,
+        );
     }
 
-    public(package) fun create_update_validator_only_staking_proposal(
+    public(package) fun create_update_only_trusted_validator_proposal(
         self: &mut SuiSystemStateInnerV2,
-        validator_only_staking:bool,
+        cap: &UnverifiedValidatorOperationCap,
+        only_trusted_validator:bool,
         clock: &Clock,
         ctx: &mut TxContext
     ){
-        let action = self.validators.create_update_validator_only_staking_action(validator_only_staking);
-        self.supper_committee.create_proposal(action, clock, ctx);
+        let action = self.validators.create_update_only_trusted_validator_action(only_trusted_validator);
+        let verified_cap = self.validators.verify_cap(cap, ACTIVE_VALIDATOR_ONLY);
+        self.supper_committee.create_proposal(
+            *verified_cap.verified_operation_cap_address(),
+            self.validators.get_active_vote_power(),
+            action,
+            clock,
+            ctx,
+        );
+    }
+
+    public(package) fun create_update_only_validator_staking_proposal(
+        self: &mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
+        only_validator_staking: bool,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ){
+        let verified_cap = self.validators.verify_cap(cap, ACTIVE_VALIDATOR_ONLY);
+        let validator_address = *verified_cap.verified_operation_cap_address();
+        let action = self.validators.create_update_only_validator_staking_action(validator_address, only_validator_staking);
+        self.supper_committee.create_proposal(
+            validator_address,
+            self.validators.get_active_vote_power(),
+            action,
+            clock,
+            ctx,
+        );
     }
 
     public(package) fun vote_proposal(
         self: &mut SuiSystemStateInnerV2,
+        cap: &UnverifiedValidatorOperationCap,
         proposal: &mut Proposal,
         agree: bool,
         clock: &Clock,
         ctx: &TxContext
     ){
-        self.supper_committee.vote_proposal(proposal, agree, clock, ctx);
+        let verified_cap = self.validators.verify_cap(cap, ACTIVE_VALIDATOR_ONLY);
+        proposal.vote_proposal(
+            self.validators.get_active_vote_power(),
+            *verified_cap.verified_operation_cap_address(),
+            agree,
+            clock,
+            ctx,
+        );
         if(proposal.proposal_status(clock) == supper_committee::proposal_status_pass()){
             let action_type = proposal.proposal_action_type();
-            if(action_type == type_name::get<UpdateCommitteeValidatorAction>().into_string()){
-                let action = proposal.action<UpdateCommitteeValidatorAction>();
-                self.supper_committee.execute_update_committee_validator_action(action);
-            }else if (action_type == type_name::get<UpdateValidatorOnlyStakingAction>().into_string()){
-                let action = proposal.action<UpdateValidatorOnlyStakingAction>();
-                self.validators.execute_update_validator_only_staking_action(action);
+            if (action_type == type_name::get<UpdateOnlyTrustedValidatorAction>().into_string()){
+                let action = proposal.action<UpdateOnlyTrustedValidatorAction>();
+                self.validators.execute_update_only_trusted_validator_action(action);
             }else if (action_type == type_name::get<UpdateTrustedValidatorsAction>().into_string()){
                 let action = proposal.action<UpdateTrustedValidatorsAction>();
                 self.validators.execute_update_trusted_validators_action(action);
+            }else if (action_type == type_name::get<UpdateOnlyValidatorStakingAction>().into_string()){
+                let action = proposal.action<UpdateOnlyValidatorStakingAction>();
+                self.validators.execute_update_validator_only_staking_action(action);
             }else {
                 assert!(false,EUnsupportedActionType);
             }

@@ -102,48 +102,50 @@ module sui_system::sui_system {
 
     // ==== entry functions ====
 
-
-    public entry fun create_update_committee_validator_proposal(
-        wrapper:&mut SuiSystemState,
-        operate: bool,
-        committee_validator: address ,
-        clock: &Clock,
-        ctx: &mut TxContext
-    ){
-       let self = load_system_state_mut(wrapper); 
-       self.create_update_committee_validator_proposal(operate, committee_validator, clock, ctx);
-    }
-
     public entry fun create_update_trusted_validator_proposal(
         wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
         operate: bool,
         validator: address,
         clock: &Clock,
         ctx:&mut TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.create_update_trusted_validator_proposal(operate, validator, clock, ctx);
+        self.create_update_trusted_validator_proposal(cap,operate, validator, clock, ctx);
     }
 
-    public entry fun create_update_validator_only_staking_proposal(
+    public entry fun create_update_only_trusted_validator_proposal(
         wrapper: &mut SuiSystemState,
-        validator_only_staking:bool,
+        cap: &UnverifiedValidatorOperationCap,
+        only_trusted_validator:bool,
         clock: &Clock,
         ctx: &mut TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.create_update_validator_only_staking_proposal(validator_only_staking, clock, ctx);
+        self.create_update_only_trusted_validator_proposal(cap, only_trusted_validator, clock, ctx)
+    }
+
+    public entry fun create_update_only_validator_staking_proposal(
+        wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
+        only_validator_staking:bool,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ){
+        let self = load_system_state_mut(wrapper);
+        self.create_update_only_validator_staking_proposal(cap,only_validator_staking, clock, ctx);
     }
 
     public entry fun vote_proposal(
         wrapper: &mut SuiSystemState,
+        cap: &UnverifiedValidatorOperationCap,
         proposal: &mut Proposal,
         agree: bool,
         clock: &Clock,
         ctx: &TxContext
     ){
         let self = load_system_state_mut(wrapper);
-        self.vote_proposal(proposal, agree, clock, ctx);
+        self.vote_proposal(cap,proposal, agree, clock, ctx);
     }
 
     /// Can be called by anyone who wishes to become a validator candidate and starts accuring delegated
@@ -250,10 +252,10 @@ module sui_system::sui_system {
 
     public entry fun request_set_revenue_receiving_address(
         wrapper: &mut SuiSystemState,
-        cap: &UnverifiedValidatorOperationCap,        
+        cap: &UnverifiedValidatorOperationCap,
         revenue_receiving_address:address,
     ){
-        let self = load_system_state_mut(wrapper);             
+        let self = load_system_state_mut(wrapper);
         self.request_set_revenue_receiving_address(cap, revenue_receiving_address);
     }
 
@@ -351,18 +353,13 @@ module sui_system::sui_system {
         staked_sui: StakedSui,
         ctx: &mut TxContext,
     ) {
-        let withdrawn_stake = request_withdraw_stake_non_entry(wrapper, staked_sui, ctx);
+        let (withdrawn_stake,coin_vesting) = request_withdraw_stake_non_entry(wrapper, staked_sui, ctx);
         transfer::public_transfer(withdrawn_stake.into_coin(ctx), ctx.sender());
-    }
-
-    public entry fun request_withdraw_stake_lock(
-        wrapper: &mut SuiSystemState,
-        staked_sui: StakedSui,
-        ctx: &mut TxContext,
-    ){
-        let (withdrawn_reward,coin_vesting) = request_withdraw_stake_lock_non_entry(wrapper, staked_sui, ctx);
-        transfer::public_transfer(withdrawn_reward.into_coin(ctx), ctx.sender());
-        transfer::public_transfer(coin_vesting, ctx.sender());
+        if(coin_vesting.is_some()){
+            transfer::public_transfer(coin_vesting.destroy_some(),ctx.sender());
+        }else {
+            coin_vesting.destroy_none();
+        }
     }
 
 
@@ -391,18 +388,9 @@ module sui_system::sui_system {
         wrapper: &mut SuiSystemState,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
-    ) : Balance<OCT> {
+    ) :(Balance<OCT>,Option<CoinVesting<OCT>>) {
         let self = load_system_state_mut(wrapper);
         self.request_withdraw_stake(staked_sui, ctx)
-    }
-
-    public fun request_withdraw_stake_lock_non_entry(
-        wrapper: &mut SuiSystemState,
-        staked_sui: StakedSui,
-        ctx: &mut TxContext, 
-    ):(Balance<OCT>,CoinVesting<OCT>){
-        let self = load_system_state_mut(wrapper);
-        self.request_withdraw_stake_lock(staked_sui, ctx)
     }
 
     /// Report a validator as a bad or non-performant actor in the system.

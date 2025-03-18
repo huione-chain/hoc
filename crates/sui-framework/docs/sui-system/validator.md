@@ -22,7 +22,7 @@ title: Module `0x3::validator`
 -  [Function `redeem_fungible_staked_sui`](#0x3_validator_redeem_fungible_staked_sui)
 -  [Function `request_add_stake_at_genesis`](#0x3_validator_request_add_stake_at_genesis)
 -  [Function `request_withdraw_stake`](#0x3_validator_request_withdraw_stake)
--  [Function `request_withdraw_stake_lock`](#0x3_validator_request_withdraw_stake_lock)
+-  [Function `set_only_validator_staking`](#0x3_validator_set_only_validator_staking)
 -  [Function `request_set_gas_price`](#0x3_validator_request_set_gas_price)
 -  [Function `set_candidate_gas_price`](#0x3_validator_set_candidate_gas_price)
 -  [Function `request_set_commission_rate`](#0x3_validator_request_set_commission_rate)
@@ -57,6 +57,7 @@ title: Module `0x3::validator`
 -  [Function `total_stake_amount`](#0x3_validator_total_stake_amount)
 -  [Function `stake_amount`](#0x3_validator_stake_amount)
 -  [Function `total_stake`](#0x3_validator_total_stake)
+-  [Function `only_validator_staking`](#0x3_validator_only_validator_staking)
 -  [Function `voting_power`](#0x3_validator_voting_power)
 -  [Function `set_voting_power`](#0x3_validator_set_voting_power)
 -  [Function `pending_stake_amount`](#0x3_validator_pending_stake_amount)
@@ -295,6 +296,12 @@ title: Module `0x3::validator`
 </dd>
 <dt>
 <code>revenue_receiving_address: <b>address</b></code>
+</dt>
+<dd>
+
+</dd>
+<dt>
+<code>only_validator_staking: bool</code>
 </dt>
 <dd>
 
@@ -722,11 +729,20 @@ Intended validator is not a candidate one.
 
 
 
+<a name="0x3_validator_EOnlyValidatorStake"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EOnlyValidatorStake">EOnlyValidatorStake</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 201;
+</code></pre>
+
+
+
 <a name="0x3_validator_EStakedSuiIsLock"></a>
 
 
 
-<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 201;
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 203;
 </code></pre>
 
 
@@ -735,7 +751,7 @@ Intended validator is not a candidate one.
 
 
 
-<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 202;
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 204;
 </code></pre>
 
 
@@ -746,6 +762,15 @@ Validator Metadata is too long
 
 
 <pre><code><b>const</b> <a href="validator.md#0x3_validator_EValidatorMetadataExceedingLengthLimit">EValidatorMetadataExceedingLengthLimit</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 9;
+</code></pre>
+
+
+
+<a name="0x3_validator_EValidatorStakeClosed"></a>
+
+
+
+<pre><code><b>const</b> <a href="validator.md#0x3_validator_EValidatorStakeClosed">EValidatorStakeClosed</a>: <a href="../move-stdlib/u64.md#0x1_u64">u64</a> = 202;
 </code></pre>
 
 
@@ -1041,9 +1066,9 @@ Process pending stake and pending withdraws, and update the gas price.
 
 
 <pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_set_revenue_receiving_address">request_set_revenue_receiving_address</a>(
-    self:&<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     verified_cap: ValidatorOperationCap,
-    revenue_receiving_address:<b>address</b>,
+    revenue_receiving_address: <b>address</b>,
 ) {
     <b>let</b> validator_address = *verified_cap.verified_operation_cap_address();
     <b>assert</b>!(validator_address == self.metadata.sui_address, <a href="validator.md#0x3_validator_EInvalidCap">EInvalidCap</a>);
@@ -1062,7 +1087,7 @@ Process pending stake and pending withdraws, and update the gas price.
 Request to add stake to the validator's staking pool, processed at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, staker_address: <b>address</b>, lock: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, stake: <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, staker_address: <b>address</b>, is_validator: bool, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>
 </code></pre>
 
 
@@ -1075,13 +1100,18 @@ Request to add stake to the validator's staking pool, processed at the end of th
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     stake: Balance&lt;OCT&gt;,
     staker_address: <b>address</b>,
-    lock: bool,
+    is_validator: bool,
     ctx: &<b>mut</b> TxContext,
-) : StakedSui {
+): StakedSui {
     <b>let</b> stake_amount = stake.value();
     <b>assert</b>!(stake_amount &gt; 0, <a href="validator.md#0x3_validator_EInvalidStakeAmount">EInvalidStakeAmount</a>);
+    <b>if</b> (self.only_validator_staking) {
+        <b>assert</b>!(is_validator, <a href="validator.md#0x3_validator_EOnlyValidatorStake">EOnlyValidatorStake</a>);
+    }<b>else</b> {
+        <b>assert</b>!(!is_validator, <a href="validator.md#0x3_validator_EValidatorStakeClosed">EValidatorStakeClosed</a>);
+    };
     <b>let</b> stake_epoch = ctx.epoch() + 1;
-    <b>let</b> staked_sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(stake, stake_epoch, lock,ctx);
+    <b>let</b> staked_sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_add_stake">request_add_stake</a>(stake, stake_epoch, is_validator, ctx);
     // Process stake right away <b>if</b> staking pool is preactive.
     <b>if</b> (self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_is_preactive">is_preactive</a>()) {
         self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.process_pending_stake();
@@ -1093,7 +1123,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
             validator_address: self.metadata.sui_address,
             staker_address,
             epoch: ctx.epoch(),
-            lock,
+            lock: is_validator,
             amount: stake_amount,
         }
     );
@@ -1124,8 +1154,8 @@ Request to add stake to the validator's staking pool, processed at the end of th
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     staked_sui: StakedSui,
     ctx: &<b>mut</b> TxContext,
-) : FungibleStakedSui {
-    <b>assert</b>!(!staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
+): FungibleStakedSui {
+    <b>assert</b>!(!staked_sui.lock(), <a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
     <b>let</b> staked_sui_principal_amount = staked_sui.staked_sui_amount();
 
@@ -1167,7 +1197,7 @@ Request to add stake to the validator's staking pool, processed at the end of th
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     fungible_staked_sui: FungibleStakedSui,
     ctx: &TxContext,
-) : Balance&lt;OCT&gt; {
+): Balance&lt;OCT&gt; {
     <b>let</b> fungible_staked_sui_amount = fungible_staked_sui.value();
 
     <b>let</b> sui = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_redeem_fungible_staked_sui">redeem_fungible_staked_sui</a>(fungible_staked_sui, ctx);
@@ -1242,7 +1272,7 @@ Request to add stake to the validator's staking pool at genesis
 Request to withdraw stake from the validator's staking pool, processed at the end of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, <a href="../move-stdlib/option.md#0x1_option_Option">option::Option</a>&lt;<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;&gt;)
 </code></pre>
 
 
@@ -1254,55 +1284,9 @@ Request to withdraw stake from the validator's staking pool, processed at the en
 <pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(
     self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
     staked_sui: StakedSui,
-    ctx: &TxContext,
-) : Balance&lt;OCT&gt; {
-    <b>assert</b>!(!staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiIsLock">EStakedSuiIsLock</a>);
-    <b>let</b> principal_amount = staked_sui.staked_sui_amount();
-    <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
-    <b>let</b> withdrawn_stake = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx);
-    <b>let</b> withdraw_amount = withdrawn_stake.value();
-    <b>let</b> reward_amount = withdraw_amount - principal_amount;
-    self.next_epoch_stake = self.next_epoch_stake - withdraw_amount;
-    <a href="../sui-framework/event.md#0x2_event_emit">event::emit</a>(
-        <a href="validator.md#0x3_validator_UnstakingRequestEvent">UnstakingRequestEvent</a> {
-            pool_id: <a href="validator.md#0x3_validator_staking_pool_id">staking_pool_id</a>(self),
-            validator_address: self.metadata.sui_address,
-            staker_address: ctx.sender(),
-            stake_activation_epoch,
-            unstaking_epoch: ctx.epoch(),
-            principal_amount,
-            reward_amount,
-        }
-    );
-    withdrawn_stake
-}
-</code></pre>
-
-
-
-</details>
-
-<a name="0x3_validator_request_withdraw_stake_lock"></a>
-
-## Function `request_withdraw_stake_lock`
-
-
-
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, staked_sui: <a href="staking_pool.md#0x3_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): (<a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;, <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;<a href="../sui-framework/oct.md#0x2_oct_OCT">oct::OCT</a>&gt;)
-</code></pre>
-
-
-
-<details>
-<summary>Implementation</summary>
-
-
-<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_request_withdraw_stake_lock">request_withdraw_stake_lock</a>(
-    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
-    staked_sui: StakedSui,
     ctx: &<b>mut</b> TxContext,
-):(Balance&lt;OCT&gt;,CoinVesting&lt;OCT&gt;){
-    <b>assert</b>!(staked_sui.lock(),<a href="validator.md#0x3_validator_EStakedSuiNotLock">EStakedSuiNotLock</a>);
+): (Balance&lt;OCT&gt;, Option&lt;CoinVesting&lt;OCT&gt;&gt;) {
+    <b>let</b> lock = staked_sui.lock();
     <b>let</b> principal_amount = staked_sui.staked_sui_amount();
     <b>let</b> stake_activation_epoch = staked_sui.stake_activation_epoch();
     <b>let</b> <b>mut</b> withdrawn_stake = self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>.<a href="validator.md#0x3_validator_request_withdraw_stake">request_withdraw_stake</a>(staked_sui, ctx);
@@ -1321,18 +1305,49 @@ Request to withdraw stake from the validator's staking pool, processed at the en
         }
     );
 
-    <b>let</b> withdrawn_reward = withdrawn_stake.split(reward_amount);
+    <b>if</b>(lock){
+        <b>let</b> withdrawn_reward = withdrawn_stake.split(reward_amount);
 
-    <b>let</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a> = <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_new_form_balance">coin_vesting::new_form_balance</a>(
-        withdrawn_stake,
-        stake_activation_epoch,
-        <a href="validator.md#0x3_validator_LOCK_CLIFF_EPOCH">LOCK_CLIFF_EPOCH</a>,
-        <a href="validator.md#0x3_validator_LOCK_INTERVAL_EPOCHL">LOCK_INTERVAL_EPOCHL</a>,
-        <a href="validator.md#0x3_validator_LOCK_PERIOD">LOCK_PERIOD</a>,
-        ctx,
-    );
+        <b>let</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a> = <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_new_form_balance">coin_vesting::new_form_balance</a>(
+            withdrawn_stake,
+            stake_activation_epoch,
+            <a href="validator.md#0x3_validator_LOCK_CLIFF_EPOCH">LOCK_CLIFF_EPOCH</a>,
+            <a href="validator.md#0x3_validator_LOCK_INTERVAL_EPOCHL">LOCK_INTERVAL_EPOCHL</a>,
+            <a href="validator.md#0x3_validator_LOCK_PERIOD">LOCK_PERIOD</a>,
+            ctx,
+        );
 
-    (withdrawn_reward,<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a>)
+        (withdrawn_reward, <a href="../move-stdlib/option.md#0x1_option_some">option::some</a>(<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting">coin_vesting</a>))
+    }<b>else</b> {
+        (withdrawn_stake,<a href="../move-stdlib/option.md#0x1_option_none">option::none</a>())
+    }
+}
+</code></pre>
+
+
+
+</details>
+
+<a name="0x3_validator_set_only_validator_staking"></a>
+
+## Function `set_only_validator_staking`
+
+
+
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator.md#0x3_validator_set_only_validator_staking">set_only_validator_staking</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">validator::Validator</a>, only_validator_staking: bool)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_set_only_validator_staking">set_only_validator_staking</a>(
+    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    only_validator_staking: bool
+) {
+    self.only_validator_staking = only_validator_staking
 }
 </code></pre>
 
@@ -2187,6 +2202,30 @@ Return the total amount staked with this validator
 
 </details>
 
+<a name="0x3_validator_only_validator_staking"></a>
+
+## Function `only_validator_staking`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_only_validator_staking">only_validator_staking</a>(self: &<a href="validator.md#0x3_validator_Validator">validator::Validator</a>): bool
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_only_validator_staking">only_validator_staking</a>(self: &<a href="validator.md#0x3_validator_Validator">Validator</a>): bool {
+    self.only_validator_staking
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x3_validator_voting_power"></a>
 
 ## Function `voting_power`
@@ -2300,7 +2339,7 @@ Set the voting power of this validator, called only from validator_set.
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_revenue_receiving_address">revenue_receiving_address</a>(self:&<a href="validator.md#0x3_validator_Validator">Validator</a>):<b>address</b>{
+<pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_revenue_receiving_address">revenue_receiving_address</a>(self: &<a href="validator.md#0x3_validator_Validator">Validator</a>): <b>address</b> {
     self.revenue_receiving_address
 }
 </code></pre>
@@ -2421,7 +2460,7 @@ Set the voting power of this validator, called only from validator_set.
 
 
 <pre><code><b>public</b> <b>fun</b> <a href="validator.md#0x3_validator_is_duplicate">is_duplicate</a>(self: &<a href="validator.md#0x3_validator_Validator">Validator</a>, other: &<a href="validator.md#0x3_validator_Validator">Validator</a>): bool {
-     self.metadata.sui_address == other.metadata.sui_address
+    self.metadata.sui_address == other.metadata.sui_address
         || self.metadata.name == other.metadata.name
         || self.metadata.net_address == other.metadata.net_address
         || self.metadata.p2p_address == other.metadata.p2p_address
@@ -2433,27 +2472,72 @@ Set the voting power of this validator, called only from validator_set.
         // All next epoch parameters.
         || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_net_address, &other.metadata.next_epoch_net_address)
         || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_p2p_address, &other.metadata.next_epoch_p2p_address)
-        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_protocol_pubkey_bytes, &other.metadata.next_epoch_protocol_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.next_epoch_network_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.next_epoch_worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.next_epoch_worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.next_epoch_network_pubkey_bytes)
+        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(
+        &self.metadata.next_epoch_protocol_pubkey_bytes,
+        &other.metadata.next_epoch_protocol_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(
+        &self.metadata.next_epoch_network_pubkey_bytes,
+        &other.metadata.next_epoch_network_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(
+        &self.metadata.next_epoch_network_pubkey_bytes,
+        &other.metadata.next_epoch_worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(
+        &self.metadata.next_epoch_worker_pubkey_bytes,
+        &other.metadata.next_epoch_worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some">is_equal_some</a>(
+        &self.metadata.next_epoch_worker_pubkey_bytes,
+        &other.metadata.next_epoch_network_pubkey_bytes
+    )
         // My next epoch parameters <b>with</b> other current epoch parameters.
         || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_net_address, &other.metadata.net_address)
         || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_p2p_address, &other.metadata.p2p_address)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_protocol_pubkey_bytes, &other.metadata.protocol_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.network_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_network_pubkey_bytes, &other.metadata.worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&self.metadata.next_epoch_worker_pubkey_bytes, &other.metadata.network_pubkey_bytes)
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &self.metadata.next_epoch_protocol_pubkey_bytes,
+        &other.metadata.protocol_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &self.metadata.next_epoch_network_pubkey_bytes,
+        &other.metadata.network_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &self.metadata.next_epoch_network_pubkey_bytes,
+        &other.metadata.worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &self.metadata.next_epoch_worker_pubkey_bytes,
+        &other.metadata.worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &self.metadata.next_epoch_worker_pubkey_bytes,
+        &other.metadata.network_pubkey_bytes
+    )
         // Other next epoch parameters <b>with</b> my current epoch parameters.
         || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_net_address, &self.metadata.net_address)
         || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_p2p_address, &self.metadata.p2p_address)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_protocol_pubkey_bytes, &self.metadata.protocol_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_network_pubkey_bytes, &self.metadata.network_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_network_pubkey_bytes, &self.metadata.worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_worker_pubkey_bytes, &self.metadata.worker_pubkey_bytes)
-        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(&other.metadata.next_epoch_worker_pubkey_bytes, &self.metadata.network_pubkey_bytes)
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &other.metadata.next_epoch_protocol_pubkey_bytes,
+        &self.metadata.protocol_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &other.metadata.next_epoch_network_pubkey_bytes,
+        &self.metadata.network_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &other.metadata.next_epoch_network_pubkey_bytes,
+        &self.metadata.worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &other.metadata.next_epoch_worker_pubkey_bytes,
+        &self.metadata.worker_pubkey_bytes
+    )
+        || <a href="validator.md#0x3_validator_is_equal_some_and_value">is_equal_some_and_value</a>(
+        &other.metadata.next_epoch_worker_pubkey_bytes,
+        &self.metadata.network_pubkey_bytes
+    )
 }
 </code></pre>
 
@@ -2930,7 +3014,11 @@ Update protocol public key of this validator, taking effects from next epoch
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_update_next_epoch_protocol_pubkey">update_next_epoch_protocol_pubkey</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>, protocol_pubkey: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_update_next_epoch_protocol_pubkey">update_next_epoch_protocol_pubkey</a>(
+    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    protocol_pubkey: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+) {
     self.metadata.next_epoch_protocol_pubkey_bytes = <a href="../move-stdlib/option.md#0x1_option_some">option::some</a>(protocol_pubkey);
     self.metadata.next_epoch_proof_of_possession = <a href="../move-stdlib/option.md#0x1_option_some">option::some</a>(proof_of_possession);
     <a href="validator.md#0x3_validator_validate_metadata">validate_metadata</a>(&self.metadata);
@@ -2957,7 +3045,11 @@ Update protocol public key of this candidate validator
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_update_candidate_protocol_pubkey">update_candidate_protocol_pubkey</a>(self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>, protocol_pubkey: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;, proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;) {
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_update_candidate_protocol_pubkey">update_candidate_protocol_pubkey</a>(
+    self: &<b>mut</b> <a href="validator.md#0x3_validator_Validator">Validator</a>,
+    protocol_pubkey: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;,
+    proof_of_possession: <a href="../move-stdlib/vector.md#0x1_vector">vector</a>&lt;u8&gt;
+) {
     <b>assert</b>!(<a href="validator.md#0x3_validator_is_preactive">is_preactive</a>(self), <a href="validator.md#0x3_validator_ENotValidatorCandidate">ENotValidatorCandidate</a>);
     self.metadata.protocol_pubkey_bytes = protocol_pubkey;
     self.metadata.proof_of_possession = proof_of_possession;
@@ -3199,7 +3291,7 @@ Aborts if validator metadata is valid
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_get_staking_pool_ref">get_staking_pool_ref</a>(self: &<a href="validator.md#0x3_validator_Validator">Validator</a>) : &StakingPool {
+<pre><code><b>public</b>(package) <b>fun</b> <a href="validator.md#0x3_validator_get_staking_pool_ref">get_staking_pool_ref</a>(self: &<a href="validator.md#0x3_validator_Validator">Validator</a>): &StakingPool {
     &self.<a href="staking_pool.md#0x3_staking_pool">staking_pool</a>
 }
 </code></pre>
@@ -3226,7 +3318,7 @@ Create a new validator from the given <code><a href="validator.md#0x3_validator_
 
 <pre><code><b>fun</b> <a href="validator.md#0x3_validator_new_from_metadata">new_from_metadata</a>(
     metadata: <a href="validator.md#0x3_validator_ValidatorMetadata">ValidatorMetadata</a>,
-    revenue_receiving_address:<b>address</b>,
+    revenue_receiving_address: <b>address</b>,
     gas_price: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     commission_rate: <a href="../move-stdlib/u64.md#0x1_u64">u64</a>,
     ctx: &<b>mut</b> TxContext
@@ -3243,6 +3335,7 @@ Create a new validator from the given <code><a href="validator.md#0x3_validator_
         // active <a href="validator.md#0x3_validator">validator</a> set, the voting power will be updated accordingly.
         <a href="voting_power.md#0x3_voting_power">voting_power</a>: 0,
         revenue_receiving_address,
+        only_validator_staking: <b>true</b>,
         operation_cap_id,
         gas_price,
         <a href="staking_pool.md#0x3_staking_pool">staking_pool</a>,

@@ -208,7 +208,7 @@ request_add_stake_at_genesis
 request_withdraw_stake
 	public(package) fun
 	0x3::validator
-request_withdraw_stake_lock
+set_only_validator_staking
 	public(package) fun
 	0x3::validator
 request_set_gas_price
@@ -311,6 +311,9 @@ stake_amount
 	public fun
 	0x3::validator
 total_stake
+	public fun
+	0x3::validator
+only_validator_staking
 	public fun
 	0x3::validator
 voting_power
@@ -475,10 +478,13 @@ version
 ValidatorSet
 	public struct
 	0x3::validator_set
-UpdateValidatorOnlyStakingAction
+UpdateOnlyTrustedValidatorAction
 	public struct
 	0x3::validator_set
 UpdateTrustedValidatorsAction
+	public struct
+	0x3::validator_set
+UpdateOnlyValidatorStakingAction
 	public struct
 	0x3::validator_set
 ValidatorEpochInfoEvent
@@ -499,16 +505,22 @@ DistributeRewardEvent
 new
 	public(package) fun
 	0x3::validator_set
-create_update_validator_only_staking_action
+create_update_only_trusted_validator_action
 	public(package) fun
 	0x3::validator_set
-execute_update_validator_only_staking_action
+execute_update_only_trusted_validator_action
 	public(package) fun
 	0x3::validator_set
 create_update_trusted_validator_action
 	public(package) fun
 	0x3::validator_set
 execute_update_trusted_validators_action
+	public(package) fun
+	0x3::validator_set
+create_update_only_validator_staking_action
+	public(package) fun
+	0x3::validator_set
+execute_update_validator_only_staking_action
 	public(package) fun
 	0x3::validator_set
 request_add_validator_candidate
@@ -533,9 +545,6 @@ request_add_stake
 	public(package) fun
 	0x3::validator_set
 request_withdraw_stake
-	public(package) fun
-	0x3::validator_set
-request_withdraw_stake_lock
 	public(package) fun
 	0x3::validator_set
 convert_to_fungible_staked_sui
@@ -589,6 +598,9 @@ next_epoch_validator_count
 is_active_validator_by_sui_address
 	public(package) fun
 	0x3::validator_set
+get_active_vote_power
+	public(package) fun
+	0x3::validator_set
 is_duplicate_with_active_validator
 	fun
 	0x3::validator_set
@@ -596,6 +608,9 @@ is_duplicate_validator
 	public(package) fun
 	0x3::validator_set
 count_duplicates_vec
+	fun
+	0x3::validator_set
+is_trusted_validator
 	fun
 	0x3::validator_set
 is_duplicate_with_pending_validator
@@ -706,9 +721,6 @@ active_validator_addresses
 ActionKey
 	public struct
 	0x3::supper_committee
-UpdateCommitteeValidatorAction
-	public struct
-	0x3::supper_committee
 SupperCommittee
 	public struct
 	0x3::supper_committee
@@ -724,17 +736,8 @@ VoteProposalEvent
 new
 	public(package) fun
 	0x3::supper_committee
-create_update_committee_validator_proposal
-	public(package) fun
-	0x3::supper_committee
-execute_update_committee_validator_action
-	public(package) fun
-	0x3::supper_committee
 vote_proposal
 	public(package) fun
-	0x3::supper_committee
-is_committee_validator
-	public fun
 	0x3::supper_committee
 proposal_status
 	public fun
@@ -750,6 +753,9 @@ action
 	0x3::supper_committee
 create_proposal
 	public(package) fun
+	0x3::supper_committee
+get_vote_power
+	fun
 	0x3::supper_committee
 StorageFund
 	public struct
@@ -847,9 +853,6 @@ request_add_val_stake_mul_coin
 request_withdraw_stake
 	public(package) fun
 	0x3::sui_system_state_inner
-request_withdraw_stake_lock
-	public(package) fun
-	0x3::sui_system_state_inner
 convert_to_fungible_staked_sui
 	public(package) fun
 	0x3::sui_system_state_inner
@@ -868,13 +871,13 @@ report_validator_impl
 undo_report_validator_impl
 	fun
 	0x3::sui_system_state_inner
-create_update_committee_validator_proposal
-	public(package) fun
-	0x3::sui_system_state_inner
 create_update_trusted_validator_proposal
 	public(package) fun
 	0x3::sui_system_state_inner
-create_update_validator_only_staking_proposal
+create_update_only_trusted_validator_proposal
+	public(package) fun
+	0x3::sui_system_state_inner
+create_update_only_validator_staking_proposal
 	public(package) fun
 	0x3::sui_system_state_inner
 vote_proposal
@@ -994,13 +997,13 @@ SuiSystemState
 create
 	public(package) fun
 	0x3::sui_system
-create_update_committee_validator_proposal
-	public entry fun
-	0x3::sui_system
 create_update_trusted_validator_proposal
 	public entry fun
 	0x3::sui_system
-create_update_validator_only_staking_proposal
+create_update_only_trusted_validator_proposal
+	public entry fun
+	0x3::sui_system
+create_update_only_validator_staking_proposal
 	public entry fun
 	0x3::sui_system
 vote_proposal
@@ -1054,9 +1057,6 @@ request_add_val_stake_mul_coin
 request_withdraw_stake
 	public entry fun
 	0x3::sui_system
-request_withdraw_stake_lock
-	public entry fun
-	0x3::sui_system
 convert_to_fungible_staked_sui
 	public fun
 	0x3::sui_system
@@ -1064,9 +1064,6 @@ redeem_fungible_staked_sui
 	public fun
 	0x3::sui_system
 request_withdraw_stake_non_entry
-	public fun
-	0x3::sui_system
-request_withdraw_stake_lock_non_entry
 	public fun
 	0x3::sui_system
 report_validator
