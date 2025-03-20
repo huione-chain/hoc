@@ -5,7 +5,6 @@ module sui_system::validator_set {
 
     use sui::balance::Balance;
     use sui::oct::OCT;
-    use sui::coin;
     use sui_system::validator::{Validator, staking_pool_id, sui_address};
     use sui_system::validator_cap::{Self, UnverifiedValidatorOperationCap, ValidatorOperationCap};
     use sui_system::staking_pool::{PoolTokenExchangeRate, StakedSui, pool_id, FungibleStakedSui, fungible_staked_sui_pool_id};
@@ -54,7 +53,7 @@ module sui_system::validator_set {
         /// Table storing the number of epochs during which a validator's stake has been below the low stake threshold.
         at_risk_validators: VecMap<address, u64>,
 
-        validator_only_staking: bool,
+        only_trusted_validator: bool,
 
         trusted_validators: VecSet<address>,
 
@@ -62,13 +61,19 @@ module sui_system::validator_set {
         extra_fields: Bag,
     }
 
-    public struct UpdateValidatorOnlyStakingAction has store,copy,drop {
-        validator_only_staking: bool
+    public struct UpdateOnlyTrustedValidatorAction has store,copy,drop {
+        only_trusted_validator: bool
     }
+
 
     public struct UpdateTrustedValidatorsAction has store,copy,drop {
         operate: bool,
         validator: address
+    }
+
+    public struct UpdateOnlyValidatorStakingAction has store,copy,drop {
+        validator_address: address,
+        only_validator_staking: bool
     }
 
     #[allow(unused_field)]
@@ -119,12 +124,6 @@ module sui_system::validator_set {
         is_voluntary: bool,
     }
 
-    public struct DistributeRewardEvent has copy, drop {
-        epoch: u64,
-        validator_address: address,
-        revenue_receiving_address: address,
-        reward: u64
-    }
 
     // same as in sui_system
     const ACTIVE_VALIDATOR_ONLY: u8 = 1;
@@ -153,7 +152,7 @@ module sui_system::validator_set {
 
     const EInvalidCap: u64 = 101;
 
-    const EValidatorOnlyStaking: u64 = 201;
+    const EOnlyTrustValidatorJoin: u64 = 201;
     const EValidatorOnlyStakingSame: u64 = 202;
     const ETrustValidatorExist: u64  = 203;
     const ETrustValidatorNotExist: u64 = 204;
@@ -184,7 +183,7 @@ module sui_system::validator_set {
             inactive_validators: table::new(ctx),
             validator_candidates: table::new(ctx),
             at_risk_validators: vec_map::empty(),
-            validator_only_staking: true,
+            only_trusted_validator: true,
             trusted_validators,
             extra_fields: bag::new(ctx),
         };
@@ -192,27 +191,27 @@ module sui_system::validator_set {
         validators
     }
 
-    public(package) fun create_update_validator_only_staking_action(
+    public(package) fun create_update_only_trusted_validator_action(
         self: &ValidatorSet,
-        validator_only_staking: bool,
-    ):UpdateValidatorOnlyStakingAction{
-        assert!(self.validator_only_staking != validator_only_staking,EValidatorOnlyStakingSame);
-        UpdateValidatorOnlyStakingAction{
-            validator_only_staking
+        only_trusted_validator: bool,
+    ):UpdateOnlyTrustedValidatorAction{
+        assert!(self.only_trusted_validator != only_trusted_validator,EValidatorOnlyStakingSame);
+        UpdateOnlyTrustedValidatorAction{
+            only_trusted_validator
         }
     }
 
-    public(package) fun execute_update_validator_only_staking_action(
+    public(package) fun execute_update_only_trusted_validator_action(
         self:&mut ValidatorSet,
-        action: &UpdateValidatorOnlyStakingAction,
+        action: &UpdateOnlyTrustedValidatorAction,
     ){
-        self.validator_only_staking = action.validator_only_staking;
+        self.only_trusted_validator = action.only_trusted_validator;
     }
 
     public(package) fun create_update_trusted_validator_action(
         self: &ValidatorSet,
         operate: bool,
-        validator: address 
+        validator: address
     ):UpdateTrustedValidatorsAction{
         if(operate){
             assert!(!self.trusted_validators.contains(&validator),ETrustValidatorExist);
@@ -238,6 +237,31 @@ module sui_system::validator_set {
                 self.remove_validator(action.validator);
             }
         }
+    }
+
+    public(package) fun create_update_only_validator_staking_action(
+        self: &ValidatorSet,
+        validator_address: address,
+        only_validator_staking: bool,
+    ): UpdateOnlyValidatorStakingAction {
+        let active_idx_opt = find_validator(&self.active_validators, validator_address);
+        let pending_idx_opt = find_validator_from_table_vec(&self.pending_active_validators, validator_address);
+        let candidates = self.validator_candidates.contains(validator_address);
+
+        assert!(active_idx_opt.is_some() || pending_idx_opt.is_some() || candidates,ENotAValidator);
+
+        UpdateOnlyValidatorStakingAction {
+            validator_address,
+            only_validator_staking
+        }
+    }
+
+    public(package) fun execute_update_only_validator_staking_action(
+        self:& mut ValidatorSet,
+        action: &UpdateOnlyValidatorStakingAction,
+    ){
+       let validator =  self.get_active_or_pending_or_candidate_validator_mut(action.validator_address, true);
+       validator.set_only_validator_staking(action.only_validator_staking);
     }
 
 
@@ -305,7 +329,7 @@ module sui_system::validator_set {
             self.validator_candidates.contains(validator_address),
             ENotValidatorCandidate
         );
-        assert!(self.trusted_validators.contains(&validator_address),0);
+        assert!(self.is_trusted_validator(validator_address),EOnlyTrustValidatorJoin);
 
         let wrapper = self.validator_candidates.remove(validator_address);
         let validator = wrapper.destroy();
@@ -366,14 +390,13 @@ module sui_system::validator_set {
         self: &mut ValidatorSet,
         validator_address: address,
         stake: Balance<OCT>,
-        lock: bool,
+        is_validator: bool,
         ctx: &mut TxContext,
     ) : StakedSui {
-        assert!(!self.validator_only_staking,EValidatorOnlyStaking);
         let sui_amount = stake.value();
         assert!(sui_amount >= MIN_STAKING_THRESHOLD, EStakingBelowThreshold);
         let validator = get_candidate_or_active_validator_mut(self, validator_address);
-        validator.request_add_stake(stake, ctx.sender(),lock, ctx)
+        validator.request_add_stake(stake, ctx.sender(),is_validator, ctx)
     }
 
     /// Called by `sui_system`, to withdraw some share of a stake from the validator. The share to withdraw
@@ -385,8 +408,8 @@ module sui_system::validator_set {
     public(package) fun request_withdraw_stake(
         self: &mut ValidatorSet,
         staked_sui: StakedSui,
-        ctx: &TxContext,
-    ) : Balance<OCT> {
+        ctx: &mut TxContext,
+    ) : (Balance<OCT>,Option<CoinVesting<OCT>>) {
         let staking_pool_id = pool_id(&staked_sui);
         let validator =
             if (self.staking_pool_mappings.contains(staking_pool_id)) { // This is an active validator.
@@ -398,24 +421,6 @@ module sui_system::validator_set {
                 wrapper.load_validator_maybe_upgrade()
             };
         validator.request_withdraw_stake(staked_sui, ctx)
-    }
-
-    public(package) fun request_withdraw_stake_lock(
-        self: &mut ValidatorSet,
-        staked_sui: StakedSui,
-        ctx: &mut TxContext,
-    ): (Balance<OCT>,CoinVesting<OCT>) {
-        let staking_pool_id = pool_id(&staked_sui);
-        let validator =
-            if (self.staking_pool_mappings.contains(staking_pool_id)) { // This is an active validator.
-                let validator_address = self.staking_pool_mappings[pool_id(&staked_sui)];
-                get_candidate_or_active_validator_mut(self, validator_address)
-            } else { // This is an inactive pool.
-                assert!(self.inactive_validators.contains(staking_pool_id), ENoPoolFound);
-                let wrapper = &mut self.inactive_validators[staking_pool_id];
-                wrapper.load_validator_maybe_upgrade()
-            }; 
-        validator.request_withdraw_stake_lock(staked_sui, ctx)
     }
 
     public(package) fun convert_to_fungible_staked_sui(
@@ -759,6 +764,16 @@ module sui_system::validator_set {
         };
         result
     }
+
+    fun is_trusted_validator(self: &ValidatorSet,validator: address):bool{
+        if(!self.only_trusted_validator){
+            true
+        }else {
+            self.trusted_validators.contains(&validator)
+        }
+    }
+
+
 
     /// Checks whether `new_validator` is duplicate with any currently pending validators.
     fun is_duplicate_with_pending_validator(self: &ValidatorSet, new_validator: &Validator): bool {
@@ -1316,17 +1331,9 @@ module sui_system::validator_set {
 
             // Add rewards to the validator. Don't try and distribute rewards though if the payout is zero.
             if (validator_reward.value() > 0) {
-                let validator_address = validator.sui_address();
-                let distribute_reward_event = DistributeRewardEvent{
-                    epoch: ctx.epoch(),
-                    validator_address,
-                    revenue_receiving_address: validator.revenue_receiving_address(),
-                    reward: validator_reward.value()
-                };
-                event::emit(distribute_reward_event);
-                transfer::public_transfer(coin::from_balance(validator_reward,ctx),validator.revenue_receiving_address());
-                // let rewards_stake = validator.request_add_stake(validator_reward, validator_address,false, ctx);
-                // transfer::public_transfer(rewards_stake, validator_address);
+                let revenue_receiving_address =  validator.revenue_receiving_address();
+                let rewards_stake = validator.request_add_stake_no_check(validator_reward, revenue_receiving_address,false, ctx);
+                transfer::public_transfer(rewards_stake, revenue_receiving_address);
             } else {
                 validator_reward.destroy_zero();
             };

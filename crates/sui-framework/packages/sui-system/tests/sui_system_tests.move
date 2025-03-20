@@ -201,7 +201,7 @@ module sui_system::sui_system_tests {
         let mut system_state = scenario.take_shared<SuiSystemState>();
 
         // Fails here since the commission rate is too high.
-        system_state.request_set_commission_rate(2001, scenario.ctx());
+        system_state.request_set_commission_rate(10001, scenario.ctx());
         test_scenario::return_shared(system_state);
 
         scenario_val.end();
@@ -674,6 +674,7 @@ module sui_system::sui_system_tests {
         scenario.next_tx(new_validator_addr);
         {
             let ctx = scenario.ctx();
+            system_state.execute_update_trusted_validators_action(true, new_validator_addr);
             system_state.request_add_validator_candidate(
                 new_pubkey,
                 vector[33, 219, 38, 23, 242, 109, 116, 235, 225, 192, 219, 45, 40, 124, 162, 25, 33, 68, 52, 41, 123, 9, 98, 11, 184, 150, 214, 62, 60, 210, 121, 62],

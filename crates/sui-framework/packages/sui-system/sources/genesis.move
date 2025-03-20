@@ -218,6 +218,7 @@ module sui_system::genesis {
                 validator.request_add_stake_at_genesis(
                     allocation_balance,
                     recipient_address,
+                    true,
                     ctx
                 );
             } else {

@@ -7,11 +7,7 @@ use crate::{
     collection_types::{Bag, Table, TableVec, VecMap, VecSet},
     committee::{CommitteeWithNetworkMetadata, NetworkMetadata},
     crypto::{
-        verify_proof_of_possession,
-        AuthorityPublicKey,
-        AuthorityPublicKeyBytes,
-        AuthoritySignature,
-        NetworkPublicKey,
+        verify_proof_of_possession, AuthorityPublicKey, AuthorityPublicKeyBytes, AuthoritySignature, NetworkPublicKey,
     },
     error::SuiError,
     id::ID,
@@ -28,8 +24,7 @@ use super::{
     epoch_start_sui_system_state::EpochStartValidatorInfoV1,
     get_validators_from_table_vec,
     sui_system_state_summary::{SuiSupperCommitteeSummary, SuiSystemStateSummary, SuiValidatorSummary},
-    AdvanceEpochParams,
-    SuiSystemStateTrait,
+    AdvanceEpochParams, SuiSystemStateTrait,
 };
 
 const E_METADATA_INVALID_POP: u64 = 0;
@@ -273,6 +268,7 @@ pub struct ValidatorV1 {
     #[serde(skip)]
     verified_metadata: OnceCell<VerifiedValidatorMetadataV1>,
     pub revenue_receiving_address: SuiAddress,
+    pub only_validator_staking: bool,
 
     pub voting_power: u64,
     pub operation_cap_id: ID,
@@ -323,6 +319,7 @@ impl ValidatorV1 {
             operation_cap_id,
             gas_price,
             revenue_receiving_address,
+            only_validator_staking,
             staking_pool:
                 StakingPoolV1 {
                     id: staking_pool_id,
@@ -345,7 +342,6 @@ impl ValidatorV1 {
         } = self;
         SuiValidatorSummary {
             sui_address,
-            revenue_receiving_address,
             protocol_pubkey_bytes,
             network_pubkey_bytes,
             worker_pubkey_bytes,
@@ -367,6 +363,8 @@ impl ValidatorV1 {
             next_epoch_primary_address,
             next_epoch_worker_address,
             voting_power,
+            revenue_receiving_address,
+            only_validator_staking,
             operation_cap_id: operation_cap_id.bytes,
             gas_price,
             staking_pool_id,
@@ -406,17 +404,13 @@ pub struct StakingPoolV1 {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub struct SuiSupperCommittee {
-    pub committee_validators: VecSet<SuiAddress>,
     pub proposal_list: Vec<ObjectID>,
     pub extra_fields: Bag,
 }
 
 impl SuiSupperCommittee {
     pub fn into_supper_committee_summary(self) -> SuiSupperCommitteeSummary {
-        SuiSupperCommitteeSummary {
-            committee_validators: self.committee_validators.contents,
-            proposal_list: self.proposal_list,
-        }
+        SuiSupperCommitteeSummary { proposal_list: self.proposal_list }
     }
 }
 
@@ -431,7 +425,7 @@ pub struct ValidatorSetV1 {
     pub inactive_validators: Table,
     pub validator_candidates: Table,
     pub at_risk_validators: VecMap<SuiAddress, u64>,
-    pub validator_only_staking: bool,
+    pub only_trusted_validator: bool,
     pub trusted_validators: VecSet<SuiAddress>,
     pub extra_fields: Bag,
 }
@@ -538,11 +532,14 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                 let name = verified_metadata.sui_pubkey_bytes();
                 (
                     name,
-                    (validator.voting_power, NetworkMetadata {
-                        network_address: verified_metadata.net_address.clone(),
-                        narwhal_primary_address: verified_metadata.primary_address.clone(),
-                        network_public_key: Some(verified_metadata.network_pubkey.clone()),
-                    }),
+                    (
+                        validator.voting_power,
+                        NetworkMetadata {
+                            network_address: verified_metadata.net_address.clone(),
+                            narwhal_primary_address: verified_metadata.primary_address.clone(),
+                            network_public_key: Some(verified_metadata.network_pubkey.clone()),
+                        },
+                    ),
                 )
             })
             .collect();
@@ -611,8 +608,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
                     inactive_validators: Table { id: inactive_pools_id, size: inactive_pools_size },
                     validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
                     at_risk_validators: VecMap { contents: at_risk_validators },
-                    validator_only_staking,
                     trusted_validators: VecSet { contents: trusted_validators },
+                    only_trusted_validator,
                     extra_fields: _,
                 },
             storage_fund,
@@ -685,8 +682,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV1 {
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
             supper_committee: supper_committee.into_supper_committee_summary(),
-            validator_only_staking,
             trusted_validators,
+            only_trusted_validator,
         }
     }
 }

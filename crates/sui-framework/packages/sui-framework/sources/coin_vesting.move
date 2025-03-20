@@ -42,12 +42,12 @@ public fun new_form_balance<T>(
     }
 }
 
-public entry fun release_entry<T>(self: &mut CoinVesting<T>, ctx: &mut TxContext){
-    let withdraw = self.release(ctx);
+public entry fun release<T>(self: &mut CoinVesting<T>, ctx: &mut TxContext){
+    let withdraw = self.release_non_entry(ctx);
     transfer::public_transfer(coin::from_balance(withdraw,ctx),ctx.sender());
 }
 
-public fun release<T>(self: &mut CoinVesting<T>, ctx: &TxContext): Balance<T> {
+public fun release_non_entry<T>(self: &mut CoinVesting<T>, ctx: &TxContext): Balance<T> {
     let current_epoch = ctx.epoch();
     if (self.last_release_epoch == 0) {
         self.last_release_epoch = self.start_epoch + self.cliff_interval_epoch;

@@ -516,6 +516,7 @@ all the information we need in the system.
             <a href="validator.md#0x3_validator">validator</a>.request_add_stake_at_genesis(
                 allocation_balance,
                 recipient_address,
+                <b>true</b>,
                 ctx
             );
         } <b>else</b> {

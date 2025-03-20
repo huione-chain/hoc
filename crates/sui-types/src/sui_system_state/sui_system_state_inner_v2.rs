@@ -204,8 +204,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV2 {
                     inactive_validators: Table { id: inactive_pools_id, size: inactive_pools_size },
                     validator_candidates: Table { id: validator_candidates_id, size: validator_candidates_size },
                     at_risk_validators: VecMap { contents: at_risk_validators },
-                    validator_only_staking,
                     trusted_validators: VecSet { contents: trusted_validators },
+                    only_trusted_validator,
                     extra_fields: _,
                 },
             storage_fund,
@@ -279,8 +279,8 @@ impl SuiSystemStateTrait for SuiSystemStateInnerV2 {
             stake_subsidy_period_length,
             stake_subsidy_decrease_rate,
             supper_committee: supper_committee.into_supper_committee_summary(),
-            validator_only_staking,
             trusted_validators,
+            only_trusted_validator,
         }
     }
 }

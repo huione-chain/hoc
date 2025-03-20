@@ -6,8 +6,8 @@ title: Module `0x2::coin_vesting`
 
 -  [Resource `CoinVesting`](#0x2_coin_vesting_CoinVesting)
 -  [Function `new_form_balance`](#0x2_coin_vesting_new_form_balance)
--  [Function `release_entry`](#0x2_coin_vesting_release_entry)
 -  [Function `release`](#0x2_coin_vesting_release)
+-  [Function `release_non_entry`](#0x2_coin_vesting_release_non_entry)
 -  [Function `destroy_zero`](#0x2_coin_vesting_destroy_zero)
 
 
@@ -131,13 +131,13 @@ title: Module `0x2::coin_vesting`
 
 </details>
 
-<a name="0x2_coin_vesting_release_entry"></a>
+<a name="0x2_coin_vesting_release"></a>
 
-## Function `release_entry`
+## Function `release`
 
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_entry">release_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> <a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -146,8 +146,8 @@ title: Module `0x2::coin_vesting`
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_entry">release_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> TxContext){
-    <b>let</b> withdraw = self.<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>(ctx);
+<pre><code><b>public</b> entry <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">CoinVesting</a>&lt;T&gt;, ctx: &<b>mut</b> TxContext){
+    <b>let</b> withdraw = self.<a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_non_entry">release_non_entry</a>(ctx);
     <a href="../sui-framework/transfer.md#0x2_transfer_public_transfer">transfer::public_transfer</a>(<a href="../sui-framework/coin.md#0x2_coin_from_balance">coin::from_balance</a>(withdraw,ctx),ctx.sender());
 }
 </code></pre>
@@ -156,13 +156,13 @@ title: Module `0x2::coin_vesting`
 
 </details>
 
-<a name="0x2_coin_vesting_release"></a>
+<a name="0x2_coin_vesting_release_non_entry"></a>
 
-## Function `release`
+## Function `release_non_entry`
 
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;T&gt;, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;T&gt;
+<pre><code><b>public</b> <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_non_entry">release_non_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">coin_vesting::CoinVesting</a>&lt;T&gt;, ctx: &<a href="../sui-framework/tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>): <a href="../sui-framework/balance.md#0x2_balance_Balance">balance::Balance</a>&lt;T&gt;
 </code></pre>
 
 
@@ -171,7 +171,7 @@ title: Module `0x2::coin_vesting`
 <summary>Implementation</summary>
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release">release</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">CoinVesting</a>&lt;T&gt;, ctx: &TxContext): Balance&lt;T&gt; {
+<pre><code><b>public</b> <b>fun</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_release_non_entry">release_non_entry</a>&lt;T&gt;(self: &<b>mut</b> <a href="../sui-framework/coin_vesting.md#0x2_coin_vesting_CoinVesting">CoinVesting</a>&lt;T&gt;, ctx: &TxContext): Balance&lt;T&gt; {
     <b>let</b> current_epoch = ctx.epoch();
     <b>if</b> (self.last_release_epoch == 0) {
         self.last_release_epoch = self.start_epoch + self.cliff_interval_epoch;
